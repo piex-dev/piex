@@ -36,9 +36,9 @@ interface PlanModeState {
 // Tool lists
 // ══════════════════════════════════════════════════════════════════════════
 
-const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls"];
+const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "write"];
 const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
-const PLAN_DISABLED = new Set(["edit", "write"]);
+const PLAN_DISABLED = new Set(["edit"]);
 const PLAN_MANAGED = new Set([...PLAN_MODE_TOOLS, ...NORMAL_MODE_TOOLS]);
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -275,6 +275,21 @@ export default function planExtension(pi: ExtensionAPI) {
     }
   });
 
+
+  // ── Write protection (plan-only gate) ────────────
+
+  pi.on("tool_call", async (event) => {
+    if (!planModeEnabled || event.toolName !== "write") return;
+    const filePath = (event.input as { path?: string }).path;
+    if (!filePath) return;
+    const basename = path.basename(filePath);
+    if (basename !== PLAN_FILE) {
+      return {
+        block: true,
+        reason: `Plan mode: only writing to ${PLAN_FILE} is allowed. Write your plan there.`,
+      };
+    }
+  });
   // ── Context injection ─────────────────────────────
 
   pi.on("context", async (event) => {
