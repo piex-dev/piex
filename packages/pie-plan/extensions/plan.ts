@@ -1,6 +1,6 @@
 /**
  * pie-plan extension — Plan Mode: read-only exploration → plan → execute.
- *
+
  *   pi install npm:@debugtalk/pie-plan
  *   pi -e ./extensions/plan.ts
  *
@@ -12,7 +12,6 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Key } from "@earendil-works/pi-tui";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@earendil-works/pi-ai";
-import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -195,26 +194,6 @@ export default function planExtension(pi: ExtensionAPI) {
       planFilePath,
     });
   }
-
-  // ── Plan file protection ──────────────────────────
-
-  /**
-   * Write the agent's plan to PLAN.md, protected from compaction.
-   * The file serves as a persistent reference during execution.
-   */
-  async function writePlanFile(content: string) {
-    const filePath = planFilePath || path.join(process.cwd(), PLAN_FILE);
-    planFilePath = filePath;
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, content, "utf-8");
-  }
-
-  // Protect PLAN.md from compaction
-  pi.on("context", async (event) => {
-    if (!planFilePath) return;
-    // The file path is tracked; the model naturally references it.
-    // Pi's session manager handles context, we just ensure relevance.
-  });
 
   // ── Toggle ────────────────────────────────────────
 
