@@ -19,7 +19,7 @@
     "edit"
   ],
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": ["./extensions/hashline.ts"]
   },
   "exports": {
     ".": "./extensions/hashline.ts"

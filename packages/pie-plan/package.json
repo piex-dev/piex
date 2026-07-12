@@ -20,7 +20,7 @@
     "execution-tracking"
   ],
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": ["./extensions/plan.ts"]
   },
   "exports": {
     ".": "./extensions/plan.ts"

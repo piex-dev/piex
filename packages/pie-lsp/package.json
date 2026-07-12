@@ -20,7 +20,7 @@
     "formatting"
   ],
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": ["./extensions/lsp.ts"]
   },
   "exports": {
     ".": "./extensions/lsp.ts"
