@@ -1,0 +1,90 @@
+# 设计理念
+
+Pie 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 pi package 形式分发。
+
+## 核心原则
+
+### 1. 100% 基于 pi Extension API
+
+不 fork pi，不修改 pi 内部代码。所有功能通过 pi 的标准扩展接口实现：
+
+| 能力 | 实现方式 |
+|------|---------|
+| 覆盖内置工具 | `pi.registerTool({ name: "edit", ... })` |
+| 注册新工具 | `pi.registerTool({ name: "debug", ... })` |
+| Hook 工具调用 | `pi.on("tool_call", ...)` |
+| Hook 工具结果 | `pi.on("tool_result", ...)` |
+| 注册命令 | `pi.registerCommand("review", ...)` |
+| 注入上下文 | `pi.on("before_agent_start", ...)` |
+| 会话清理 | `pi.on("session_shutdown", ...)` |
+| 状态持久化 | `pi.appendEntry("state-key", ...)` |
+| Footer/Widget | `ctx.ui.setStatus(...)`, `ctx.ui.setWidget(...)` |
+| 交互弹窗 | `ctx.ui.select(...)`, `ctx.ui.editor(...)` |
+| 快捷键 | `pi.registerShortcut(Key.shift("p"), ...)` |
+
+### 2. 随 pi 升级而升级
+
+- 每个 pie package 是独立的 npm 包，不嵌入 pi
+- pi 升级时 pie 不受影响（扩展 API 向后兼容）
+- pie 可通过 `pi update` 独立升级
+- 版本号独立管理，无耦合
+
+### 3. 按需安装
+
+用户只安装需要的功能：
+
+```bash
+pi install npm:@debugtalk/pie-hashline   # hashline 编辑
+pi install npm:@debugtalk/pie-dap        # DAP 调试
+pi install npm:@debugtalk/pie-plan       # 计划模式
+```
+
+### 4. 代码来源可追溯
+
+每个 package 标注了功能特性和设计灵感的原始来源：
+
+| Package | 功能来源 | 实现方式 |
+|---------|---------|---------|
+| pie-hashline | oh-my-pi hashline | 依赖 `@oh-my-pi/hashline` + pi 适配层 + Node.js polyfill |
+| pie-dap | oh-my-pi DAP | 从 omp 独立移植（Bun → Node.js） |
+| pie-lsp | oh-my-pi LSP | 从 omp 精简移植 |
+| pie-plan | pi 官方示例 | 基于 plan-mode 示例增强 |
+| pie-review | oh-my-pi /review | 从 omp 精简移植 |
+
+## 架构模式
+
+每个 package 遵循统一结构：
+
+```
+pie-<name>/
+├── package.json          # npm 包，含 "pi" manifest
+├── README.md             # package 文档
+└── extensions/
+    └── <name>.ts         # pi 扩展入口，export default function(pi)
+    └── ...辅助模块.ts
+```
+
+`package.json` 中的 `"pi": { "extensions": ["./extensions"] }` 告诉 pi 自动发现扩展文件。
+
+### 扩展加载流程
+
+```
+pi 启动
+  ├── 解析 settings.json → 发现 pie package
+  ├── 读取 package.json → 找到 extensions/ 目录
+  ├── jiti 加载 .ts 文件
+  └── 调用 export default function(pi)
+      ├── pi.registerTool(...)    ← 注册工具
+      ├── pi.registerCommand(...)  ← 注册命令
+      └── pi.on("event", ...)     ← 订阅事件
+```
+
+### 扩展入口函数签名
+
+```typescript
+// 同步（普通扩展）
+export default function myExtension(pi: ExtensionAPI) { ... }
+
+// 异步（需要初始化例如 fetch 远程配置）
+export default async function myExtension(pi: ExtensionAPI) { ... }
+```

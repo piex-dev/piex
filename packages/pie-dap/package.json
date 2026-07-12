@@ -1,0 +1,35 @@
+{
+  "name": "@debugtalk/pie-dap",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "DAP (Debug Adapter Protocol) extension for pi — debug programs directly from your coding agent",
+  "license": "MIT",
+  "author": "debugtalk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debugtalk/pie.git",
+    "directory": "packages/pie-dap"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "dap",
+    "debug",
+    "debug-adapter-protocol"
+  ],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "exports": {
+    ".": "./extensions/dap.ts"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}

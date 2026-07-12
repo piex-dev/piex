@@ -1,0 +1,35 @@
+{
+  "name": "@debugtalk/pie-review",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Code Review extension for pi — interactive /review command and LLM-callable review tool",
+  "license": "MIT",
+  "author": "debugtalk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debugtalk/pie.git",
+    "directory": "packages/pie-review"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "review",
+    "code-review",
+    "diff"
+  ],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "exports": {
+    ".": "./extensions/review.ts"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}

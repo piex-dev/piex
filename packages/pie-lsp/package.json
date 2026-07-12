@@ -1,0 +1,36 @@
+{
+  "name": "@debugtalk/pie-lsp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "LSP (Language Server Protocol) extension for pi — diagnostics, definitions, references, hover, symbols, and formatting",
+  "license": "MIT",
+  "author": "debugtalk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debugtalk/pie.git",
+    "directory": "packages/pie-lsp"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "lsp",
+    "language-server-protocol",
+    "diagnostics",
+    "formatting"
+  ],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "exports": {
+    ".": "./extensions/lsp.ts"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}

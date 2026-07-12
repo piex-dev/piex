@@ -1,0 +1,38 @@
+{
+  "name": "@debugtalk/pie-hashline",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Hashline patch language extension for pi — compact, line-anchored, tag-verified file edits",
+  "license": "MIT",
+  "author": "debugtalk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debugtalk/pie.git",
+    "directory": "packages/pie-hashline"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "hashline",
+    "patch",
+    "edit"
+  ],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "exports": {
+    ".": "./extensions/hashline.ts"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "dependencies": {
+    "@oh-my-pi/hashline": "^16.4.0"
+  }
+}
