@@ -24,7 +24,7 @@
   "colors": {
     "accent": "green",
     "border": "blue",
-    "borderAccent": "green",
+    "borderAccent": "cyan",
     "borderMuted": "darkGray",
     "success": "green",
     "error": "red",

@@ -50,8 +50,11 @@ pi install npm:@piex-dev/plan       # 计划模式
 | lsp | oh-my-pi LSP | 从 omp 精简移植 |
 | plan | pi 官方示例 | 基于 plan-mode 示例增强 |
 | review | oh-my-pi /review | 从 omp 精简移植 |
+| theme-dark-terminal | [opencode-themes](https://github.com/debugtalk/opencode-themes) | pi.themes 静态主题 JSON 分发 |
 
 ## 架构模式
+
+### 扩展 Package 模式
 
 每个 package 遵循统一结构：
 
@@ -92,16 +95,33 @@ export default async function myExtension(pi: ExtensionAPI) { ... }
 
 ### 主题 Package 模式
 
-主题 package 没有 TypeScript 扩展代码，而是通过静态 JSON 文件分发：
+主题 package 没有 TypeScript 扩展代码，而是通过静态 JSON 文件分发。pi 支持 `themes/` 约定目录或 `pi.themes` 显式文件数组；为兼容 `/settings` 预览与运行时加载，推荐用约定目录形式：
+
+```json
+{
+  "pi": { "themes": ["./themes"] }
+}
+```
 
 ```
 <name>/
-├── package.json          # npm 包，"pi": { "themes": [...] }
+├── package.json          # npm 包，"pi": { "themes": ["./themes"] }
 ├── README.md
 └── themes/
     └── <name>.json       # pi theme JSON（51 color tokens）
 ```
 
-`package.json` 中的 `"pi": { "themes": ["./themes/dark-terminal.json"] }` 告诉 pi 加载主题文件。
+`package.json` 中的 `"pi": { "themes": ["./themes"] }` 告诉 pi 自动发现主题文件。
 
-主题 JSON 遵循 [pi 主题格式规范](https://github.com/earendil-works/pi)，包含 `name`、`vars`（可选色板变量）和 `colors`（51 个必需 token）。pi 启动时自动加载，`/settings` 切换。
+**安装方式选择：**
+
+- **全局 settings**（`~/.pi/agent/settings.json`）：本地包路径必须传绝对路径，否则 `/reload` 后相对路径会按 settings 文件位置解析导致主题丢失。例：
+  ```bash
+  pi install /absolute/path/to/piex/packages/theme-dark-terminal
+  ```
+- **项目级 settings**（`.pi/settings.json`）：可用相对路径，团队共享。例：
+  ```bash
+  pi install -l ./packages/theme-dark-terminal
+  ```
+
+主题 JSON 包含 `name`（唯一主题名）、`vars`（可选色板变量）和 `colors`（51 个必需 token）。pi 启动时自动加载，`/settings` 切换。

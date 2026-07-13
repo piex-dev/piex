@@ -29,6 +29,7 @@ interface PlanModeState {
   todos?: TodoItem[];
   executing?: boolean;
   toolsBeforePlanMode?: string[];
+  todosWidgetVisible?: boolean;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -153,6 +154,7 @@ export default function planExtension(pi: ExtensionAPI) {
   let todoItems: TodoItem[] = [];
   let toolsBeforePlanMode: string[] | undefined;
   let planFilePath = "";
+  let todosWidgetVisible = false;
 
   pi.registerFlag("plan", {
     description: "Start in plan mode (read-only exploration)",
@@ -161,6 +163,23 @@ export default function planExtension(pi: ExtensionAPI) {
   });
 
   // ── Status display ─────────────────────────────────
+
+  function buildTodoWidgetLines(): ((ctx: ExtensionContext) => string)[] {
+    return todoItems.map((item) =>
+      item.completed
+        ? (ctx) => ctx.ui.theme.fg("success", "☑ ") + ctx.ui.theme.fg("muted", ctx.ui.theme.strikethrough(item.text))
+        : (ctx) => ctx.ui.theme.fg("muted", "☐ ") + item.text,
+    );
+  }
+
+  function renderTodoWidget(ctx: ExtensionContext) {
+    if (!todosWidgetVisible || todoItems.length === 0) {
+      ctx.ui.setWidget("plan-todos", undefined);
+      return;
+    }
+    const lines = buildTodoWidgetLines().map((fn) => fn(ctx));
+    ctx.ui.setWidget("plan-todos", lines);
+  }
 
   function updateStatus(ctx: ExtensionContext) {
     if (executionMode && todoItems.length > 0) {
@@ -171,17 +190,7 @@ export default function planExtension(pi: ExtensionAPI) {
     } else {
       ctx.ui.setStatus("plan-mode", undefined);
     }
-
-    if (executionMode && todoItems.length > 0) {
-      const lines = todoItems.map((item) =>
-        item.completed
-          ? ctx.ui.theme.fg("success", "☑ ") + ctx.ui.theme.fg("muted", ctx.ui.theme.strikethrough(item.text))
-          : ctx.ui.theme.fg("muted", "☐ ") + item.text,
-      );
-      ctx.ui.setWidget("plan-todos", lines);
-    } else {
-      ctx.ui.setWidget("plan-todos", undefined);
-    }
+    renderTodoWidget(ctx);
   }
 
   function persistState() {
@@ -192,6 +201,7 @@ export default function planExtension(pi: ExtensionAPI) {
       executing: executionMode,
       toolsBeforePlanMode,
       planFilePath,
+      todosWidgetVisible,
     });
   }
 
@@ -201,6 +211,7 @@ export default function planExtension(pi: ExtensionAPI) {
     planModeEnabled = !planModeEnabled;
     executionMode = false;
     todoItems = [];
+    todosWidgetVisible = false;
 
     if (planModeEnabled) {
       toolsBeforePlanMode ??= pi.getActiveTools();
@@ -223,16 +234,18 @@ export default function planExtension(pi: ExtensionAPI) {
   });
 
   pi.registerCommand("todos", {
-    description: "Show current plan todo list",
+    description: "Toggle plan todo list visibility",
     handler: async (_args, ctx) => {
       if (todoItems.length === 0) {
         ctx.ui.notify("No todos. Create a plan first with /plan", "info");
         return;
       }
-      const list = todoItems
-        .map((t, i) => `${i + 1}. ${t.completed ? "✓" : "○"} ${t.text}`)
-        .join("\n");
-      ctx.ui.notify(`Plan Progress:\n${list}`, "info");
+      todosWidgetVisible = !todosWidgetVisible;
+      renderTodoWidget(ctx);
+      ctx.ui.notify(
+        todosWidgetVisible ? "Todos visible" : "Todos hidden",
+        "info",
+      );
     },
   });
 
@@ -308,7 +321,8 @@ Remaining steps:
 ${todoList}
 
 Execute each step in order.
-After completing a step, include a [DONE:n] tag in your response.`,
+
+CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY step you complete (e.g. "[DONE:1][DONE:2]" for steps 1 and 2). Without these tags, progress tracking breaks and todo items will never update.`,
           display: false,
         },
       };
@@ -317,13 +331,28 @@ After completing a step, include a [DONE:n] tag in your response.`,
 
   // ── Progress tracking ─────────────────────────────
 
+  // Track consecutive turns without DONE tags to inject reminders
+  let turnsWithoutProgress = 0;
+
   pi.on("turn_end", async (event, ctx) => {
     if (!executionMode || todoItems.length === 0) return;
     if (!isAssistantMessage(event.message)) return;
 
     const text = getTextContent(event.message);
-    if (markCompletedSteps(text, todoItems) > 0) {
+    const completed = markCompletedSteps(text, todoItems);
+    if (completed > 0) {
       updateStatus(ctx);
+      turnsWithoutProgress = 0;
+    } else {
+      turnsWithoutProgress++;
+      if (turnsWithoutProgress >= 2) {
+        const remaining = todoItems.filter((t) => !t.completed);
+        pi.sendMessage({
+          customType: "plan-done-reminder",
+          content: `⚠️ You have not included any [DONE:n] tags for ${turnsWithoutProgress} consecutive turns. Remaining steps: ${remaining.map((t) => t.step).join(", ")}. End your next response with [DONE:n] for each completed step.`,
+          display: false,
+        }, { triggerTurn: false });
+      }
     }
     persistState();
   });
@@ -341,6 +370,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
         );
         executionMode = false;
         todoItems = [];
+        todosWidgetVisible = false;
         toolsBeforePlanMode = undefined;
         updateStatus(ctx);
         persistState();
@@ -380,6 +410,8 @@ After completing a step, include a [DONE:n] tag in your response.`,
 
       planModeEnabled = false;
       executionMode = true;
+      turnsWithoutProgress = 0;
+      todosWidgetVisible = true;
       pi.setActiveTools(toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()));
       toolsBeforePlanMode = undefined;
       updateStatus(ctx);
@@ -390,7 +422,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
       pi.sendMessage(
         {
           customType: "plan-mode-execute",
-          content: `Execute the plan.\n\nPlan file: ${planFilePath}\n\nRemaining steps:\n${remaining}\n\nStart with: ${first.text}\nInclude [DONE:n] tags as you complete steps.`,
+          content: `Execute the plan.\n\nPlan file: ${planFilePath}\n\nRemaining steps:\n${remaining}\n\nStart with: ${first.text}\n\n[CRITICAL] After completing each step, you MUST add a [DONE:n] tag at the end of your response. Example: if you finished steps 1 and 3, end with "[DONE:1][DONE:3]". Missing tags = broken progress tracking.`,
           display: true,
         },
         { triggerTurn: true, deliverAs: "followUp" },
@@ -424,6 +456,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
       executionMode = planModeEntry.data.executing ?? executionMode;
       toolsBeforePlanMode = planModeEntry.data.toolsBeforePlanMode ?? toolsBeforePlanMode;
       planFilePath = planModeEntry.data.planFilePath ?? planFilePath;
+      todosWidgetVisible = planModeEntry.data.todosWidgetVisible ?? todosWidgetVisible;
     }
 
     // On resume: rebuild completion state from messages after last execute

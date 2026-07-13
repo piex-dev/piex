@@ -19,7 +19,9 @@
     "high-contrast"
   ],
   "pi": {
-    "themes": ["./themes/dark-terminal.json"]
+    "themes": [
+      "./themes"
+    ]
   },
   "files": [
     "themes",
