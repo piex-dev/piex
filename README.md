@@ -82,7 +82,8 @@ done
 | [设计理念](docs/design.md) | 核心原则与架构模式 |
 | [架构概览](docs/architecture.md) | 项目结构、工具注册、API 映射 |
 | [实施路线](docs/roadmap.md) | 已完成 & 待规划 |
-| [测试指南](docs/testing.md) | 快速测试与功能测试 |
+| [评测方案](docs/evaluation.md) | 评测集选择、Docker 架构、指标设计、实施路径 |
+| [测试指南](docs/testing.md) | package 快速测试与功能验证命令 |
 | [参考资料](docs/references.md) | pi 文档、来源项目索引 |
 
 ## 开发
