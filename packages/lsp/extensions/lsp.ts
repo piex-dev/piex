@@ -1,7 +1,7 @@
 /**
- * pie-lsp extension — registers an `lsp` tool for Language Server Protocol operations.
+ * lsp extension — registers an `lsp` tool for Language Server Protocol operations.
  *
- *   pi install npm:@debugtalk/pie-lsp
+ *   pi install npm:@piex-dev/lsp
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";

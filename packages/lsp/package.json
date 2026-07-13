@@ -1,5 +1,5 @@
 {
-  "name": "@debugtalk/pie-lsp",
+  "name": "@piex-dev/lsp",
   "version": "0.1.0",
   "type": "module",
   "description": "LSP (Language Server Protocol) extension for pi — diagnostics, definitions, references, hover, symbols, and formatting",
@@ -7,8 +7,8 @@
   "author": "debugtalk",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/debugtalk/pie.git",
-    "directory": "packages/pie-lsp"
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "packages/lsp"
   },
   "keywords": [
     "pi",

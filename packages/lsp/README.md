@@ -1,4 +1,4 @@
-# pie-lsp
+# lsp
 
 LSP（Language Server Protocol）语言服务器扩展，注册 `lsp` 工具。
 
@@ -34,7 +34,7 @@ hover, symbols, workspace_symbols, format, reload
 ## 安装
 
 ```bash
-pi install npm:@debugtalk/pie-lsp
+pi install npm:@piex-dev/lsp
 pi -e ./extensions/lsp.ts
 ```
 
@@ -54,7 +54,7 @@ pip install pyright                       # Python
 
 ## 与 omp 实现差异
 
-| omp | pie-lsp |
+| omp | lsp |
 |-----|---------|
 | 14 个 LSP action（含 codeAction, rename, rangeFormatting, completion 等） | 9 个 action（diagnostics, definition, references, hover, symbols, workspace_symbols, format, status, reload） |
 | LSP 诊断支持扩展诊断（relatedInformation） | 基础诊断格式 |

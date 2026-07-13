@@ -1,5 +1,5 @@
 /**
- * PieNodeFilesystem — Node.js-native filesystem adapter for the hashline
+ * PiexNodeFilesystem — Node.js-native filesystem adapter for the hashline
  * Patcher. Uses `node:fs` APIs directly, eliminating the Bun polyfill for
  * file I/O (Bun.hash.xxHash32 polyfill remains necessary for computeFileHash).
  *
@@ -44,10 +44,10 @@ export function canonicalSnapshotKey(absolutePath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// PieNodeFilesystem
+// PiexNodeFilesystem
 // ---------------------------------------------------------------------------
 
-export class PieNodeFilesystem extends Filesystem {
+export class PiexNodeFilesystem extends Filesystem {
   constructor(_worktree: string) {
     super();
   }

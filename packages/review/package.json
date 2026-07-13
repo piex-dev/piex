@@ -1,5 +1,5 @@
 {
-  "name": "@debugtalk/pie-review",
+  "name": "@piex-dev/review",
   "version": "0.1.0",
   "type": "module",
   "description": "Code Review extension for pi — interactive /review command and LLM-callable review tool",
@@ -7,8 +7,8 @@
   "author": "debugtalk",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/debugtalk/pie.git",
-    "directory": "packages/pie-review"
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "packages/review"
   },
   "keywords": [
     "pi",

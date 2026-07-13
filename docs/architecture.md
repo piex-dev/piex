@@ -3,7 +3,7 @@
 ## 项目结构
 
 ```
-pie/                                  # monorepo
+piex/                                  # monorepo
 ├── README.md                         # 项目入口
 ├── .gitignore
 ├── docs/                             # 📚 文档
@@ -14,31 +14,31 @@ pie/                                  # monorepo
 │   ├── references.md                 #   参考资料索引
 │   └── migration/                    #   迁移方案记录
 │       └── plan-review.md
-└── packages/                         # 📦 5 个独立 pi package
-    ├── pie-hashline/
+└── packages/                         # 📦 5 个独立 piex package
+    ├── hashline/
     │   ├── README.md
     │   ├── package.json
     │   └── extensions/
     │       ├── hashline.ts
     │       └── bun-polyfill.ts
-    ├── pie-dap/
+    ├── dap/
     │   ├── README.md
     │   ├── package.json
     │   └── extensions/
     │       ├── dap.ts, client.ts, session.ts
     │       ├── config.ts, types.ts, utils.ts
     │       ├── defaults.json, non-interactive-env.ts
-    ├── pie-lsp/
+    ├── lsp/
     │   ├── README.md
     │   ├── package.json
     │   └── extensions/
     │       ├── lsp.ts, defaults.json
-    ├── pie-plan/
+    ├── plan/
     │   ├── README.md
     │   ├── package.json
     │   └── extensions/
     │       └── plan.ts
-    └── pie-review/
+    └── review/
         ├── README.md
         ├── package.json
         └── extensions/
@@ -49,15 +49,15 @@ pie/                                  # monorepo
 
 | Package | 代码量 | 工具 | 外部依赖 | 功能来源 |
 |---------|--------|------|---------|---------|
-| pie-hashline | 191 行 + polyfill 127 行 | 覆盖 `edit` | `@oh-my-pi/hashline` | oh-my-pi |
-| pie-dap | 1942 行 + 212 行 JSON | `debug` | 无 | oh-my-pi |
-| pie-lsp | 570 行 + 499 行 JSON | `lsp` | 无 | oh-my-pi |
-| pie-plan | 348 行 | `/plan`, `/todos` | 无 | pi 示例 |
-| pie-review | 330 行 | `/review`, `review` | 无 | oh-my-pi |
+| hashline | 191 行 + polyfill 127 行 | 覆盖 `edit` | `@oh-my-pi/hashline` | oh-my-pi |
+| dap | 1942 行 + 212 行 JSON | `debug` | 无 | oh-my-pi |
+| lsp | 570 行 + 499 行 JSON | `lsp` | 无 | oh-my-pi |
+| plan | 348 行 | `/plan`, `/todos` | 无 | pi 示例 |
+| review | 330 行 | `/review`, `review` | 无 | oh-my-pi |
 
 ## 工具注册总览
 
-安装全部 pie package 后，pi 提供的工具：
+安装全部 piex package 后，pi 提供的工具：
 
 | 工具名 | 来源 | 类型 | 说明 |
 |--------|------|------|------|
@@ -67,14 +67,14 @@ pie/                                  # monorepo
 | `grep` | pi 内置 | 读 | 搜索内容 |
 | `find` | pi 内置 | 读 | 搜索文件 |
 | `ls` | pi 内置 | 读 | 列出目录 |
-| **`edit`** | **pie-hashline** | 写 | hashline 编辑（覆盖内置） |
-| **`debug`** | **pie-dap** | 读写 | DAP 调试（launch/attach/step/evaluate） |
-| **`lsp`** | **pie-lsp** | 读写 | LSP 语言服务器（diagnostics/hover/references） |
-| **`review`** | **pie-review** | 读 | 代码评审（diff/file/branch/commit） |
+| **`edit`** | **hashline** | 写 | hashline 编辑（覆盖内置） |
+| **`debug`** | **dap** | 读写 | DAP 调试（launch/attach/step/evaluate） |
+| **`lsp`** | **lsp** | 读写 | LSP 语言服务器（diagnostics/hover/references） |
+| **`review`** | **review** | 读 | 代码评审（diff/file/branch/commit） |
 
 ## pi Extension API 映射
 
-| 原功能概念 | 来源 | pie 实现 | pi API |
+| 原功能概念 | 来源 | piex 实现 | pi API |
 |-----------|------|---------|--------|
 | 覆盖 edit 工具 | omp | hashline.ts | `pi.registerTool({ name: "edit" })` |
 | Hook read 追加 header | omp | hashline.ts | `pi.on("tool_result", ...)` |

@@ -1,5 +1,5 @@
 {
-  "name": "@debugtalk/pie-hashline",
+  "name": "@piex-dev/hashline",
   "version": "0.1.0",
   "type": "module",
   "description": "Hashline patch language extension for pi — compact, line-anchored, tag-verified file edits",
@@ -7,8 +7,8 @@
   "author": "debugtalk",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/debugtalk/pie.git",
-    "directory": "packages/pie-hashline"
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "packages/hashline"
   },
   "keywords": [
     "pi",

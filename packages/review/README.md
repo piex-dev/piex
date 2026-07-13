@@ -1,4 +1,4 @@
-# pie-review
+# review
 
 代码评审扩展 — `/review` 交互命令 + LLM 可调用的 `review` 工具。
 
@@ -28,7 +28,7 @@ review.ts                      # pi 扩展入口 (330 行)
 ## 安装
 
 ```bash
-pi install npm:@debugtalk/pie-review
+pi install npm:@piex-dev/review
 pi -e ./extensions/review.ts
 ```
 
@@ -38,7 +38,7 @@ pi -e ./extensions/review.ts
 
 ## 与 omp review 的差异
 
-| omp review | pie-review (轻量版) |
+| omp review | review (轻量版) |
 |-----------|-------------------|
 | 多 agent 并行评审 | 当前 agent 直接评审 |
 | TUI overlay 展示结果 | 文本输出 |

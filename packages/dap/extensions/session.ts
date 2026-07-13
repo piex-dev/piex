@@ -499,7 +499,7 @@ export class DapSessionManager {
     });
     client.onReverseRequest("startDebugging", async raw => {
       const sa = (raw ?? {}) as Partial<DapStartDebuggingArguments>;
-      console.error(`[pie-dap] ${adapter.name} requested child debug session (${sa.request ?? "unknown"}) - not supported`);
+      console.error(`[dap] ${adapter.name} requested child debug session (${sa.request ?? "unknown"}) - not supported`);
       return {};
     });
     client.onEvent("output", body => { truncateOutput(s, (body as DapOutputEventBody | undefined)?.output ?? ""); });
@@ -516,7 +516,7 @@ export class DapSessionManager {
 
   #initArgs(adapter: DapResolvedAdapter): DapInitializeArguments {
     return {
-      clientID: "pie", clientName: "Pie", adapterID: adapter.name,
+      clientID: "piex", clientName: "Piex", adapterID: adapter.name,
       locale: "en-US", linesStartAt1: true, columnsStartAt1: true,
       pathFormat: "path", supportsRunInTerminalRequest: true,
       supportsStartDebuggingRequest: true, supportsMemoryReferences: true,

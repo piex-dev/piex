@@ -1,7 +1,7 @@
 /**
- * pie-dap extension — registers a `debug` tool for DAP (Debug Adapter Protocol).
+ * dap extension — registers a `debug` tool for DAP (Debug Adapter Protocol).
  *
- *   pi install npm:@debugtalk/pie-dap
+ *   pi install npm:@piex-dev/dap
  *   pi -e ./extensions/dap.ts
  */
 

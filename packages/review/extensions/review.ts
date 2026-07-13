@@ -1,7 +1,7 @@
 /**
- * pie-review extension — code review via /review command and review tool.
+ * review extension — code review via /review command and review tool.
  *
- *   pi install npm:@debugtalk/pie-review
+ *   pi install npm:@piex-dev/review
  *   pi -e ./extensions/review.ts
  */
 

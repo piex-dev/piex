@@ -1,16 +1,16 @@
 /**
- * pie-hashline extension — overrides the built-in `edit` tool with hashline
+ * hashline extension — overrides the built-in `edit` tool with hashline
  * patch language editing, and hooks `read` tool results to inject snapshot
  * headers for tag-verified edits.
  *
  * Install:
- *   pi install npm:@debugtalk/pie-hashline
+ *   pi install npm:@piex-dev/hashline
  * Try:
  *   pi -e ./extensions/hashline.ts
  *
  * Works on Node.js. The bundled Bun polyfill (bun-polyfill.js) provides
  * Bun.hash.xxHash32 used internally by @oh-my-pi/hashline's computeFileHash.
- * File I/O goes through PieNodeFilesystem which uses `node:fs` directly.
+ * File I/O goes through PiexNodeFilesystem which uses `node:fs` directly.
  */
 
 // Load Bun polyfill BEFORE @oh-my-pi/hashline imports (provides Bun.hash.xxHash32)
@@ -34,7 +34,7 @@ const {
   normalizeToLF,
   stripBom,
 } = hashline;
-import { PieNodeFilesystem, canonicalSnapshotKey } from "./pie-filesystem.js";
+import { PiexNodeFilesystem, canonicalSnapshotKey } from "./filesystem.js";
 
 // ---------------------------------------------------------------------------
 // Snapshot store singleton — shared between edit tool and read hook
@@ -82,7 +82,7 @@ function parseSeenLines(body: string): number[] {
  * Returns the 4-hex content-hash tag, or null on error.
  *
  * Uses `canonicalSnapshotKey` (realpath) so the key matches between the
- * read hook and the edit tool's PieNodeFilesystem on macOS / symlinked dirs.
+ * read hook and the edit tool's PiexNodeFilesystem on macOS / symlinked dirs.
  */
 async function recordSnapshot(
   absolutePath: string,
@@ -138,9 +138,9 @@ export default function hashlineExtension(pi: ExtensionAPI) {
         };
       }
 
-      // Use PieNodeFilesystem: node:fs I/O, symlink-resolving canonicalPath
+      // Use PiexNodeFilesystem: node:fs I/O, symlink-resolving canonicalPath
       const patcher = new Patcher({
-        fs: new PieNodeFilesystem(cwd),
+        fs: new PiexNodeFilesystem(cwd),
         snapshots: store,
       });
 

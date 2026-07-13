@@ -1,6 +1,6 @@
 # 设计理念
 
-Pie 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 pi package 形式分发。
+Piex 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。
 
 ## 核心原则
 
@@ -24,9 +24,9 @@ Pie 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Cla
 
 ### 2. 随 pi 升级而升级
 
-- 每个 pie package 是独立的 npm 包，不嵌入 pi
-- pi 升级时 pie 不受影响（扩展 API 向后兼容）
-- pie 可通过 `pi update` 独立升级
+- 每个 piex package 是独立的 npm 包，不嵌入 pi
+- pi 升级时 piex 不受影响（扩展 API 向后兼容）
+- piex 可通过 `pi update` 独立升级
 - 版本号独立管理，无耦合
 
 ### 3. 按需安装
@@ -34,9 +34,9 @@ Pie 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Cla
 用户只安装需要的功能：
 
 ```bash
-pi install npm:@debugtalk/pie-hashline   # hashline 编辑
-pi install npm:@debugtalk/pie-dap        # DAP 调试
-pi install npm:@debugtalk/pie-plan       # 计划模式
+pi install npm:@piex-dev/hashline   # hashline 编辑
+pi install npm:@piex-dev/dap        # DAP 调试
+pi install npm:@piex-dev/plan       # 计划模式
 ```
 
 ### 4. 代码来源可追溯
@@ -45,18 +45,18 @@ pi install npm:@debugtalk/pie-plan       # 计划模式
 
 | Package | 功能来源 | 实现方式 |
 |---------|---------|---------|
-| pie-hashline | oh-my-pi hashline | 依赖 `@oh-my-pi/hashline` + pi 适配层 + Node.js polyfill |
-| pie-dap | oh-my-pi DAP | 从 omp 独立移植（Bun → Node.js） |
-| pie-lsp | oh-my-pi LSP | 从 omp 精简移植 |
-| pie-plan | pi 官方示例 | 基于 plan-mode 示例增强 |
-| pie-review | oh-my-pi /review | 从 omp 精简移植 |
+| hashline | oh-my-pi hashline | 依赖 `@oh-my-pi/hashline` + pi 适配层 + Node.js polyfill |
+| dap | oh-my-pi DAP | 从 omp 独立移植（Bun → Node.js） |
+| lsp | oh-my-pi LSP | 从 omp 精简移植 |
+| plan | pi 官方示例 | 基于 plan-mode 示例增强 |
+| review | oh-my-pi /review | 从 omp 精简移植 |
 
 ## 架构模式
 
 每个 package 遵循统一结构：
 
 ```
-pie-<name>/
+<name>/
 ├── package.json          # npm 包，含 "pi" manifest
 ├── README.md             # package 文档
 └── extensions/
@@ -70,7 +70,7 @@ pie-<name>/
 
 ```
 pi 启动
-  ├── 解析 settings.json → 发现 pie package
+  ├── 解析 settings.json → 发现 piex package
   ├── 读取 package.json → 找到 extensions/ 目录
   ├── jiti 加载 .ts 文件
   └── 调用 export default function(pi)

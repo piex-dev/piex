@@ -1,4 +1,4 @@
-# pie-hashline
+# hashline
 
 基于 `@oh-my-pi/hashline` 的 hashline 编辑语言扩展，覆盖 pi 内置 `edit` 工具。
 
@@ -9,13 +9,13 @@
 - **快照验证**: 编辑时验证 `#TAG` 与文件内容一致，防止并发修改冲突
 - **seen-lines 追踪**: 记录 agent 实际看到的行号，Patcher 拒绝编辑未显示的行
 - **路径规范化**: `canonicalSnapshotKey` 解析符号链接（macOS `/tmp` → `/private/tmp`），确保快照 key 一致
-- **Node.js 原生 FS**: `PieNodeFilesystem` 使用 `node:fs` 直驱 I/O，不再通过 Bun polyfill 中转
+- **Node.js 原生 FS**: `PiexNodeFilesystem` 使用 `node:fs` 直驱 I/O，不再通过 Bun polyfill 中转
 
 ## 架构
 
 ```
 hashline.ts                      # pi 扩展入口
-├── pie-filesystem.ts            # Node.js 原生 FS 适配器（realpath + write guard）
+├── filesystem.ts            # Node.js 原生 FS 适配器（realpath + write guard）
 ├── bun-polyfill.ts              # Bun.hash.xxHash32 polyfill（computeFileHash 内部使用）
 ├── @oh-my-pi/hashline (依赖)
 │   ├── Patch.parse()            # 解析 hashline 输入
@@ -46,20 +46,20 @@ hashline.ts                      # pi 扩展入口
 
 | 环境 | 方式 |
 |------|------|
-| Node.js | bun-polyfill.ts 注入 `Bun.hash` 全局 + `PieNodeFilesystem`（`node:fs` 直驱） |
+| Node.js | bun-polyfill.ts 注入 `Bun.hash` 全局 + `PiexNodeFilesystem`（`node:fs` 直驱） |
 | Bun | 原生 Bun API（bun-polyfill 自动跳过） |
 
 ## 安装
 
 ```bash
-cd packages/pie-hashline && npm install
+cd packages/hashline && npm install
 pi -e ./extensions/hashline.ts
 ```
 
 或通过 npm：
 
 ```bash
-pi install npm:@debugtalk/pie-hashline
+pi install npm:@piex-dev/hashline
 ```
 
 ## 依赖
@@ -70,9 +70,9 @@ pi install npm:@debugtalk/pie-hashline
 
 ## 与 omp 实现差异
 
-| omp | pie-hashline |
+| omp | hashline |
 |-----|-------------|
-| `HashlineFilesystem` (Bun + LSP writethrough) | `PieNodeFilesystem` (node:fs + realpath canonicalPath) |
+| `HashlineFilesystem` (Bun + LSP writethrough) | `PiexNodeFilesystem` (node:fs + realpath canonicalPath) |
 | `canonicalSnapshotKey` with `fs.realpathSync.native` | ✅ 同级实现 |
 | seen-lines tracking via `recordSeenLinesFromBody` | ✅ `parseSeenLines` + `store.record(path, text, seenLines)` |
 | noop-loop-guard (连续 noop 硬限制) | ❌ 未实现（单次 noop 有 actionable 提示） |

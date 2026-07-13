@@ -1,4 +1,4 @@
-# pie-plan
+# plan
 
 计划模式扩展 — "先规划后执行"的工作流。
 
@@ -39,10 +39,11 @@ plan.ts                        # pi 扩展入口 (348 行)
 ├── UI components              #   Footer, Widget, select
 └── Commands                   #   /plan, /todos, Shift+Alt+P
 ```
-└── Commands                   #   /plan, /todos
+
 ## pi API 使用
 
 | 功能 | pi API |
+|------|--------|
 | /plan 命令 | `pi.registerCommand("plan", ...)` |
 | 快捷键 | `pi.registerShortcut(Key.altShift("p"), ...)` |
 | 只读工具限制 | `pi.setActiveTools([...])` |
@@ -55,14 +56,13 @@ plan.ts                        # pi 扩展入口 (348 行)
 ## 安装
 
 ```bash
-pi install npm:@debugtalk/pie-plan
+pi install npm:@piex-dev/plan
 pi -e ./extensions/plan.ts
 ```
 
-
 ## 与 omp 实现差异
 
-| omp | pie-plan |
+| omp | plan |
 |-----|----------|
 | 全屏 plan-review-overlay 审批计划 | `ctx.ui.select` 3 选项弹窗 |
 | Plan TOC 侧栏（目录导航 + 删除段落） | 无（pi API 不支持） |
@@ -70,6 +70,5 @@ pi -e ./extensions/plan.ts
 | plan mode 下 write 工具禁用 | ✅ 保持一致 |
 
 ## 来源
+
 基于 pi 官方 [plan-mode 扩展示例](https://pi.dev/examples/extensions/plan-mode/)，增强计划文件写入和 compaction 保护。
-
-

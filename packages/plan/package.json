@@ -1,5 +1,5 @@
 {
-  "name": "@debugtalk/pie-plan",
+  "name": "@piex-dev/plan",
   "version": "0.1.0",
   "type": "module",
   "description": "Plan Mode extension for pi — read-only exploration, plan creation, and step-by-step execution with progress tracking",
@@ -7,8 +7,8 @@
   "author": "debugtalk",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/debugtalk/pie.git",
-    "directory": "packages/pie-plan"
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "packages/plan"
   },
   "keywords": [
     "pi",

@@ -4,12 +4,12 @@
 
 | 阶段 | Package | 状态 | 说明 |
 |------|---------|------|------|
-| 1 | pie-hashline | ✅ 已完成 | hashline 编辑 + polyfill |
-| 2 | pie-dap | ✅ 已完成 | 14 个 debug adapter |
-| 3 | pie-lsp | ✅ 已完成 | 11 个 LSP server |
-| 4a | pie-plan | ✅ 已完成 | Plan Mode / plan 命令 |
-| 4b | pie-review (轻量版) | ✅ 已完成 | /review 命令 + review 工具 |
-| 5 | pie-review (多 agent 版) | ⏸ 待定 | 依赖 subagent 扩展 |
+| 1 | hashline | ✅ 已完成 | hashline 编辑 + polyfill |
+| 2 | dap | ✅ 已完成 | 14 个 debug adapter |
+| 3 | lsp | ✅ 已完成 | 11 个 LSP server |
+| 4a | plan | ✅ 已完成 | Plan Mode / plan 命令 |
+| 4b | review (轻量版) | ✅ 已完成 | /review 命令 + review 工具 |
+| 5 | review (多 agent 版) | ⏸ 待定 | 依赖 subagent 扩展 |
 
 ## 后续规划
 

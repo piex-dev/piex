@@ -1,4 +1,4 @@
-# pie-dap
+# dap
 
 DAP（Debug Adapter Protocol）调试扩展，注册 `debug` 工具。
 ## 功能
@@ -50,7 +50,7 @@ modules, loaded_sources, custom_request
 ## 安装
 
 ```bash
-pi install npm:@debugtalk/pie-dap
+pi install npm:@piex-dev/dap
 pi -e ./extensions/dap.ts
 ```
 
@@ -68,7 +68,7 @@ go install github.com/go-delve/delve/cmd/dlv@latest  # Go
 
 ## 与 omp 实现差异
 
-| omp | pie-dap |
+| omp | dap |
 |-----|---------|
 | 双传输层（stdio + TCP） | 仅 stdio（不支持 TCP/WebSocket 远程调试） |
 | 数据断点、指令断点、异常断点 | 未实现（需手动补全） |

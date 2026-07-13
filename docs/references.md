@@ -24,9 +24,9 @@
 
 | 示例 | 用途 |
 |------|------|
-| `tool-override.ts` | 覆盖内置工具（pie-hashline 参考） |
+| `tool-override.ts` | 覆盖内置工具（hashline 参考） |
 | `tools.ts` | 注册自定义工具 + 工具启用/禁用 |
-| `plan-mode/index.ts` | 计划模式（pie-plan 的基础） |
+| `plan-mode/index.ts` | 计划模式（plan 的基础） |
 | `subagent/` | 子 agent 实现参考 |
 | `summarize.ts` | 自定义 compaction |
 | `permission-gate.ts` | 权限控制 |

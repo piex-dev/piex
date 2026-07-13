@@ -1,7 +1,7 @@
 /**
- * pie-plan extension — Plan Mode: read-only exploration → plan → execute.
+ * plan extension — Plan Mode: read-only exploration → plan → execute.
 
- *   pi install npm:@debugtalk/pie-plan
+ *   pi install npm:@piex-dev/plan
  *   pi -e ./extensions/plan.ts
  *
  * Based on pi's plan-mode example, enhanced with plan file writing and
