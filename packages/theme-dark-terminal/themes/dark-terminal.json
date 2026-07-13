@@ -7,17 +7,17 @@
     "cyan": "#00ffcc",
     "red": "#ff0000",
     "yellow": "#ffff00",
-    "gray": "#cccccc",
+    "gray": "#aaaaaa",
     "text": "#e0e0e0",
-    "dimGray": "#666666",
-    "darkGray": "#333333",
+    "dimGray": "#888888",
+    "darkGray": "#444444",
     "bg": "#050505",
-    "panelBg": "#0a0a0a",
-    "elementBg": "#080808",
-    "successBg": "#001100",
-    "errorBg": "#110000",
-    "greenAlt": "#00cc00",
-    "greenAlt2": "#00aa00",
+    "panelBg": "#0f0f0f",
+    "elementBg": "#0c0c0c",
+    "successBg": "#001a00",
+    "errorBg": "#1a0000",
+    "greenAlt": "#00ee00",
+    "greenAlt2": "#00cc00",
     "selectedBg": "#111111",
     "redDark": "#cc0000"
   },
@@ -33,7 +33,6 @@
     "dim": "darkGray",
     "text": "text",
     "thinkingText": "dimGray",
-
     "selectedBg": "selectedBg",
     "userMessageBg": "panelBg",
     "userMessageText": "text",
@@ -45,7 +44,6 @@
     "toolErrorBg": "errorBg",
     "toolTitle": "text",
     "toolOutput": "dimGray",
-
     "mdHeading": "green",
     "mdLink": "blue",
     "mdLinkUrl": "dimGray",
@@ -56,11 +54,9 @@
     "mdQuoteBorder": "darkGray",
     "mdHr": "darkGray",
     "mdListBullet": "green",
-
     "toolDiffAdded": "green",
     "toolDiffRemoved": "red",
     "toolDiffContext": "gray",
-
     "syntaxComment": "gray",
     "syntaxKeyword": "blue",
     "syntaxFunction": "yellow",
@@ -70,7 +66,6 @@
     "syntaxType": "green",
     "syntaxOperator": "dimGray",
     "syntaxPunctuation": "dimGray",
-
     "thinkingOff": "darkGray",
     "thinkingMinimal": "dimGray",
     "thinkingLow": "blue",
@@ -78,12 +73,11 @@
     "thinkingHigh": "yellow",
     "thinkingXhigh": "red",
     "thinkingMax": "#ff0088",
-
     "bashMode": "green"
   },
   "export": {
     "pageBg": "#050505",
-    "cardBg": "#0a0a0a",
-    "infoBg": "#080808"
+    "cardBg": "#0f0f0f",
+    "infoBg": "#0c0c0c"
   }
 }
