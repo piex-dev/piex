@@ -17,12 +17,12 @@ cd /path/to/piex
 cd packages/hashline && npm install && cd -
 
 # 方式 A：安装到全局 settings，必须传绝对路径（否则 /reload 后路径失效）
-pi install /absolute/path/to/piex/packages/hashline
-pi install /absolute/path/to/piex/packages/dap
-pi install /absolute/path/to/piex/packages/lsp
-pi install /absolute/path/to/piex/packages/plan
-pi install /absolute/path/to/piex/packages/theme-dark-terminal
-pi install /absolute/path/to/piex/packages/review
+pi install /abspath-to-piex/packages/hashline
+pi install /abspath-to-piex/packages/dap
+pi install /abspath-to-piex/packages/lsp
+pi install /abspath-to-piex/packages/plan
+pi install /abspath-to-piex/packages/theme-dark-terminal
+pi install /abspath-to-piex/packages/review
 
 # 方式 B：安装到项目级 .pi/settings.json，可用相对路径，团队共享
 pi install -l ./packages/hashline
@@ -95,7 +95,7 @@ cd packages/hashline && npm install
 pi list
 
 # 移除 package（全局安装用绝对路径，项目级安装用 -l）
-pi remove /absolute/path/to/piex/packages/hashline
+pi remove /abspath-to-piex/packages/hashline
 pi remove -l ./packages/hashline
 ```
 

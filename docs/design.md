@@ -117,7 +117,7 @@ export default async function myExtension(pi: ExtensionAPI) { ... }
 
 - **全局 settings**（`~/.pi/agent/settings.json`）：本地包路径必须传绝对路径，否则 `/reload` 后相对路径会按 settings 文件位置解析导致主题丢失。例：
   ```bash
-  pi install /absolute/path/to/piex/packages/theme-dark-terminal
+  pi install /abspath-to-piex/packages/theme-dark-terminal
   ```
 - **项目级 settings**（`.pi/settings.json`）：可用相对路径，团队共享。例：
   ```bash
