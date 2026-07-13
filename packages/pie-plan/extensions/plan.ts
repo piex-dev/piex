@@ -35,9 +35,9 @@ interface PlanModeState {
 // Tool lists
 // ══════════════════════════════════════════════════════════════════════════
 
-const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "write"];
+const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls"];
 const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
-const PLAN_DISABLED = new Set(["edit"]);
+const PLAN_DISABLED = new Set(["edit", "write"]);
 const PLAN_MANAGED = new Set([...PLAN_MODE_TOOLS, ...NORMAL_MODE_TOOLS]);
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -236,11 +236,6 @@ export default function planExtension(pi: ExtensionAPI) {
     },
   });
 
-  pi.registerShortcut(Key.shift("p"), {
-    description: "Toggle plan mode",
-    handler: async (ctx) => togglePlanMode(ctx),
-  });
-
   // ── Bash protection ───────────────────────────────
 
   pi.on("tool_call", async (event) => {
@@ -254,21 +249,6 @@ export default function planExtension(pi: ExtensionAPI) {
     }
   });
 
-
-  // ── Write protection (plan-only gate) ────────────
-
-  pi.on("tool_call", async (event) => {
-    if (!planModeEnabled || event.toolName !== "write") return;
-    const filePath = (event.input as { path?: string }).path;
-    if (!filePath) return;
-    const basename = path.basename(filePath);
-    if (basename !== PLAN_FILE) {
-      return {
-        block: true,
-        reason: `Plan mode: only writing to ${PLAN_FILE} is allowed. Write your plan there.`,
-      };
-    }
-  });
   // ── Context injection ─────────────────────────────
 
   pi.on("context", async (event) => {
@@ -301,7 +281,6 @@ Restrictions:
 - Bash is restricted to read-only commands
 - You CAN read, grep, find, ls, and use safe bash commands
 
-Write your plan to ${PLAN_FILE} using the write tool (available in plan mode for plan files).
 Create a detailed numbered plan under a "Plan:" heading:
 
 Plan:

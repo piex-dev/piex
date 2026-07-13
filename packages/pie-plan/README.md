@@ -4,7 +4,7 @@
 
 ## 功能
 
-- **计划模式**: 只读工具，专注分析和规划
+- **计划模式**: 只读工具，`edit` 和 `write` 禁用，专注分析和规划
 - **Todo 追踪**: 自动提取编号计划，[DONE:n] 标记完成
 - **执行模式**: 全工具权限，按步骤执行
 - **计划文件**: 写入 `PLAN.md`，compaction 保护
@@ -14,9 +14,7 @@
 ## 工作流
 
 ```
-用户: /plan (或 Shift+P)
-  ↓
-[Plan Mode] 只读工具 → Agent 探索代码
+用户: /plan
   ↓
 Agent 输出 "Plan:" + 编号列表
   ↓
@@ -39,15 +37,14 @@ plan.ts                        # pi 扩展入口 (348 行)
 ├── Context injection          #   [PLAN MODE] / [EXECUTING]
 ├── State persistence          #   pi.appendEntry
 ├── UI components              #   Footer, Widget, select
-└── Commands                   #   /plan, /todos, Shift+P
+└── Commands                   #   /plan, /todos, Shift+Alt+P
 ```
-
+└── Commands                   #   /plan, /todos
 ## pi API 使用
 
 | 功能 | pi API |
-|------|--------|
 | /plan 命令 | `pi.registerCommand("plan", ...)` |
-| 快捷键 | `pi.registerShortcut(Key.shift("p"), ...)` |
+| 快捷键 | `pi.registerShortcut(Key.altShift("p"), ...)` |
 | 只读工具限制 | `pi.setActiveTools([...])` |
 | 危险 bash 拦截 | `pi.on("tool_call", ...)` → block |
 | 注入计划上下文 | `pi.on("before_agent_start", ...)` |
@@ -62,6 +59,17 @@ pi install npm:@debugtalk/pie-plan
 pi -e ./extensions/plan.ts
 ```
 
-## 来源
 
+## 与 omp 实现差异
+
+| omp | pie-plan |
+|-----|----------|
+| 全屏 plan-review-overlay 审批计划 | `ctx.ui.select` 3 选项弹窗 |
+| Plan TOC 侧栏（目录导航 + 删除段落） | 无（pi API 不支持） |
+| 子 agent 计划传递（plan-handoff） | 无（依赖 subagent） |
+| plan mode 下 write 工具禁用 | ✅ 保持一致 |
+
+## 来源
 基于 pi 官方 [plan-mode 扩展示例](https://pi.dev/examples/extensions/plan-mode/)，增强计划文件写入和 compaction 保护。
+
+

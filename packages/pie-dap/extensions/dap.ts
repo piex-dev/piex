@@ -153,7 +153,8 @@ elixir-ls-debugger.
 
 Actions: launch, attach, set_breakpoint, remove_breakpoint, continue, step_over,
 step_in, step_out, pause, evaluate, stack_trace, threads, scopes, variables, output,
-terminate, sessions`,
+terminate, sessions, disassemble, read_memory, write_memory, modules, loaded_sources,
+custom_request`,
 
     parameters: Type.Object({
       action: Type.String({ description: "Debug action to perform" }),
@@ -297,6 +298,22 @@ terminate, sessions`,
           const r = await mgr().readMemory(params.memory_reference, params.count, typeof params.offset === "number" ? params.offset : undefined, signal, timeoutMs);
           return { content: [{ type: "text", text: fmtMemRead(r.address, r.data, r.unreadableBytes) }], details: {} };
         }
+        case "write_memory": {
+          requireCap("supportsWriteMemoryRequest", "memory writes");
+          if (typeof params.memory_reference !== "string" || typeof params.data !== "string")
+            throw new Error("'memory_reference' and 'data' required (data is base64-encoded bytes).");
+          const r = await mgr().writeMemory(params.memory_reference, params.data, typeof params.offset === "number" ? params.offset : undefined, undefined, signal, timeoutMs);
+          const bytesStr = r.bytesWritten !== undefined ? `${r.bytesWritten} bytes` : "";
+          const offStr = r.offset !== undefined ? ` at offset ${r.offset}` : "";
+          return { content: [{ type: "text", text: `Wrote ${bytesStr}${offStr} to ${params.memory_reference}` }], details: {} };
+        }
+        case "custom_request": {
+          if (typeof params.command !== "string" || !params.command)
+            throw new Error("'command' required for custom_request.");
+          const args = params.arguments as Record<string, unknown> | undefined;
+          const r = await mgr().customRequest(params.command, args, signal, timeoutMs);
+          return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }], details: {} };
+        }
 
         // ── Introspection ─────────────────────────────
         case "modules": {
@@ -311,7 +328,7 @@ terminate, sessions`,
         }
 
         default:
-          throw new Error(`Unsupported debug action: ${action}. Supported: launch, attach, set_breakpoint, remove_breakpoint, continue, step_over, step_in, step_out, pause, evaluate, stack_trace, threads, scopes, variables, output, terminate, sessions, disassemble, read_memory, modules, loaded_sources`);
+          throw new Error(`Unsupported debug action: ${action}. Supported: launch, attach, set_breakpoint, remove_breakpoint, continue, step_over, step_in, step_out, pause, evaluate, stack_trace, threads, scopes, variables, output, terminate, sessions, disassemble, read_memory, write_memory, modules, loaded_sources, custom_request`);
       }
     },
   });

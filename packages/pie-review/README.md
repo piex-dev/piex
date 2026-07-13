@@ -10,7 +10,7 @@
 - **噪声过滤**: 自动排除 lock/min/build/vendor/image/binary 文件
 - **多模式**: uncommitted / staged / branch / commit / custom
 
-## 架构
+- **多模式**: uncommitted / staged / branch / commit / file / custom
 
 ```
 review.ts                      # pi 扩展入口 (330 行)

@@ -66,6 +66,12 @@ interface LspRequest {
 }
 
 class LspClient {
+  // Per-URI diagnostic storage (populated by publishDiagnostics notifications)
+  #diagnostics = new Map<string, Diagnostic[]>();
+
+  getDiagnostics(uri: string): Diagnostic[] {
+    return this.#diagnostics.get(uri) ?? [];
+  }
   #proc: ChildProcessWithoutNullStreams;
   #seq = 0;
   #pending = new Map<number, LspRequest>();
@@ -171,6 +177,9 @@ class LspClient {
             this.#pending.delete(msg.id);
             if (msg.error) p.reject(new Error(msg.error.message ?? `LSP error: ${msg.error.code}`));
             else p.resolve(msg.result);
+          } else if (msg.method === "textDocument/publishDiagnostics") {
+            const params = msg.params as { uri: string; diagnostics: Diagnostic[] } | undefined;
+            if (params?.uri) this.#diagnostics.set(params.uri, params.diagnostics ?? []);
           }
         } catch { /* skip */ }
       }
@@ -397,18 +406,29 @@ Supported actions:
         try {
           switch (action) {
             case "diagnostics": {
-              // Sync file, get diagnostics
               await ensureFileOpen(client, absPath);
-              client.notify("textDocument/didSave", { textDocument: { uri: fileToUri(absPath) } });
+              const uri = fileToUri(absPath);
+              client.notify("textDocument/didSave", { textDocument: { uri } });
 
-              // Wait a bit for diagnostics to arrive, then check the client
-              // For simplicity, we don't have a diagnostics event store here;
-              // instead, we read the file directly and return any inline errors.
-              // A full implementation would collect publishDiagnostics events.
-              await new Promise(r => setTimeout(r, 500));
+              // Wait up to 3s for publishDiagnostics notification
+              const maxWait = 3000;
+              const pollInterval = 100;
+              let elapsed = 0;
+              while (elapsed < maxWait) {
+                await new Promise(r => setTimeout(r, pollInterval));
+                elapsed += pollInterval;
+                const diags = client.getDiagnostics(uri);
+                if (diags.length > 0) {
+                  const lines = diags.map(d => formatDiag(d, fileRel));
+                  return {
+                    content: [{ type: "text", text: `${fileRel}: ${diags.length} issue${diags.length > 1 ? "s" : ""}\n${lines.join("\n")}` }],
+                    details: { action, success: true, server: server.name, count: diags.length },
+                  };
+                }
+              }
               return {
-                content: [{ type: "text", text: `${fileRel}: LSP diagnostics requested (server: ${server.name}). For detailed diagnostics, ensure the LSP server supports publishDiagnostics.` }],
-                details: { action, success: true, server: server.name },
+                content: [{ type: "text", text: `${fileRel}: no diagnostics (server: ${server.name})` }],
+                details: { action, success: true, server: server.name, count: 0 },
               };
             }
 

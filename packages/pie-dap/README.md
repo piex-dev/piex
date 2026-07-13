@@ -1,7 +1,6 @@
 # pie-dap
 
 DAP（Debug Adapter Protocol）调试扩展，注册 `debug` 工具。
-
 ## 功能
 
 - **debug 工具**: 完整的 DAP 协议客户端
@@ -32,6 +31,7 @@ dap.ts                         # pi 扩展入口
 launch, attach, terminate, sessions, output
 set_breakpoint, remove_breakpoint
 continue, step_over, step_in, step_out, pause
+- `Node.js 移植仅支持 stdio transport，不支持 TCP/WebSocket 远程调试`
 evaluate, stack_trace, threads, scopes, variables
 disassemble, read_memory, write_memory
 modules, loaded_sources, custom_request
@@ -65,5 +65,14 @@ go install github.com/go-delve/delve/cmd/dlv@latest  # Go
 ```
 
 ## 来源
+
+## 与 omp 实现差异
+
+| omp | pie-dap |
+|-----|---------|
+| 双传输层（stdio + TCP） | 仅 stdio（不支持 TCP/WebSocket 远程调试） |
+| 数据断点、指令断点、异常断点 | 未实现（需手动补全） |
+| completions、exceptionInfo | 未实现（session 层已支持，工具未暴露） |
+| TUI inline rendering | 纯文本输出 |
 
 功能特性来自 [oh-my-pi](https://github.com/can1357/oh-my-pi) 的 `packages/coding-agent/src/dap`。

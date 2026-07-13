@@ -7,7 +7,7 @@ LSP（Language Server Protocol）语言服务器扩展，注册 `lsp` 工具。
 - **lsp 工具**: 内置 LSP 客户端 + JSON-RPC 通信
 - **11 个 LSP server 配置**: typescript, rust-analyzer, gopls, pyright, clangd, marksman, yamlls, bashls, cssls, htmlls, jsonls 等
 - **诊断**: 文件和项目级诊断
-- **代码导航**: definition, references, hover
+- **诊断**: 文件和项目级诊断（通过 publishDiagnostics 事件实时收集）
 - **符号**: document_symbols, workspace_symbols
 - **格式化**: 文档格式化（format）
 - **状态管理**: 按需启动、会话内缓存、关闭清理
@@ -51,4 +51,12 @@ pip install pyright                       # Python
 
 ## 来源
 
+
+## 与 omp 实现差异
+
+| omp | pie-lsp |
+|-----|---------|
+| 14 个 LSP action（含 codeAction, rename, rangeFormatting, completion 等） | 9 个 action（diagnostics, definition, references, hover, symbols, workspace_symbols, format, status, reload） |
+| LSP 诊断支持扩展诊断（relatedInformation） | 基础诊断格式 |
+| TUI inline rendering + 语法高亮 | 纯文本输出 |
 功能特性来自 [oh-my-pi](https://github.com/can1357/oh-my-pi) 的 `packages/coding-agent/src/lsp`。
