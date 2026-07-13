@@ -14,7 +14,7 @@ piex/                                  # monorepo
 │   ├── references.md                 #   参考资料索引
 │   └── migration/                    #   迁移方案记录
 │       └── plan-review.md
-└── packages/                         # 📦 5 个独立 piex package
+└── packages/                         # 📦 6 个独立 piex package
     ├── hashline/
     │   ├── README.md
     │   ├── package.json
@@ -38,11 +38,16 @@ piex/                                  # monorepo
     │   ├── package.json
     │   └── extensions/
     │       └── plan.ts
-    └── review/
+    ├── review/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       └── review.ts
+    └── theme-dark-terminal/
         ├── README.md
         ├── package.json
-        └── extensions/
-            └── review.ts
+        └── themes/
+            └── dark-terminal.json
 ```
 
 ## Package 总览
@@ -54,10 +59,9 @@ piex/                                  # monorepo
 | lsp | 570 行 + 499 行 JSON | `lsp` | 无 | oh-my-pi |
 | plan | 348 行 | `/plan`, `/todos` | 无 | pi 示例 |
 | review | 330 行 | `/review`, `review` | 无 | oh-my-pi |
+| theme-dark-terminal | — | 暗终端高对比度主题 | 无 | [opencode-themes](https://github.com/debugtalk/opencode-themes) |
 
 ## 工具注册总览
-
-安装全部 piex package 后，pi 提供的工具：
 
 | 工具名 | 来源 | 类型 | 说明 |
 |--------|------|------|------|

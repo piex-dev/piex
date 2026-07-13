@@ -88,3 +88,20 @@ export default function myExtension(pi: ExtensionAPI) { ... }
 // 异步（需要初始化例如 fetch 远程配置）
 export default async function myExtension(pi: ExtensionAPI) { ... }
 ```
+
+
+### 主题 Package 模式
+
+主题 package 没有 TypeScript 扩展代码，而是通过静态 JSON 文件分发：
+
+```
+<name>/
+├── package.json          # npm 包，"pi": { "themes": [...] }
+├── README.md
+└── themes/
+    └── <name>.json       # pi theme JSON（51 color tokens）
+```
+
+`package.json` 中的 `"pi": { "themes": ["./themes/dark-terminal.json"] }` 告诉 pi 加载主题文件。
+
+主题 JSON 遵循 [pi 主题格式规范](https://github.com/earendil-works/pi)，包含 `name`、`vars`（可选色板变量）和 `colors`（51 个必需 token）。pi 启动时自动加载，`/settings` 切换。

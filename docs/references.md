@@ -43,9 +43,11 @@
 | Review command | oh-my-pi | `packages/coding-agent/src/extensibility/custom-commands/bundled/review/` |
 | Review tool | oh-my-pi | `packages/coding-agent/src/tools/review.ts` |
 | Plan TOC | oh-my-pi | `packages/coding-agent/src/modes/components/plan-toc.ts` |
+| dark-terminal 主题 | [opencode-themes](https://github.com/debugtalk/opencode-themes) | `dark-terminal.json` |
 
 ## 其他参考项目
 
 - [oh-my-pi](https://github.com/can1357/oh-my-pi) — 功能特性的主要来源
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — 交互模式参考
 - [OpenCode](https://github.com/opencode-ai/opencode) — 扩展机制参考
+- [opencode-themes](https://github.com/debugtalk/opencode-themes) — 终端暗色主题配色来源

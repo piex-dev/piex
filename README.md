@@ -21,6 +21,7 @@ pi install ./packages/hashline
 pi install ./packages/dap
 pi install ./packages/lsp
 pi install ./packages/plan
+pi install ./packages/theme-dark-terminal
 pi install ./packages/review
 
 # 或用绝对路径
@@ -42,6 +43,7 @@ pi install npm:@piex-dev/dap        # DAP 调试
 pi install npm:@piex-dev/lsp        # LSP 语言服务器
 pi install npm:@piex-dev/plan       # 计划模式
 pi install npm:@piex-dev/review     # 代码评审
+pi install npm:@piex-dev/theme-dark-terminal   # 暗终端主题
 ```
 
 ### 方式三：单次测试（不持久化）
@@ -67,6 +69,7 @@ done
 | lsp | `lsp`（11 个 server） | oh-my-pi | 1069 |
 | plan | `/plan`, `/todos` | pi 示例 | 348 |
 | review | `/review`, `review` 工具 | oh-my-pi | 330 |
+| theme-dark-terminal | 暗终端高对比度主题 | [opencode-themes](https://github.com/debugtalk/opencode-themes) | — |
 
 各 package 详细文档见对应目录下的 `README.md`。
 
