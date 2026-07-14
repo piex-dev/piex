@@ -4,6 +4,7 @@ export interface Task {
   files: Record<string, string>
   test_cmd: string
   language: string
+  prebuild?: string
 }
 
 export interface AgentConfig {

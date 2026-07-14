@@ -88,6 +88,20 @@ export class Sandbox {
       }
     }
   }
+  runTest(cwd: string, command: string): { exitCode: number | null; stdout: string; stderr: string } {
+    const cmd = `docker run --rm -v "${cwd}":/workspace -w /workspace piex-eval-test-runner /bin/bash -c "${command}"`
+    try {
+      const result = execSync(cmd, { timeout: 120_000, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] })
+      return { exitCode: 0, stdout: result, stderr: '' }
+    } catch (err: unknown) {
+      const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number }
+      return {
+        exitCode: e.status ?? 1,
+        stdout: e.stdout?.toString() ?? '',
+        stderr: e.stderr?.toString() ?? '',
+      }
+    }
+  }
 }
 
 export interface RunResult {

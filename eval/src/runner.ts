@@ -15,6 +15,8 @@ program
   .option('-a, --agents <list>', 'agents to run (comma-separated: pi-bare,pi-piex,omp)', 'pi-bare,pi-piex,omp')
   .option('-m, --model <model>', 'model (provider:model-id)', 'deepseek:deepseek-v4-flash')
   .option('-s, --source <path>', 'JSONL task file')
+  .option('-c, --concurrency <n>', 'parallel task count', '3')
+  .option('-l, --limit <n>', 'max number of tasks to run', Number)
   .option('-o, --output <dir>', 'output directory', 'results')
   .action(async (opts) => {
     const agents = opts.agents.split(',').map((s: string) => s.trim()) as ('pi-bare' | 'pi-piex' | 'omp')[]
@@ -30,10 +32,11 @@ program
     }
 
     console.log(`\n> Running ${opts.benchmark} with agents: ${agents.join(', ')}`)
+
+    if (opts.limit && opts.limit > 0) tasks = tasks.slice(0, opts.limit)
     console.log(`> Model: ${opts.model}`)
     console.log(`> Tasks: ${tasks.length}\n`)
-
-    const report = await evaluate({ tasks, benchmark: opts.benchmark, agents, model: opts.model })
+    const report = await evaluate({ tasks, benchmark: opts.benchmark, agents, model: opts.model, concurrency: Number(opts.concurrency) })
 
     const outDir = resolve(import.meta.dirname, '..', opts.output, new Date().toISOString().slice(0, 10))
     const reportPath = generateReport(report, outDir)

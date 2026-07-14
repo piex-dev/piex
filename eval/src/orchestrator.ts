@@ -9,6 +9,7 @@ export interface RunOptions {
   benchmark: string
   agents: ('pi-bare' | 'pi-piex' | 'omp')[]
   model: string
+  concurrency?: number
 }
 
 function collectApiEnvVars(): Record<string, string> {
@@ -43,32 +44,46 @@ export async function evaluate(opts: RunOptions): Promise<EvalReport> {
     ensureImage(sandbox, ompAgentConfig())
   }
 
+  ensureTestRunner(sandbox)
   const allResults: AgentRunResult[] = []
+  const batchSize = Math.max(1, opts.concurrency ?? 3)
 
-  for (const task of opts.tasks) {
-    for (const { config, handler } of configs) {
-      process.stdout.write(`  [${config.name}] ${task.id}... `)
+  for (let i = 0; i < opts.tasks.length; i += batchSize) {
+    const batch = opts.tasks.slice(i, i + batchSize)
+    await Promise.all(batch.map(async (task) => {
+      for (const { config, handler } of configs) {
+        process.stdout.write(`  [${config.name}] ${task.id}... `)
 
-      const workDir = sandbox.prepareWorkspace(task.files)
+        const workDir = sandbox.prepareWorkspace(task.files)
 
-      try {
-        const agentResult = await handler(task, config, sandbox, workDir, apiEnv, opts.model)
-        const testResult = sandbox.runCommand(workDir, task.test_cmd)
-        const passed = testResult.exitCode === 0
+        try {
+          if (task.prebuild) {
+            const pb = sandbox.runTest(workDir, task.prebuild)
+            if (pb.exitCode !== 0) {
+              console.log(`SKIP(prebuild failed): ${pb.stderr.slice(0, 100)}`)
+              sandbox.cleanupWorkspace(workDir)
+              continue
+            }
+          }
 
-        if (passed) {
-          console.log('PASS')
-          sandbox.cleanupWorkspace(workDir)
-        } else {
-          console.log(`FAIL(exit=${testResult.exitCode}) stderr=${testResult.stderr.slice(0, 200)}`)
-          console.log(`  workspace: ${workDir}`)
+          const agentResult = await handler(task, config, sandbox, workDir, apiEnv, opts.model)
+          const testResult = sandbox.runTest(workDir, task.test_cmd)
+          const passed = testResult.exitCode === 0
+
+          if (passed) {
+            console.log('PASS')
+            sandbox.cleanupWorkspace(workDir)
+          } else {
+            console.log(`FAIL(exit=${testResult.exitCode}) stderr=${testResult.stderr.slice(0, 200)}`)
+            console.log(`  workspace: ${workDir}`)
+          }
+
+          allResults.push({ ...agentResult, passed })
+        } catch (err) {
+          console.log(`ERROR: ${err}`)
         }
-
-        allResults.push({ ...agentResult, passed })
-      } catch (err) {
-        console.log(`ERROR: ${err}`)
       }
-    }
+    }))
   }
 
   const tasks: TaskResult[] = opts.tasks.map((task) => {
@@ -120,4 +135,11 @@ function ensureImage(sandbox: Sandbox, config: AgentConfig): void {
   } else {
     console.warn(`Warning: no Dockerfile mapped for image '${config.image}', assuming pre-built`)
   }
+}
+
+function ensureTestRunner(sandbox: Sandbox): void {
+  const image = 'piex-eval-test-runner'
+  if (sandbox.imageExists(image)) return
+  console.log(`Building ${image} image...`)
+  sandbox.buildImage(`${import.meta.dirname}/../docker/test-runner.Dockerfile`, image)
 }
