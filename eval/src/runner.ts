@@ -1,6 +1,7 @@
 import { program } from 'commander'
 import { evaluate } from './orchestrator.ts'
 import { loadAiderPolyglot } from './benchmarks/aider-polyglot.ts'
+import { loadSWEBenchLite } from './benchmarks/swebench.ts'
 import { generateReport } from './report.ts'
 import { resolve } from 'node:path'
 
@@ -20,11 +21,13 @@ program
   .option('-o, --output <dir>', 'output directory', 'results')
   .action(async (opts) => {
     const agents = opts.agents.split(',').map((s: string) => s.trim()) as ('pi-bare' | 'pi-piex' | 'omp')[]
-
     let tasks
     switch (opts.benchmark) {
       case 'aider-polyglot':
         tasks = loadAiderPolyglot(opts.source)
+        break
+      case 'swebench-lite':
+        tasks = await loadSWEBenchLite('dev')
         break
       default:
         console.error(`Unknown benchmark: ${opts.benchmark}`)

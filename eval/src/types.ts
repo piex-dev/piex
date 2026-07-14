@@ -5,6 +5,12 @@ export interface Task {
   test_cmd: string
   language: string
   prebuild?: string
+  /** SWE-bench specific */
+  swebench?: {
+    repo: string
+    base_commit: string
+    test_patch: string
+  }
 }
 
 export interface AgentConfig {

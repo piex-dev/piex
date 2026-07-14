@@ -3,6 +3,7 @@ import { Sandbox } from './sandbox.ts'
 import { runPi, piAgentConfig } from './agents/pi.ts'
 import { runOmp, ompAgentConfig } from './agents/omp.ts'
 import { computeSummary } from './metrics.ts'
+import { prepareSWERepo, applyTestPatch, cleanupWorktree } from './benchmarks/swebench.ts'
 
 export interface RunOptions {
   tasks: Task[]
@@ -54,28 +55,50 @@ export async function evaluate(opts: RunOptions): Promise<EvalReport> {
       for (const { config, handler } of configs) {
         process.stdout.write(`  [${config.name}] ${task.id}... `)
 
-        const workDir = sandbox.prepareWorkspace(task.files)
+        const isSWE = !!task.swebench
+        let workDir: string
 
         try {
-          if (task.prebuild) {
+          if (isSWE) {
+            workDir = prepareSWERepo(task)
+          } else {
+            workDir = sandbox.prepareWorkspace(task.files)
+          }
+        } catch (err) {
+          console.log(`SETUP ERROR: ${err}`)
+          continue
+        }
+
+        try {
+          if (!isSWE && task.prebuild) {
             const pb = sandbox.runTest(workDir, task.prebuild)
             if (pb.exitCode !== 0) {
               console.log(`SKIP(prebuild failed): ${pb.stderr.slice(0, 100)}`)
-              sandbox.cleanupWorkspace(workDir)
+              if (isSWE) cleanupWorktree(workDir); else sandbox.cleanupWorkspace(workDir)
               continue
             }
           }
 
           const agentResult = await handler(task, config, sandbox, workDir, apiEnv, opts.model)
+
+          if (isSWE) {
+            applyTestPatch(workDir, task.swebench!.test_patch)
+          }
+
           const testResult = sandbox.runTest(workDir, task.test_cmd)
           const passed = testResult.exitCode === 0
 
           if (passed) {
             console.log('PASS')
-            sandbox.cleanupWorkspace(workDir)
           } else {
             console.log(`FAIL(exit=${testResult.exitCode}) stderr=${testResult.stderr.slice(0, 200)}`)
             console.log(`  workspace: ${workDir}`)
+          }
+
+          if (isSWE) {
+            cleanupWorktree(workDir)
+          } else {
+            sandbox.cleanupWorkspace(workDir)
           }
 
           allResults.push({ ...agentResult, passed })
