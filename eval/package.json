@@ -1,0 +1,25 @@
+{
+  "name": "@piex-dev/eval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Evaluation harness for piex — compare pi bare vs pi+piex vs omp",
+  "license": "MIT",
+  "author": "debugtalk",
+  "scripts": {
+    "build:pi": "docker build -t piex-eval-pi -f docker/pi.Dockerfile docker",
+    "build:omp": "docker build -t piex-eval-omp -f docker/omp.Dockerfile docker",
+    "build:swebench": "docker build -t piex-eval-swebench -f docker/swebench.Dockerfile docker",
+    "build": "npm run build:pi && npm run build:omp",
+    "run": "tsx src/runner.ts",
+    "check": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3"
+  }
+}
