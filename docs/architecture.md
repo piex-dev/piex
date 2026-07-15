@@ -11,8 +11,10 @@ piex/                                  # monorepo
 │   ├── roadmap.md                    #   实施计划与进度
 │   ├── testing.md                    #   测试指南
 │   ├── references.md                 #   参考资料索引
-│   └── migration/                    #   迁移方案记录
-│       └── plan-review.md
+│   ├── migration/                    #   迁移方案记录
+│   │   └── plan-review.md
+│   └── blogs/                        #   博客 Markdown
+│       └── pi-extension-mechanism.md
 └── packages/                         # 📦 7 个独立 piex package
     ├── hashline/
     │   ├── README.md

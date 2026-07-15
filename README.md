@@ -4,66 +4,32 @@
 
 ## 安装
 
-三种安装方式，按场景选用。
+三种方式，包名见下方 [Package 总览](#package-总览)（npm 包为 `@piex-dev/<name>`）。
 
-### 方式一：本地路径安装（开发阶段）
+### 本地路径（开发）
 
-在 monorepo 根目录执行，改动即时生效，无需发布。
+在 **piex 仓库根目录**执行；其它包将 `hashline` 换成对应目录即可。
 
 ```bash
 cd /path/to/piex
-
-# hashline 依赖 @oh-my-pi/hashline，需要先装 npm 依赖
-cd packages/hashline && npm install && cd ../..
-
-# 默认写入全局 ~/.pi/agent/settings.json；路径会按 settings 所在目录存为相对路径
-pi install packages/hashline
-pi install packages/dap
-pi install packages/lsp
-pi install packages/plan
-pi install packages/theme-dark-terminal
-pi install packages/review
-pi install packages/xai-oauth
-
-# 写入项目级 .pi/settings.json（团队共享配置时用 -l）
-pi install -l packages/hashline
-pi install -l packages/dap
-pi install -l packages/lsp
-pi install -l packages/plan
-pi install -l packages/theme-dark-terminal
-pi install -l packages/review
-pi install -l packages/xai-oauth
+cd packages/hashline && npm install && cd ../..   # 仅 hashline 需先 npm install
+pi install packages/hashline                      # 全局 settings
+pi install -l packages/hashline                   # 项目 .pi/settings.json
 ```
 
-> **说明：** `pi install` 会把本地路径解析为绝对路径再写入 settings，并尽量存成相对 settings 文件目录的路径。在仓库根目录执行时，`packages/...` 与绝对路径等价；若从别的 cwd 安装，请保证传入路径能解析到包目录。
-
-### 方式二：npm 安装（发布后）
-
-各 package publish 到 npm 后，通过包名安装。
+### npm
 
 ```bash
-pi install npm:@piex-dev/hashline   # hashline 编辑
-pi install npm:@piex-dev/dap        # DAP 调试
-pi install npm:@piex-dev/lsp        # LSP 语言服务器
-pi install npm:@piex-dev/plan       # 计划模式
-pi install npm:@piex-dev/review     # 代码评审
-pi install npm:@piex-dev/xai-oauth  # xAI OAuth 订阅登录
-pi install npm:@piex-dev/theme-dark-terminal   # 暗终端主题
+pi install npm:@piex-dev/hashline
 ```
 
-### 方式三：单次测试（不持久化）
-
-通过 `-e` 临时加载，不写入 settings.json，适合快速验证。
+### 临时加载（`-e`，不写 settings）
 
 ```bash
-# 测试单个扩展
-pi -e ./packages/plan/extensions/plan.ts
-
-# 测试全部加载
-for pkg in hashline dap lsp plan review xai-oauth; do
-  pi -e ./packages/$pkg/extensions/*.ts -p "1+1" --no-session
-done
+pi -e ./packages/hashline/extensions/hashline.ts
 ```
+
+主题包无 `extensions/*.ts`，请用 npm 或本地 `pi install`，见 [theme-dark-terminal](packages/theme-dark-terminal/README.md)。
 
 ## Package 总览
 
