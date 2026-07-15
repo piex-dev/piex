@@ -6,36 +6,36 @@
 
 三种安装方式，按场景选用。
 
-### 方式一：本地路径安装（推荐，开发阶段）
+### 方式一：本地路径安装（开发阶段）
 
-直接从本地 monorepo 安装，改动即时生效，无需发布。
+在 monorepo 根目录执行，改动即时生效，无需发布。
 
 ```bash
 cd /path/to/piex
 
 # hashline 依赖 @oh-my-pi/hashline，需要先装 npm 依赖
-cd packages/hashline && npm install && cd -
+cd packages/hashline && npm install && cd ../..
 
-# 方式 A：安装到全局 settings，必须传绝对路径（否则 /reload 后路径失效）
-pi install /abspath-to-piex/packages/hashline
-pi install /abspath-to-piex/packages/dap
-pi install /abspath-to-piex/packages/lsp
-pi install /abspath-to-piex/packages/plan
-pi install /abspath-to-piex/packages/theme-dark-terminal
-pi install /abspath-to-piex/packages/review
-pi install /abspath-to-piex/packages/xai-oauth
+# 默认写入全局 ~/.pi/agent/settings.json；路径会按 settings 所在目录存为相对路径
+pi install packages/hashline
+pi install packages/dap
+pi install packages/lsp
+pi install packages/plan
+pi install packages/theme-dark-terminal
+pi install packages/review
+pi install packages/xai-oauth
 
-# 方式 B：安装到项目级 .pi/settings.json，可用相对路径，团队共享
-pi install -l ./packages/hashline
-pi install -l ./packages/dap
-pi install -l ./packages/lsp
-pi install -l ./packages/plan
-pi install -l ./packages/theme-dark-terminal
-pi install -l ./packages/review
-pi install -l ./packages/xai-oauth
+# 写入项目级 .pi/settings.json（团队共享配置时用 -l）
+pi install -l packages/hashline
+pi install -l packages/dap
+pi install -l packages/lsp
+pi install -l packages/plan
+pi install -l packages/theme-dark-terminal
+pi install -l packages/review
+pi install -l packages/xai-oauth
 ```
 
-> **注意：** 默认 `pi install` 写入全局 `~/.pi/agent/settings.json`，但传入相对路径时 pi 会按 settings 文件位置解析。因此全局安装本地包必须用绝对路径；想写相对路径请用 `-l` 安装到项目级 `.pi/settings.json`。
+> **说明：** `pi install` 会把本地路径解析为绝对路径再写入 settings，并尽量存成相对 settings 文件目录的路径。在仓库根目录执行时，`packages/...` 与绝对路径等价；若从别的 cwd 安装，请保证传入路径能解析到包目录。
 
 ### 方式二：npm 安装（发布后）
 

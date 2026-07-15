@@ -5,10 +5,6 @@ xAI Grok OAuth subscription login for pi. Authenticate with a **SuperGrok** or *
 ## 安装
 
 ```bash
-# 本地路径（开发阶段，推荐绝对路径）
-pi install /path/to/piex/packages/xai-oauth
-
-# npm（发布后）
 pi install npm:@piex-dev/xai-oauth
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/hashline",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Hashline patch language extension for pi — compact, line-anchored, tag-verified file edits",
   "license": "MIT",

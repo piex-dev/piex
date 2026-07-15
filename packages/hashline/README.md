@@ -52,13 +52,6 @@ hashline.ts                      # pi 扩展入口
 ## 安装
 
 ```bash
-cd packages/hashline && npm install
-pi -e ./extensions/hashline.ts
-```
-
-或通过 npm：
-
-```bash
 pi install npm:@piex-dev/hashline
 ```
 

@@ -36,13 +36,6 @@ Key mapping decisions from [dark-terminal](https://github.com/debugtalk/opencode
 ## Install
 
 ```bash
-# 方式 A：写入全局 settings，必须传绝对路径（否则 /reload 后路径失效）
-pi install /abspath-to-piex/packages/theme-dark-terminal
-
-# 方式 B：写入项目级 .pi/settings.json，可用相对路径
-pi install -l ./packages/theme-dark-terminal
-
-# After npm publish
 pi install npm:@piex-dev/theme-dark-terminal
 ```
 

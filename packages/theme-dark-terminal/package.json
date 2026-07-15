@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/theme-dark-terminal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Dark Terminal theme for pi — high-contrast terminal-inspired dark theme with vivid green, blue, and red accents",
   "license": "MIT",

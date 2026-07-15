@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/lsp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "LSP (Language Server Protocol) extension for pi — diagnostics, definitions, references, hover, symbols, and formatting",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/xai-oauth",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "xAI Grok OAuth subscription login for pi — use SuperGrok or X Premium+ instead of API key",
   "license": "MIT",

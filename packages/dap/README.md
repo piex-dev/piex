@@ -51,7 +51,6 @@ modules, loaded_sources, custom_request
 
 ```bash
 pi install npm:@piex-dev/dap
-pi -e ./extensions/dap.ts
 ```
 
 ## 前提条件

@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/dap",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "DAP (Debug Adapter Protocol) extension for pi — debug programs directly from your coding agent",
   "license": "MIT",

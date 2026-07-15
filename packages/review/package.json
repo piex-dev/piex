@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/review",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Code Review extension for pi — interactive /review command and LLM-callable review tool",
   "license": "MIT",

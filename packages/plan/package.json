@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/plan",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Plan Mode extension for pi — read-only exploration, plan creation, and step-by-step execution with progress tracking",
   "license": "MIT",

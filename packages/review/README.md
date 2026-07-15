@@ -29,7 +29,6 @@ review.ts                      # pi 扩展入口 (330 行)
 
 ```bash
 pi install npm:@piex-dev/review
-pi -e ./extensions/review.ts
 ```
 
 ## 前提条件

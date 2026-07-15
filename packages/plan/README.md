@@ -57,7 +57,6 @@ plan.ts                        # pi 扩展入口 (348 行)
 
 ```bash
 pi install npm:@piex-dev/plan
-pi -e ./extensions/plan.ts
 ```
 
 ## 与 omp 实现差异

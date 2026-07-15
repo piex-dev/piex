@@ -35,7 +35,6 @@ hover, symbols, workspace_symbols, format, reload
 
 ```bash
 pi install npm:@piex-dev/lsp
-pi -e ./extensions/lsp.ts
 ```
 
 ## 前提条件
