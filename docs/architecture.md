@@ -46,7 +46,8 @@ piex/                                  # monorepo
     │   ├── README.md
     │   ├── package.json
     │   └── extensions/
-    │       └── xai-oauth.ts
+    │       ├── xai-oauth.ts
+    │       └── models.ts
     └── theme-dark-terminal/
         ├── README.md
         ├── package.json
@@ -63,7 +64,7 @@ piex/                                  # monorepo
 | lsp | 570 行 + 499 行 JSON | `lsp` | 无 | oh-my-pi |
 | plan | 348 行 | `/plan`, `/todos` | 无 | pi 示例 |
 | review | 330 行 | `/review`, `review` | 无 | oh-my-pi |
-| xai-oauth | 580 行 | `/login` xAI Grok OAuth 订阅登录 | 无 | oh-my-pi |
+| xai-oauth | 530 行 + 419 行 models | `/login` xAI Grok OAuth 订阅登录（含实时模型发现） | 无 | oh-my-pi / pi-grok |
 | theme-dark-terminal | — | 暗终端高对比度主题 | 无 | [opencode-themes](https://github.com/debugtalk/opencode-themes) |
 
 ## 工具注册总览
@@ -85,7 +86,7 @@ piex/                                  # monorepo
 
 | Provider | 来源 | 认证 | 说明 |
 |----------|------|------|------|
-| **`xai-oauth`** | **xai-oauth** | OAuth 订阅 | SuperGrok / X Premium+ 登录，模型与内置 xAI 一致 |
+| **`xai-oauth`** | **xai-oauth** | OAuth 订阅 | SuperGrok / X Premium+ 登录；订阅模型经 cli-chat-proxy，支持登录后后台模型发现 |
 
 ## pi Extension API 映射
 

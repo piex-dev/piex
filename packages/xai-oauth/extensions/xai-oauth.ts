@@ -7,16 +7,24 @@
  * Based on the RFC 8628 Device Authorization Grant flow, ported from
  * oh-my-pi's xai-oauth provider (which itself draws from NousResearch/hermes-agent).
  *
+ * Models include live catalog discovery: on login, both api.x.ai/v1/models and
+ * cli-chat-proxy.grok.com/v1/models are fetched in the background. Models
+ * available on the proxy route through the subscription quota path; the rest
+ * use the public API.  New models appear on the next /reload.
+ *
  * Usage:
  *   pi install /path/to/piex/packages/xai-oauth
  *   # Then /login → select "xAI Grok (SuperGrok / X Premium+)"
- *
- * Models are identical to pi's built-in xAI provider — same base URL,
- * same OpenAI-compatible API, just authenticated via OAuth bearer token.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { OAuthCredentials, OAuthLoginCallbacks } from "@earendil-works/pi-ai";
+import {
+  resolveModels,
+  triggerDiscovery,
+  rebuildModelsForOAuth,
+  XAI_PUBLIC_BASE_URL,
+} from "./models.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Constants
@@ -38,94 +46,6 @@ const DISCOVERY_TIMEOUT_MS = 15_000;
 const TOKEN_REQUEST_TIMEOUT_MS = 20_000;
 const MIN_DEVICE_FLOW_INTERVAL_MS = 1000;
 const SLOW_DOWN_INTERVAL_INCREMENT_MS = 5000;
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Models — identical to pi's built-in xAI provider models
-// Keep in sync with @earendil-works/pi-ai XAI_MODELS (provider field differs).
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const XAI_MODELS = [
-  {
-    id: "grok-3",
-    name: "Grok 3",
-    reasoning: false,
-    input: ["text"] as ("text" | "image")[],
-    cost: { input: 3, output: 15, cacheRead: 0.75, cacheWrite: 0 },
-    contextWindow: 131072,
-    maxTokens: 8192,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-  {
-    id: "grok-3-fast",
-    name: "Grok 3 Fast",
-    reasoning: false,
-    input: ["text"] as ("text" | "image")[],
-    cost: { input: 5, output: 25, cacheRead: 1.25, cacheWrite: 0 },
-    contextWindow: 131072,
-    maxTokens: 8192,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-  {
-    id: "grok-4.20-0309-non-reasoning",
-    name: "Grok 4.20 (Non-Reasoning)",
-    reasoning: false,
-    input: ["text", "image"] as ("text" | "image")[],
-    cost: { input: 1.25, output: 2.5, cacheRead: 0.2, cacheWrite: 0 },
-    contextWindow: 1_000_000,
-    maxTokens: 30000,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-  {
-    id: "grok-4.20-0309-reasoning",
-    name: "Grok 4.20 (Reasoning)",
-    reasoning: true,
-    input: ["text", "image"] as ("text" | "image")[],
-    cost: { input: 1.25, output: 2.5, cacheRead: 0.2, cacheWrite: 0 },
-    contextWindow: 1_000_000,
-    maxTokens: 30000,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-  {
-    id: "grok-4.3",
-    name: "Grok 4.3",
-    reasoning: true,
-    input: ["text", "image"] as ("text" | "image")[],
-    cost: { input: 1.25, output: 2.5, cacheRead: 0.2, cacheWrite: 0 },
-    contextWindow: 1_000_000,
-    maxTokens: 30000,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-  {
-    id: "grok-4.5",
-    name: "Grok 4.5",
-    reasoning: true,
-    input: ["text", "image"] as ("text" | "image")[],
-    cost: { input: 2, output: 6, cacheRead: 0.5, cacheWrite: 0 },
-    contextWindow: 500_000,
-    maxTokens: 500_000,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-  {
-    id: "grok-build-0.1",
-    name: "Grok Build 0.1",
-    reasoning: true,
-    input: ["text", "image"] as ("text" | "image")[],
-    cost: { input: 1, output: 2, cacheRead: 0.2, cacheWrite: 0 },
-    contextWindow: 256_000,
-    maxTokens: 256_000,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-  {
-    id: "grok-code-fast-1",
-    name: "Grok Code Fast 1",
-    reasoning: false,
-    input: ["text"] as ("text" | "image")[],
-    cost: { input: 0.2, output: 1.5, cacheRead: 0.02, cacheWrite: 0 },
-    contextWindow: 32768,
-    maxTokens: 8192,
-    compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
-  },
-];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Helpers
@@ -564,17 +484,47 @@ async function loginXAIOAuth(callbacks: OAuthLoginCallbacks): Promise<OAuthCrede
 // Extension entry point
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function xaiOAuthExtension(pi: ExtensionAPI) {
+export default async function xaiOAuthExtension(pi: ExtensionAPI) {
+  const models = resolveModels();
+
   pi.registerProvider("xai-oauth", {
     name: "xAI Grok (SuperGrok / X Premium+)",
-    baseUrl: "https://api.x.ai/v1",
+    baseUrl: XAI_PUBLIC_BASE_URL,
     api: "openai-completions",
-    models: XAI_MODELS,
+    models: models.map((m) => ({
+      id: m.id,
+      name: m.name,
+      reasoning: m.reasoning,
+      input: m.input,
+      cost: m.cost,
+      contextWindow: m.contextWindow,
+      maxTokens: m.maxTokens,
+      compat: m.compat,
+      ...(m.baseUrl ? { baseUrl: m.baseUrl } : {}),
+      ...(m.headers ? { headers: m.headers } : {}),
+    })),
     oauth: {
       name: "xAI Grok (SuperGrok / X Premium+)",
       login: loginXAIOAuth,
       refreshToken: refreshXAIToken,
       getApiKey: (cred: OAuthCredentials) => cred.access,
+
+      modifyModels(models: unknown, credentials: unknown) {
+        const creds = credentials as Record<string, unknown>;
+        const effectiveBaseUrl = String(creds.baseUrl ?? XAI_PUBLIC_BASE_URL).replace(/\/+$/, "");
+
+        // Kick off background live-catalog fetch. Cache populates asynchronously;
+        // the next /reload picks up new models.
+        if (creds.access) {
+          triggerDiscovery(String(creds.access), effectiveBaseUrl);
+        }
+
+        return rebuildModelsForOAuth(
+          models as Array<Record<string, unknown>>,
+          "xai-oauth",
+          effectiveBaseUrl,
+        );
+      },
     },
   });
 }

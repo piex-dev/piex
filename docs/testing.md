@@ -16,7 +16,7 @@ pi -e ./packages/review/extensions/review.ts  -p "what is 1+1" --no-session
 pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p "what is 1+1" --no-session
 
 # xai-oauth 单元测试（不依赖网络）
-bun test packages/xai-oauth/xai-oauth.test.ts
+bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
 ```
 
 ## 功能测试
