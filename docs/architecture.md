@@ -5,7 +5,6 @@
 ```
 piex/                                  # monorepo
 ├── README.md                         # 项目入口
-├── .gitignore
 ├── docs/                             # 📚 文档
 │   ├── design.md                     #   设计理念与核心原则
 │   ├── architecture.md               #   架构概览（本文档）
@@ -14,7 +13,7 @@ piex/                                  # monorepo
 │   ├── references.md                 #   参考资料索引
 │   └── migration/                    #   迁移方案记录
 │       └── plan-review.md
-└── packages/                         # 📦 6 个独立 piex package
+└── packages/                         # 📦 7 个独立 piex package
     ├── hashline/
     │   ├── README.md
     │   ├── package.json
@@ -43,6 +42,11 @@ piex/                                  # monorepo
     │   ├── package.json
     │   └── extensions/
     │       └── review.ts
+    ├── xai-oauth/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       └── xai-oauth.ts
     └── theme-dark-terminal/
         ├── README.md
         ├── package.json
@@ -59,6 +63,7 @@ piex/                                  # monorepo
 | lsp | 570 行 + 499 行 JSON | `lsp` | 无 | oh-my-pi |
 | plan | 348 行 | `/plan`, `/todos` | 无 | pi 示例 |
 | review | 330 行 | `/review`, `review` | 无 | oh-my-pi |
+| xai-oauth | 580 行 | `/login` xAI Grok OAuth 订阅登录 | 无 | oh-my-pi |
 | theme-dark-terminal | — | 暗终端高对比度主题 | 无 | [opencode-themes](https://github.com/debugtalk/opencode-themes) |
 
 ## 工具注册总览
@@ -75,6 +80,12 @@ piex/                                  # monorepo
 | **`debug`** | **dap** | 读写 | DAP 调试（launch/attach/step/evaluate） |
 | **`lsp`** | **lsp** | 读写 | LSP 语言服务器（diagnostics/hover/references） |
 | **`review`** | **review** | 读 | 代码评审（diff/file/branch/commit） |
+
+## Provider 注册总览
+
+| Provider | 来源 | 认证 | 说明 |
+|----------|------|------|------|
+| **`xai-oauth`** | **xai-oauth** | OAuth 订阅 | SuperGrok / X Premium+ 登录，模型与内置 xAI 一致 |
 
 ## pi Extension API 映射
 
@@ -93,3 +104,4 @@ piex/                                  # monorepo
 | 注册 review 工具 | omp | review.ts | `pi.registerTool({ name: "review" })` |
 | 状态持久化 | pi | plan.ts | `pi.appendEntry("plan-mode", ...)` |
 | Footer/Widge | pi | plan.ts | `ctx.ui.setStatus/setWidget(...)` |
+| 注册 xAI OAuth provider | omp | xai-oauth.ts | `pi.registerProvider("xai-oauth", { oauth: {...} })` |
