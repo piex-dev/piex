@@ -5,6 +5,9 @@
   "description": "Dark Terminal theme for pi — high-contrast terminal-inspired dark theme with vivid green, blue, and red accents",
   "license": "MIT",
   "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/piex-dev/piex.git",

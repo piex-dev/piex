@@ -5,6 +5,9 @@
   "description": "LSP (Language Server Protocol) extension for pi — diagnostics, definitions, references, hover, symbols, and formatting",
   "license": "MIT",
   "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/piex-dev/piex.git",

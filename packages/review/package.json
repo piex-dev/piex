@@ -5,6 +5,9 @@
   "description": "Code Review extension for pi — interactive /review command and LLM-callable review tool",
   "license": "MIT",
   "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/piex-dev/piex.git",

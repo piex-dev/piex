@@ -5,6 +5,9 @@
   "description": "Hashline patch language extension for pi — compact, line-anchored, tag-verified file edits",
   "license": "MIT",
   "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/piex-dev/piex.git",
