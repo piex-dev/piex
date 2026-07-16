@@ -48,7 +48,6 @@ body {
   margin: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: clip;
   font-family: var(--sans);
   font-size: clamp(0.92rem, 1.5vw, 1.02rem);
   line-height: 1.6;
