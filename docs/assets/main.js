@@ -254,18 +254,44 @@
   /* ---- mobile nav toggle ---- */
   var toggle = document.getElementById("nav-toggle");
   var nav = document.getElementById("nav-links");
+
+  function closeNav() {
+    if (!toggle || !nav) return;
+    nav.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.textContent = "\u2630";
+  }
+
+  function openNav() {
+    if (!toggle || !nav) return;
+    nav.classList.add("open");
+    toggle.setAttribute("aria-expanded", "true");
+    toggle.textContent = "\u2715";
+  }
+
   if (toggle && nav) {
-    toggle.addEventListener("click", function () {
-      var open = nav.classList.toggle("open");
-      toggle.setAttribute("aria-expanded", String(open));
-      toggle.textContent = open ? "\u2715" : "\u2630";
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (nav.classList.contains("open")) closeNav();
+      else openNav();
     });
+
     nav.querySelectorAll("a").forEach(function (a) {
       a.addEventListener("click", function () {
-        nav.classList.remove("open");
-        toggle.setAttribute("aria-expanded", "false");
-        toggle.textContent = "\u2630";
+        closeNav();
       });
+    });
+
+    // click outside menu closes it
+    document.addEventListener("click", function (e) {
+      if (!nav.classList.contains("open")) return;
+      if (nav.contains(e.target) || toggle.contains(e.target)) return;
+      closeNav();
+    });
+
+    // Escape key closes it
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeNav();
     });
   }
 })();

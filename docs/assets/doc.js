@@ -78,8 +78,33 @@
     });
   });
 
-  rawLink.href = REPO_BLOB + docFile;
+  /* collapsible sidebar on mobile */
+  var sidebarEl = document.querySelector(".doc-sidebar");
+  var sidebarToggle = document.getElementById("doc-sidebar-toggle");
+  if (sidebarEl && sidebarToggle) {
+    var activeEntry = ALL.find(function (d) { return d.file === docFile; });
+    var toggleLabel = sidebarToggle.querySelector(".doc-sidebar-toggle-label");
+    if (toggleLabel && activeEntry) {
+      toggleLabel.textContent = activeEntry.date
+        ? activeEntry.date + " · " + activeEntry.title
+        : activeEntry.title;
+    }
+
+    sidebarToggle.addEventListener("click", function () {
+      var open = sidebarEl.classList.toggle("is-open");
+      sidebarToggle.setAttribute("aria-expanded", String(open));
+    });
+
+    // collapse after picking another doc link (same-page nav uses full reload, but keep for safety)
+    navEl.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", function () {
+        sidebarEl.classList.remove("is-open");
+        sidebarToggle.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
   document.title = docEntry.title + " — PieX";
+  rawLink.href = REPO_BLOB + docFile;
 
   /** 相对路径链接：站内 .md → doc.html，其它保持 */
   function rewriteLinks(container) {

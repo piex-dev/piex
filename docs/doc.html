@@ -7,8 +7,205 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/style.css" />
-  <link rel="stylesheet" href="assets/doc.css" /><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="assets/style.css?v=20260716b" />
+  <link rel="stylesheet" href="assets/doc.css?v=20260716b" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <!-- Critical mobile styles: avoid cached/stale external CSS breaking the layout -->
+  <style>
+    /* Critical mobile layout — keep in HTML so stale CSS cache cannot break the page */
+    html, body {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .doc-layout {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 1rem 0.85rem 2.5rem;
+      display: grid;
+      /* CRITICAL: default grid track is minmax(auto, …) which expands to pre/code min-content
+         and gets clipped by overflow-x on html/body. Force the column to fit the viewport. */
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1rem;
+      box-sizing: border-box;
+      min-width: 0;
+    }
+    .doc-sidebar,
+    .doc-main,
+    .doc-prose {
+      min-width: 0;
+      max-width: 100%;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .doc-sidebar-toggle {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      margin: 0 0 0.55rem;
+      background: #161d27;
+      border: 1px solid #252c36;
+      border-radius: 10px;
+      color: #dae0e7;
+      font: 600 0.9rem/1.3 Inter, system-ui, sans-serif;
+      cursor: pointer;
+      text-align: left;
+      box-sizing: border-box;
+    }
+    .doc-sidebar-toggle .doc-sidebar-toggle-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .doc-sidebar-toggle .chev {
+      color: #738290;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .doc-sidebar.is-open .doc-sidebar-toggle .chev {
+      transform: rotate(180deg);
+    }
+    /* mobile-first: nav collapsed unless opened */
+    .doc-nav {
+      display: none;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0.5rem;
+      background: #161d27;
+      border: 1px solid #252c36;
+      border-radius: 10px;
+      max-height: min(60vh, 420px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .doc-sidebar.is-open .doc-nav {
+      display: flex;
+    }
+    .doc-prose {
+      padding: 1.1rem 0.95rem;
+      background: #11171e;
+      border: 1px solid #252c36;
+      border-radius: 10px;
+      line-height: 1.65;
+      font-size: 0.95rem;
+      overflow-x: hidden;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .doc-prose pre,
+    .doc-prose table,
+    .doc-prose img,
+    .doc-prose svg,
+    .doc-prose video,
+    .doc-prose iframe {
+      max-width: 100%;
+    }
+    .doc-prose h1,
+    .doc-prose h2,
+    .doc-prose h3 {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      max-width: 100% !important;
+      overflow: visible;
+    }
+    .doc-prose h1 {
+      font-size: clamp(1.15rem, 5.5vw, 1.45rem);
+      line-height: 1.3;
+      margin: 0 0 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #252c36;
+    }
+    .doc-prose h2 {
+      font-size: 1.12rem;
+      line-height: 1.35;
+      margin: 1.5rem 0 0.6rem;
+    }
+    .doc-prose h3 {
+      font-size: 1.02rem;
+      line-height: 1.35;
+      margin: 1.25rem 0 0.45rem;
+    }
+    .doc-prose p,
+    .doc-prose li,
+    .doc-prose blockquote {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .doc-prose pre {
+      max-width: 100%;
+      width: 100%;
+      box-sizing: border-box;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .doc-prose pre code {
+      white-space: inherit;
+      word-break: inherit;
+    }
+    .doc-prose table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .doc-prose img,
+    .doc-prose svg,
+    .doc-prose video {
+      height: auto;
+    }
+    @media (min-width: 900px) {
+      .doc-layout {
+        max-width: 1200px;
+        grid-template-columns: 220px minmax(0, 1fr);
+        align-items: start;
+        padding: 2rem 1.5rem 3rem;
+        gap: 2rem;
+        overflow-x: visible;
+      }
+      .doc-sidebar {
+        position: sticky;
+        top: 4.5rem;
+        width: auto;
+      }
+      .doc-sidebar-toggle {
+        display: none;
+      }
+      .doc-nav {
+        display: flex;
+        padding: 0;
+        background: transparent;
+        border: none;
+        max-height: none;
+        overflow: visible;
+        gap: 0.35rem;
+      }
+      .doc-prose {
+        padding: 1.5rem 1.75rem;
+        font-size: 1rem;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+      .doc-prose h1 {
+        font-size: clamp(1.25rem, 4.5vw, 1.85rem);
+        margin-bottom: 1rem;
+      }
+      .doc-prose h2 {
+        font-size: 1.35rem;
+        margin: 2rem 0 0.75rem;
+      }
+      .doc-prose pre {
+        white-space: pre;
+        word-break: normal;
+      }
+    }
+  </style>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
   <script>
@@ -17,7 +214,6 @@
     gtag('js', new Date());
     gtag('config', 'G-0BJ0ZVPSWN');
   </script>
-
 </head>
 <body>
   <header class="site-header">
@@ -43,6 +239,10 @@
 
   <main class="doc-layout">
     <aside class="doc-sidebar anim-fade" aria-label="Document index">
+      <button type="button" id="doc-sidebar-toggle" class="doc-sidebar-toggle" aria-expanded="false" aria-controls="doc-nav">
+        <span class="doc-sidebar-toggle-label">目录</span>
+        <span class="chev" aria-hidden="true">▾</span>
+      </button>
       <nav class="doc-nav" id="doc-nav"></nav>
     </aside>
     <article class="doc-main anim-fade">
@@ -62,7 +262,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
-  <script src="assets/doc.js" charset="utf-8"></script>
-  <script src="assets/main.js"></script>
+  <script src="assets/doc.js?v=20260716b" charset="utf-8"></script>
+  <script src="assets/main.js?v=20260716c"></script>
 </body>
 </html>

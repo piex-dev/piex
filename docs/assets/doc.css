@@ -1,21 +1,5 @@
-.doc-layout {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 3rem;
-  display: grid;
-  gap: 2rem;
-}
-
-@media (min-width: 900px) {
-  .doc-layout {
-    grid-template-columns: 220px minmax(0, 1fr);
-    align-items: start;
-  }
-  .doc-sidebar {
-    position: sticky;
-    top: 4.5rem;
-  }
-}
+/* Desktop refinements + shared components.
+   Critical mobile layout lives inline in doc.html to survive asset cache. */
 
 .doc-sidebar-title {
   margin: 0 0 0.75rem;
@@ -23,12 +7,6 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-}
-
-.doc-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
 }
 
 .doc-nav a {
@@ -67,25 +45,8 @@
   color: var(--red);
 }
 
-.doc-prose {
-  padding: 1.5rem 1.75rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  line-height: 1.7;
-  font-size: 1rem;
-}
-
 .doc-prose :first-child { margin-top: 0; }
 .doc-prose :last-child { margin-bottom: 0; }
-
-.doc-prose h1 {
-  font-size: 1.85rem;
-  margin: 0 0 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-  letter-spacing: -0.02em;
-}
 
 .doc-prose h2 {
   font-size: 1.35rem;
@@ -115,6 +76,7 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 4px;
+  word-break: break-word;
 }
 
 .doc-prose pre {
@@ -124,6 +86,8 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .doc-prose pre code {
@@ -131,6 +95,7 @@
   border: none;
   background: none;
   font-size: 0.82rem;
+  word-break: normal;
 }
 
 .doc-prose table {
@@ -187,4 +152,60 @@
   font-family: var(--mono);
   font-size: 0.82rem;
   color: var(--text-muted);
+}
+
+@media (max-width: 899px) {
+  .doc-sidebar-title {
+    margin: 0.55rem 0 0.25rem;
+    padding: 0 0.35rem;
+    font-size: 0.68rem;
+  }
+  .doc-sidebar-title:first-child {
+    margin-top: 0.15rem;
+  }
+  .doc-nav a {
+    padding: 0.7rem 0.75rem;
+    font-size: 0.9rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    line-height: 1.3;
+  }
+  .doc-prose h2 {
+    font-size: 1.15rem;
+    margin: 1.5rem 0 0.6rem;
+  }
+  .doc-prose h3 {
+    font-size: 1.02rem;
+    margin: 1.25rem 0 0.45rem;
+  }
+  .doc-prose pre {
+    margin: 0.85rem 0;
+    padding: 0.8rem 0.85rem;
+    font-size: 0.78rem;
+  }
+  .doc-prose pre code {
+    font-size: 0.78rem;
+  }
+  .doc-prose th,
+  .doc-prose td {
+    padding: 0.4rem 0.5rem;
+    white-space: nowrap;
+  }
+  .doc-prose ul,
+  .doc-prose ol {
+    padding-left: 1.15rem;
+  }
+  .doc-meta {
+    font-size: 0.78rem;
+    margin: -0.15rem 0 1rem;
+  }
+  .doc-source {
+    font-size: 0.84rem;
+    margin-top: 1rem;
+  }
+  .doc-status {
+    font-size: 0.85rem;
+    padding: 0.65rem 0.85rem;
+  }
 }
