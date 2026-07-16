@@ -13,6 +13,12 @@
 
   const BLOGS = [
     {
+      file: "blogs/hashline.md",
+      title: "Hashline 方案的原理及借鉴",
+      date: "2026-07-16",
+      group: "blogs",
+    },
+    {
       file: "blogs/pi-extension-mechanism.md",
       title: "Pi Extension 机制及工作原理",
       date: "2026-07-14",

@@ -14,7 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/style.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />  <!-- Google Analytics -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -214,6 +215,7 @@
         <li class="anim-fade"><a href="doc.html?doc=references.md"><span class="doc-title" data-i18n="docs.refs.title">References</span><span class="doc-sub" data-i18n="docs.refs.sub">Pi docs &amp; source projects</span></a></li>
       </ul>
     </section>
+
     <!-- ===== BLOG ===== -->
     <section id="blog" class="section-alt">
       <div class="section-header anim-fade">
@@ -225,6 +227,14 @@
         <p class="section-desc" data-i18n="blog.desc">Deep dives into Pi extension mechanics, coding agent design, and tooling.</p>
       </div>
       <div class="blog-list">
+        <article class="blog-card anim-fade">
+          <div class="blog-meta">
+            <span class="blog-date">2026-07-16</span>
+            <span class="blog-tag">Hashline</span>
+          </div>
+          <h3 class="blog-title"><a href="doc.html?doc=blogs/hashline.md">Hashline 方案的原理及借鉴</a></h3>
+          <p class="blog-excerpt">深入对比 oh-my-pi、pi-hashline-edit、pi-hashline-edit-pro 三种锚定编辑实现，分析整体哈希 vs 逐行哈希、容错机制、Block 操作等关键设计决策。</p>
+        </article>
         <article class="blog-card anim-fade">
           <div class="blog-meta">
             <span class="blog-date">2026-07-14</span>
