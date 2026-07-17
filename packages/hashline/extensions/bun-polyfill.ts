@@ -8,7 +8,8 @@ import * as fsSync from "node:fs";
 import * as crypto from "node:crypto";
 
 // ---------------------------------------------------------------------------
-// xxHash32 implementation (pure JS, compatible with Bun.hash.xxHash32)
+// xxHash32 implementation (pure JS, compatible with Bun.hash.xxHash32).
+// Also exported for patches.ts (payloadKey / fileHash fingerprinting).
 // ---------------------------------------------------------------------------
 
 // xxHash32 constants
@@ -126,4 +127,4 @@ if (typeof globalThis.Bun === "undefined") {
   (globalThis as unknown as Record<string, unknown>).Bun = _Bun;
 }
 
-export { _Bun };
+export { _Bun, xxHash32 };

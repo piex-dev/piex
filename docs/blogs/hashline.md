@@ -370,9 +370,9 @@ pi-hashline-edit 提供五种操作类型：
 | **文件操作（REM/MV）** | ✅ | **✅ 继承** | ❌ | ❌ |
 | **Boundary Repair** | ✅ ~1200行引擎 | **✅ 继承** | ⚠️ 简化版 | ⚠️ + autoFix |
 | **Stale Anchor 恢复** | ✅ Recovery | **❌** | ✅ 3-way merge | ❌ |
-| **Noop Loop Guard** | ❌ | **❌** | ✅ ≥3次抛错 | ❌ |
-| **Duplicate Edit 检测** | ❌ | **❌** | ✅ | ❌ |
-| **方言归一化** | ❌ | **❌** | ✅ | ❌ |
+| **Noop Loop Guard** | ❌ | **✅ Phase 1** | ✅ ≥3次抛错 | ❌ |
+| **Duplicate Edit 检测** | ❌ | **✅ Phase 1** | ✅ | ❌ |
+| **方言归一化** | ❌ | **✅ Phase 1** | ✅ | ❌ |
 | **textHint 校验** | ❌ | **❌** | ✅ | ❌ |
 | **多版本快照** | ❌ | **❌** | ✅ LRU | ❌ |
 | **append/prepend ops** | ✅（INS语法） | **✅ 继承** | ✅ 原生 JSON | ❌ |
@@ -384,31 +384,26 @@ pi-hashline-edit 提供五种操作类型：
 | **Flat Mode** | ❌ | **❌** | ❌ | ✅ |
 | **Diff 预览** | ✅ | **✅ 继承** | ✅ | ✅ |
 
-结论很清晰：**继承层全 ✅，容错层全 ❌**。piex/hashline 完美继承了 oh-my-pi 最独特的编辑能力（block 操作 + boundary repair），但在模型行为容错方面完全空白——每一次 ❌ 都是一次可借鉴的改进机会。
+结论：**继承层全 ✅，Phase 1 容错层已完成 ✅**。piex/hashline 在保留 oh-my-pi 核心编辑能力（block 操作 + boundary repair）的基础上，已补齐 Noop Loop Guard、Duplicate Edit 检测、方言归一化三项基础容错机制。
 
-### 6.3 当前缺口：容错层空白
+### 6.3 当前缺口：Phase 2 容错层空白
 
-[piex/hashline](https://github.com/piex-dev/piex/tree/main/packages/hashline) 直接暴露了 oh-my-pi 的 Patcher 接口，但没有在外层构建任何容错机制：
+Phase 1 已实现 Noop Loop Guard、Duplicate Edit 检测、方言归一化（`extensions/patches.ts` + `normalizeInput()`）。剩余缺口：
 
 | 缺失的容错能力 | 最佳参考来源 |
 |--------------|------------|
-| Noop Loop Guard | pi-hashline-edit |
-| Duplicate Edit 检测 | pi-hashline-edit |
 | Stale Anchor 恢复 | pi-hashline-edit（3-way merge）或 oh-my-pi（Recovery） |
-| 方言归一化 | pi-hashline-edit |
 | 多版本快照 | pi-hashline-edit |
-
-这些特性都可以在 patcher 外层实现，不需要修改 oh-my-pi 内部。
 
 ### 6.4 路线图
 
 按投入产出比排序：
 
 ```
-Phase 1 — 低投入高产出（总计约 180 行）：
+Phase 1 ✅ 已完成 — 低投入高产出（~180 行）：
   ├── Noop Loop Guard         (~50行)  pi-hashline-edit 方案：计数器抛错
   ├── Duplicate Edit 检测      (~30行)  pi-hashline-edit 方案：payloadKey 记录
-  └── 方言归一化              (~100行) pi-hashline-edit 方案：prepareArguments
+  └── 方言归一化              (~100行) pi-hashline-edit 方案：normalizeInput
 
 Phase 2 — 中等投入，显著提升可靠性（总计约 550 行）：
   ├── Stale Anchor 恢复        (~150行) pi-hashline-edit 方案：3-way merge
@@ -421,6 +416,8 @@ Phase 3 — 锦上添花：
   ├── Raw Read 模式            pi-hashline-edit 方案
   └── Stable Hash Mapping     pi-hashline-edit-pro 方案
 ```
+
+Phase 1 实现文件：[`extensions/patches.ts`](https://github.com/piex-dev/piex/tree/main/packages/hashline/extensions/patches.ts)（`EditGuard`，统一实现 Noop Loop Guard 与 Duplicate Edit 检测），`normalizeInput()` 函数位于 `extensions/hashline.ts`。
 
 ---
 
