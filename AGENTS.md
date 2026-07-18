@@ -4,7 +4,7 @@
 
 ## 项目概览
 
-Piex 是 [Pi](https://pi.dev)（pi-coding-agent）的功能扩展集合，以独立 npm 包 `@piex-dev/*` 分发的 monorepo。它从 oh-my-pi (omp)、Claude Code、OpenCode 等 coding agent 中提取核心功能，**100% 基于 pi Extension API 重新实现**——不 fork pi、不修改 pi 内部代码。
+PieX 是 [Pi](https://pi.dev)（pi-coding-agent）的功能扩展集合，以独立 npm 包 `@piex-dev/*` 分发的 monorepo。它从 oh-my-pi (omp)、Claude Code、OpenCode 等 coding agent 中提取核心功能，**100% 基于 pi Extension API 重新实现**——不 fork pi、不修改 pi 内部代码。
 
 核心原则（详见 `docs/design.md`）：
 

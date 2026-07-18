@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/style.css?v=20260322b" />
+  <link rel="stylesheet" href="assets/style.css?v=20260322f" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
@@ -34,8 +34,7 @@
       </a>
       <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
       <div class="nav-links" id="nav-links">
-        <a href="#why" data-i18n="nav.why">Why</a>
-        <a href="#principles" data-i18n="nav.principles">Principles</a>
+        <a href="#why" data-i18n="nav.why">Philosophy</a>
         <a href="#packages" data-i18n="nav.packages">Packages</a>
         <a href="#docs" data-i18n="nav.docs">Docs</a>
         <a href="#blog" data-i18n="nav.blog">Blog</a>
@@ -83,7 +82,7 @@
       <div class="section-header anim-fade">
         <div class="section-heading">
           <span class="section-icon">🧭</span>
-          <h2 class="section-title" data-i18n="why.title">Why PieX</h2>
+          <h2 class="section-title" data-i18n="why.title">Design Philosophy</h2>
         </div>
         <div class="section-divider"></div>
         <p class="section-desc" data-i18n="why.desc">Extend Pi without forking — on demand, understood, and measured.</p>
@@ -113,47 +112,8 @@
       <p class="why-note anim-fade"><a href="/docs/design/" data-i18n="why.more">Read the full design philosophy →</a></p>
     </section>
 
-    <!-- ===== PRINCIPLES ===== -->
-    <section id="principles">
-      <div class="section-header anim-fade">
-        <div class="section-heading">
-          <span class="section-icon">⚙️</span>
-          <h2 class="section-title" data-i18n="principles.title">Design Principles</h2>
-        </div>
-        <div class="section-divider"></div>
-        <p class="section-desc" data-i18n="principles.desc">100% Extension API based. Independent versioning. Traceable origins.</p>
-      </div>
-      <div class="principles">
-        <article class="card anim-fade">
-          <span class="card-icon">🔌</span>
-          <h3 data-i18n="principles.1.title">Extension API only</h3>
-          <p data-i18n="principles.1.desc">Register tools, commands &amp; hooks. Never touch the Pi core.</p>
-        </article>
-        <article class="card anim-fade">
-          <span class="card-icon">📦</span>
-          <h3 data-i18n="principles.2.title">Install on demand</h3>
-          <p data-i18n="principles.2.desc">Only install hashline, dap, plan — whatever you need.</p>
-        </article>
-        <article class="card anim-fade">
-          <span class="card-icon">🔖</span>
-          <h3 data-i18n="principles.3.title">Independent releases</h3>
-          <p data-i18n="principles.3.desc">Pi upgrades never break piex. Each package has its own npm version.</p>
-        </article>
-        <article class="card anim-fade">
-          <span class="card-icon">🧬</span>
-          <h3 data-i18n="principles.4.title">Traceable origins</h3>
-          <p data-i18n="principles.4.desc">Every capability credits its source (omp, pi examples, community themes, etc).</p>
-        </article>
-        <article class="card anim-fade">
-          <span class="card-icon">📏</span>
-          <h3 data-i18n="principles.5.title">Measurable</h3>
-          <p data-i18n="principles.5.desc">Every package ships with benchmark criteria &amp; eval data. No measurement, no adoption.</p>
-        </article>
-      </div>
-    </section>
 
-    <!-- ===== PACKAGES ===== -->
-    <section id="packages" class="section-alt">
+    <section id="packages">
       <div class="section-header anim-fade">
         <div class="section-heading">
           <span class="section-icon">📦</span>
@@ -238,7 +198,7 @@
     </section>
 
     <!-- ===== DOCS ===== -->
-    <section id="docs">
+    <section id="docs" class="section-alt">
       <div class="section-header anim-fade">
         <div class="section-heading">
           <span class="section-icon">📚</span>
@@ -258,7 +218,7 @@
     </section>
 
     <!-- ===== BLOG ===== -->
-    <section id="blog" class="section-alt">
+    <section id="blog">
       <div class="section-header anim-fade">
         <div class="section-heading">
           <span class="section-icon">✍️</span>
@@ -286,7 +246,6 @@
         </article>
       </div>
     </section>
-
   </main>
 
   <footer class="site-footer">
@@ -320,6 +279,6 @@
     </div>
   </footer>
 
-  <script src="assets/main.js?v=20260322a"></script>
+  <script src="assets/main.js?v=20260322f"></script>
 </body>
 </html>

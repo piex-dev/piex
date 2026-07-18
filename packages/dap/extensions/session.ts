@@ -516,7 +516,7 @@ export class DapSessionManager {
 
   #initArgs(adapter: DapResolvedAdapter): DapInitializeArguments {
     return {
-      clientID: "piex", clientName: "Piex", adapterID: adapter.name,
+      clientID: "piex", clientName: "PieX", adapterID: adapter.name,
       locale: "en-US", linesStartAt1: true, columnsStartAt1: true,
       pathFormat: "path", supportsRunInTerminalRequest: true,
       supportsStartDebuggingRequest: true, supportsMemoryReferences: true,

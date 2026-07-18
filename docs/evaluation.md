@@ -33,7 +33,7 @@
 
 SWE-bench Leaderboard、官方 Blog、论文中 Claude Code / Aider / OpenHands / Devin 等 Agent 的公开评测结果。
 
-## Piex 评测范围
+## PieX 评测范围
 
 每次评测加载全部已实现的 piex packages，未来新增 package 后重跑即可。
 

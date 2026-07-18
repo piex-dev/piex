@@ -1,6 +1,6 @@
 # 设计理念
 
-Piex 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。本文先讲清楚动机——为什么走这条路，再给出核心设计理念与架构模式。
+PieX 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。本文先讲清楚动机——为什么走这条路，再给出核心设计理念与架构模式。
 
 ## 背景与动机
 
@@ -23,11 +23,13 @@ Piex 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding age
 - **fork 而非扩展。** omp 是 pi 的 fork 分叉（官方自述 *"fork of pi-mono, batteries included"*），需要维护专门的 [porting playbook](https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md) 持续 backport 上游，还得自行维护约 5.5 万行 Rust 内核与 Bun-only 运行时。跟随 fork 意味着把升级节奏和架构决策都交给了分叉方。
 - **全量内置。** omp 默认内置 32 个工具和大量功能，其中很多日常用不到——这恰恰回到了"重"的老问题：无谓的 token 成本，以及对上下文失去掌控的心智负担。
 
-### 为什么做 Piex
+### 为什么做 PieX
 
-基于以上思考，Piex 选择第三条路：**不 fork pi，只用官方 Extension API 把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展**，在日常工作中深度使用、持续迭代，逐步打造最适合自己的工具链。需要说明的是：开源与信息安全是选择 agent 平台的重要前提，但并非创建 Piex 的核心原因——Piex 的核心设计理念是下面四点。
+基于以上思考，PieX 选择第三条路：**不 fork pi，只用官方 Extension API 把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展**，在日常工作中深度使用、持续迭代，逐步打造最适合自己的工具链。
 
 ## 核心设计理念
+
+PieX 的核心设计理念是下面四点。
 
 ### 1. 充分拓展 pi，而不是 fork
 

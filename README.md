@@ -1,10 +1,10 @@
-# Piex — Pi Extensions
+# PieX — Pi Extensions
 
 基于 [Pi](https://pi.dev) Extension API 构建的功能拓展集合，从 oh-my-pi、Claude Code、OpenCode 等优秀 coding agent 中提取核心功能特性，以独立 piex package 形式分发。
 
 ## Why PieX？
 
-- **充分拓展，而非 fork**：omp 选择 fork + 全量内置；Piex 只做官方扩展——100% 基于 pi Extension API，不碰内核，随 pi 升级而升级。
+- **充分拓展，而非 fork**：omp 选择 fork + 全量内置；PieX 只做官方扩展——100% 基于 pi Extension API，不碰内核，随 pi 升级而升级。
 - **按需拓展，自由切换**：扩展相互独立、即装即卸；克制可控，只为用到的能力付出 token。
 - **知其所以然**：取百家之长——借鉴主流 agent 的优秀设计，搞懂底层原理再以扩展引入；每个功能自己选择、自己理解、自己掌控。
 - **评测优先**：影响 agent 行为的扩展都有评测标准与数据支撑（见 [评测方案](docs/evaluation.md)）；无法度量效果，就不引入。
