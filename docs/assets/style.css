@@ -444,6 +444,14 @@ section + section { padding-top: 0; }
   line-height: 1.55;
 }
 
+.why-note {
+  margin: 1.75rem 0 0;
+  text-align: center;
+  font-size: 0.95rem;
+}
+.why-note a { color: var(--green); font-weight: 600; }
+.why-note a:hover { text-decoration: underline; }
+
 /* ---- packages ---- */
 
 .packages-grid {

@@ -2,6 +2,15 @@
 
 基于 [Pi](https://pi.dev) Extension API 构建的功能拓展集合，从 oh-my-pi、Claude Code、OpenCode 等优秀 coding agent 中提取核心功能特性，以独立 piex package 形式分发。
 
+## 为什么是 Piex？
+
+- **开源透明**：闭源 agent 接连曝出安全事件（Claude Code 隐藏监控、Grok Build 未告知上传用户仓库），开源 agent 每一行代码都可审计，也让你能从"用工具"走向"懂工具"。
+- **克制可控**：Pi 系统提示词 + 工具定义不到 1000 tokens，默认仅 4 个工具；功能只通过扩展按需叠加，token 不浪费，上下文尽在掌控。
+- **不 fork**：omp 很优秀但选择了 fork 分叉 + 全量内置的路线；Piex 100% 基于 pi 官方 Extension API，随 pi 升级而升级。
+- **可度量**：每个扩展都有评测标准与数据支撑（见 [评测方案](docs/evaluation.md)）——无法度量效果的功能，不引入。
+
+完整论述见 [设计理念](docs/design.md)。
+
 ## 安装
 
 三种方式，包名见下方 [Package 总览](#package-总览)（npm 包为 `@piex-dev/<name>`）。
@@ -49,7 +58,7 @@ pi -e ./packages/hashline/extensions/hashline.ts
 
 | 文档 | 说明 |
 |------|------|
-| [设计理念](docs/design.md) | 核心原则与架构模式 |
+| [设计理念](docs/design.md) | 背景动机、核心原则与架构模式 |
 | [架构概览](docs/architecture.md) | 项目结构、工具注册、API 映射 |
 | [实施路线](docs/roadmap.md) | 已完成 & 待规划 |
 | [评测方案](docs/evaluation.md) | 评测集选择、Docker 架构、指标设计、实施路径 |

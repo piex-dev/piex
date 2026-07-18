@@ -1,6 +1,31 @@
 # 设计理念
 
-Piex 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。
+Piex 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。本文先讲清楚动机——为什么走这条路，再给出核心原则与架构模式。
+
+## 背景与动机
+
+### 为什么选择开源 Agent
+
+**信息安全。** 闭源 coding agent 掌握着开发者的仓库、凭据与上下文，但其行为对用户是黑盒。仅 2026 年 7 月就有两起公开披露的事件：Claude Code 被工信部网络安全威胁和漏洞信息共享平台（NVDB）监测发现内置监控机制，可未经用户同意回传用户地域、身份标识等敏感信息（受影响版本 2.1.91–2.1.196），阿里随后将其列入高风险软件并全员禁用（[人民网报道](http://finance.people.com.cn/BIG5/n1/2026/0708/c1004-40756179.html)、[南方都市报报道](https://new.qq.com/rain/a/20260708A099RH00)）；xAI 的 Grok Build CLI 被安全研究员 cereblab 抓包证实，在未告知的情况下将整个 git 仓库（含未脱敏的 `.env` 凭据与完整提交历史）上传至云端，且 opt-out 开关只管数据留存、不管传输（[复现仓库与证据](https://github.com/cereblab/grok-build-exfil-repro)、[完整抓包分析](https://gist.github.com/cereblab/dc9a40bc26120f4540e4e09b75ffb547)）。开源 agent 的每一行代码、每一次网络请求都可审计，透明本身就是安全保障。
+
+**KnowHow。** Coding agent 推陈出新，在不同工具之间来回切换，耗费大量时间却只停留在功能使用层面。选择一款开源 agent 深度使用，研究其底层工作原理、参与开发迭代，才能把"用工具"变成"懂工具"。
+
+### 为什么选择 Pi
+
+**克制。** Coding agent 的功能越来越丰富，也普遍越来越重，但其中绝大多数功能日常根本用不到——既浪费 token，又带来心智负担：你对塞进上下文的东西毫无掌控感。Pi 的作者把这种克制写进了设计纲领（[What I learned building an opinionated and minimal coding agent](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/)）：系统提示词加工具定义合计不到 1000 tokens，默认只给模型 4 个工具（`read` / `write` / `edit` / `bash`）。官方 README 明确列出了 pi 不做的事——No MCP、No sub-agents、No plan mode、No built-in to-dos、No permission popups、No background bash——并且每一条都给出同一条出路：*build it with extensions, or install a package*。
+
+**可扩展。** Pi 的定位是 "a minimal terminal coding harness"，官方原话是 *"aggressively extensible so it doesn't have to dictate your workflow"*。工具、命令、事件钩子、UI、Provider、主题全部开放给扩展，而且开篇即承诺 *"without having to fork and modify pi internals"*。对个人开发者而言，一个克制而完全可读的内核，加上一套几乎无所不能的 Extension API，是深入理解并掌控自己工具链的最佳起点。
+
+### 为什么不直接用 oh-my-pi
+
+[oh-my-pi](https://github.com/can1357/oh-my-pi)（omp）基于 pi 拓展实现了很多优秀的工具，开箱即用，也是 piex 最主要的功能来源。但它选择了一条不同的路线：
+
+- **fork 而非扩展。** omp 是 pi 的 fork 分叉（官方自述 *"fork of pi-mono, batteries included"*），需要维护专门的 [porting playbook](https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md) 持续 backport 上游，还得自行维护约 5.5 万行 Rust 内核与 Bun-only 运行时。跟随 fork 意味着把升级节奏和架构决策都交给了分叉方。
+- **全量内置。** omp 默认内置 32 个工具和大量功能，其中很多日常用不到——这恰恰回到了"重"的老问题：无谓的 token 成本，以及对上下文失去掌控的心智负担。
+
+### 为什么做 Piex
+
+基于以上思考，Piex 选择第三条路：**不 fork pi，只用官方 Extension API 把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展**。在日常工作中深度使用，遇到问题就迭代优化，逐步打造最适合自己的工具链。
 
 ## 核心原则
 
@@ -22,22 +47,23 @@ Piex 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Cl
 | 交互弹窗 | `ctx.ui.select(...)`, `ctx.ui.editor(...)` |
 | 快捷键 | `pi.registerShortcut(Key.shift("p"), ...)` |
 
-### 2. 随 pi 升级而升级
+### 2. 按需安装，相互独立
 
-- 每个 piex package 是独立的 npm 包，不嵌入 pi
-- pi 升级时 piex 不受影响（扩展 API 向后兼容）
-- piex 可通过 `pi update` 独立升级
-- 版本号独立管理，无耦合
-
-### 3. 按需安装
-
-用户只安装需要的功能：
+每个扩展是独立的 npm 包，彼此无依赖，用户只安装需要的功能，接入和卸载都足够便捷：
 
 ```bash
 pi install npm:@piex-dev/hashline   # hashline 编辑
 pi install npm:@piex-dev/dap        # DAP 调试
 pi install npm:@piex-dev/plan       # 计划模式
+pi remove npm:@piex-dev/plan        # 随时卸载
 ```
+
+### 3. 随 pi 升级而升级
+
+- 每个 piex package 是独立的 npm 包，不嵌入 pi
+- pi 升级时 piex 不受影响（扩展 API 向后兼容）
+- piex 可通过 `pi update` 独立升级
+- 版本号独立管理，无耦合
 
 ### 4. 代码来源可追溯
 
@@ -51,6 +77,15 @@ pi install npm:@piex-dev/plan       # 计划模式
 | plan | pi 官方示例 | 基于 plan-mode 示例增强 |
 | review | oh-my-pi /review | 从 omp 精简移植 |
 | theme-dark-terminal | [opencode-themes](https://github.com/debugtalk/opencode-themes) | pi.themes 静态主题 JSON 分发 |
+
+### 5. 可度量：评测驱动
+
+无法度量引入一个工具的效果，那就不要引入它。每个扩展都必须有明确的评测标准与数据支撑：仓库内置 Docker 化评测框架（`eval/`），在 Aider Polyglot 与 SWE-bench Lite 上对比 pi (bare) / pi + piex / omp 三个 agent，指标涵盖 `resolve_rate`、`avg_tokens`、`avg_time`、`est_cost` 及归因指标（`edit_accuracy`、`debug_success`、`plan_follow_rate`）。方案详见 [评测方案](evaluation.md)。
+
+## 目标
+
+- 基于 Pi 打造最适合自己的 coding agent 工具链——每个功能都是自己选择、自己理解、自己掌控的。
+- 深入理解每一个功能特性的底层实现原理，在持续迭代中提升自身的工具产品设计品味。
 
 ## 架构模式
 

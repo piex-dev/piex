@@ -4,17 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>参考资料 — PieX</title>
-  <meta name="description" content="pi 官方文档、扩展示例、功能来源索引与相关项目链接。" />
+  <meta name="description" content="设计哲学、pi 官方文档、扩展示例、功能来源索引与相关项目链接。" />
   <link rel="canonical" href="https://piex.dev/docs/references/" />
   <meta property="og:title" content="参考资料 — PieX" />
-  <meta property="og:description" content="pi 官方文档、扩展示例、功能来源索引与相关项目链接。" />
+  <meta property="og:description" content="设计哲学、pi 官方文档、扩展示例、功能来源索引与相关项目链接。" />
   <meta property="og:url" content="https://piex.dev/docs/references/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/style.css?v=20260718e" />
-  <link rel="stylesheet" href="../../assets/blog.css?v=20260718e" />
+  <link rel="stylesheet" href="../../assets/style.css?v=20260718f" />
+  <link rel="stylesheet" href="../../assets/blog.css?v=20260718f" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
   <script>
@@ -33,6 +33,7 @@
       </a>
       <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
       <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Why</a>
         <a href="/#principles" data-i18n="nav.principles">Principles</a>
         <a href="/#packages" data-i18n="nav.packages">Packages</a>
         <a href="/#docs" data-i18n="nav.docs">Docs</a>
@@ -81,7 +82,8 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav">
-<a href="#pi-官方文档">pi 官方文档</a>
+<a href="#设计哲学">设计哲学</a>
+        <a href="#pi-官方文档">pi 官方文档</a>
         <a href="#pi-扩展示例">pi 扩展示例</a>
         <a href="#功能来源">功能来源</a>
         <a href="#其他参考项目">其他参考项目</a>
@@ -93,10 +95,32 @@
           <span class="blog-tag">References</span>
         </div>
         <h1>参考资料</h1>
-        <p class="blog-lede">pi 官方文档、扩展示例、功能来源索引与相关项目链接。</p>
+        <p class="blog-lede">设计哲学、pi 官方文档、扩展示例、功能来源索引与相关项目链接。</p>
       </header>
 
       <div class="blog-prose">
+<h2 id="设计哲学">设计哲学</h2>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>资料</th>
+<th>说明</th>
+</tr></thead><tbody>
+<tr>
+<td><a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a></td>
+<td>pi 作者的设计纲领：minimal prompt/toolset、No plan mode、No sub-agents 等</td>
+</tr>
+<tr>
+<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md" target="_blank" rel="noopener">pi README — Philosophy</a></td>
+<td>"aggressively extensible"；"What pi doesn't do" 官方清单</td>
+</tr>
+<tr>
+<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi README</a></td>
+<td>fork + batteries-included 路线的自我表述，piex 的主要功能来源</td>
+</tr>
+<tr>
+<td><a href="https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md" target="_blank" rel="noopener">porting-from-pi-mono.md</a></td>
+<td>omp backport 上游的维护 playbook，fork 路线成本的一手材料</td>
+</tr>
+</tbody></table></div>
 <h2 id="pi-官方文档">pi 官方文档</h2>
 <p>基于 <a href="https://github.com/earendil-works/pi" target="_blank" rel="noopener">earendil-works/pi</a> 中 <code>packages/coding-agent</code> 的文档。</p>
 <div class="blog-callout note"><div class="blog-callout-icon" aria-hidden="true">ℹ️</div><div class="blog-callout-body"><p class="blog-callout-label">Note</p><p>链接默认分支为 <code>main</code>；若 404，请对照 <a href="https://github.com/earendil-works/pi" target="_blank" rel="noopener">earendil-works/pi</a> 当前默认分支调整路径。</p></div></div>
@@ -258,7 +282,8 @@
     <aside class="page-toc" aria-label="On this page">
       <p class="blog-toc-title">本页目录</p>
       <nav>
-<a href="#pi-官方文档">pi 官方文档</a>
+<a href="#设计哲学">设计哲学</a>
+        <a href="#pi-官方文档">pi 官方文档</a>
         <a href="#pi-扩展示例">pi 扩展示例</a>
         <a href="#功能来源">功能来源</a>
         <a href="#其他参考项目">其他参考项目</a>
@@ -272,7 +297,7 @@
     </div>
   </footer>
 
-  <script src="../../assets/blog.js?v=20260718e"></script>
-  <script src="../../assets/main.js?v=20260718e"></script>
+  <script src="../../assets/blog.js?v=20260718f"></script>
+  <script src="../../assets/main.js?v=20260718f"></script>
 </body>
 </html>

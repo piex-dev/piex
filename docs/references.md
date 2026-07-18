@@ -1,5 +1,14 @@
 # 参考资料
 
+## 设计哲学
+
+| 资料 | 说明 |
+|------|------|
+| [What I learned building an opinionated and minimal coding agent](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/) | pi 作者的设计纲领：minimal prompt/toolset、No plan mode、No sub-agents 等 |
+| [pi README — Philosophy](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md) | "aggressively extensible"；"What pi doesn't do" 官方清单 |
+| [oh-my-pi README](https://github.com/can1357/oh-my-pi) | fork + batteries-included 路线的自我表述，piex 的主要功能来源 |
+| [porting-from-pi-mono.md](https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md) | omp backport 上游的维护 playbook，fork 路线成本的一手材料 |
+
 ## pi 官方文档
 
 基于 [earendil-works/pi](https://github.com/earendil-works/pi) 中 `packages/coding-agent` 的文档。

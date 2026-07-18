@@ -4,17 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>设计理念 — PieX</title>
-  <meta name="description" content="100% Extension API、按需安装、独立发版、来源可追溯——piex 的四条核心原则与扩展/主题 package 模式。" />
+  <meta name="description" content="为什么做 piex：开源透明、克制可控、不 fork、可度量。五条核心原则与扩展/主题 package 模式。" />
   <link rel="canonical" href="https://piex.dev/docs/design/" />
   <meta property="og:title" content="设计理念 — PieX" />
-  <meta property="og:description" content="100% Extension API、按需安装、独立发版、来源可追溯——piex 的四条核心原则与扩展/主题 package 模式。" />
+  <meta property="og:description" content="为什么做 piex：开源透明、克制可控、不 fork、可度量。五条核心原则与扩展/主题 package 模式。" />
   <meta property="og:url" content="https://piex.dev/docs/design/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/style.css?v=20260718e" />
-  <link rel="stylesheet" href="../../assets/blog.css?v=20260718e" />
+  <link rel="stylesheet" href="../../assets/style.css?v=20260718f" />
+  <link rel="stylesheet" href="../../assets/blog.css?v=20260718f" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
   <script>
@@ -33,6 +33,7 @@
       </a>
       <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
       <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Why</a>
         <a href="/#principles" data-i18n="nav.principles">Principles</a>
         <a href="/#packages" data-i18n="nav.packages">Packages</a>
         <a href="/#docs" data-i18n="nav.docs">Docs</a>
@@ -81,11 +82,18 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav">
-<a href="#核心原则">核心原则</a>
+<a href="#背景与动机">背景与动机</a>
+        <a href="#为什么选择开源-agent" class="depth-3">为什么选择开源 Agent</a>
+        <a href="#为什么选择-pi" class="depth-3">为什么选择 Pi</a>
+        <a href="#为什么不直接用-oh-my-pi" class="depth-3">为什么不直接用 oh-my-pi</a>
+        <a href="#为什么做-piex" class="depth-3">为什么做 Piex</a>
+        <a href="#核心原则">核心原则</a>
         <a href="#1-100-基于-pi-extension-api" class="depth-3">1. 100% 基于 pi Extension API</a>
-        <a href="#2-随-pi-升级而升级" class="depth-3">2. 随 pi 升级而升级</a>
-        <a href="#3-按需安装" class="depth-3">3. 按需安装</a>
+        <a href="#2-按需安装相互独立" class="depth-3">2. 按需安装，相互独立</a>
+        <a href="#3-随-pi-升级而升级" class="depth-3">3. 随 pi 升级而升级</a>
         <a href="#4-代码来源可追溯" class="depth-3">4. 代码来源可追溯</a>
+        <a href="#5-可度量评测驱动" class="depth-3">5. 可度量：评测驱动</a>
+        <a href="#目标">目标</a>
         <a href="#架构模式">架构模式</a>
         <a href="#扩展-package-模式" class="depth-3">扩展 Package 模式</a>
         <a href="#扩展加载流程" class="depth-3">扩展加载流程</a>
@@ -99,15 +107,75 @@
           <span class="blog-tag">Principles</span>
         </div>
         <h1>设计理念</h1>
-        <p class="blog-lede">100% Extension API、按需安装、独立发版、来源可追溯——piex 的四条核心原则与扩展/主题 package 模式。</p>
+        <p class="blog-lede">为什么做 piex：开源透明、克制可控、不 fork、可度量——五条核心原则与扩展/主题 package 模式。</p>
       </header>
 
       <div class="blog-prose">
-<p>Piex 是 pi 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。</p>
-<h2 id="核心原则">核心原则</h2>
-<h3 id="1-100-基于-pi-extension-api">1. 100% 基于 pi Extension API</h3>
-<p>不 fork pi，不修改 pi 内部代码。所有功能通过 pi 的标准扩展接口实现：</p>
-<div class="blog-table-wrap"><table><thead><tr>
+<div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">一句话</p>
+            <p>Piex 的路线：<strong>不 fork pi，只用官方 Extension API</strong>，把主流 coding agent 验证过的优秀能力，逐个做成<strong>独立、可选装、可度量</strong>的 package，逐步打造最适合自己的工具链。</p>
+          </div>
+        </div>
+
+        <h2 id="背景与动机">背景与动机</h2>
+
+        <h3 id="为什么选择开源-agent">为什么选择开源 Agent</h3>
+        <p>闭源 coding agent 掌握着开发者的仓库、凭据与上下文，但其行为对用户是黑盒。仅 2026 年 7 月，就有两起公开报道的安全事件：</p>
+        <div class="blog-callout warn">
+          <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">2026-07，两起公开披露</p>
+            <p><strong>Claude Code</strong> 被工信部 NVDB 监测发现内置监控机制，可未经用户同意回传地域、身份标识等敏感信息（受影响版本 2.1.91–2.1.196），阿里随后将其列入高风险软件并全员禁用（<a href="http://finance.people.com.cn/BIG5/n1/2026/0708/c1004-40756179.html" target="_blank" rel="noopener">人民网报道</a>、<a href="https://new.qq.com/rain/a/20260708A099RH00" target="_blank" rel="noopener">南方都市报报道</a>）。</p>
+            <p><strong>Grok Build CLI</strong> 被安全研究员 cereblab 抓包证实：未告知用户便将整个 git 仓库（含未脱敏的 <code>.env</code> 凭据与完整提交历史）上传至云端，且 opt-out 开关只管数据留存、不管传输（<a href="https://github.com/cereblab/grok-build-exfil-repro" target="_blank" rel="noopener">复现仓库与证据</a>、<a href="https://gist.github.com/cereblab/dc9a40bc26120f4540e4e09b75ffb547" target="_blank" rel="noopener">完整抓包分析</a>）。</p>
+          </div>
+        </div>
+        <p>开源 agent 的每一行代码、每一次网络请求都可审计，<strong>透明本身就是安全保障</strong>。</p>
+        <p>另一个动机是 KnowHow。Coding agent 推陈出新，在不同工具之间来回切换，耗费大量时间却只停留在功能使用层面。选择一款开源 agent 深度使用，研究其底层工作原理、参与开发迭代，才能把「用工具」变成「懂工具」。</p>
+
+        <h3 id="为什么选择-pi">为什么选择 Pi</h3>
+        <p><strong>克制。</strong>Coding agent 的功能越来越丰富，也普遍越来越重，但其中绝大多数功能日常根本用不到——既浪费 token，又带来心智负担：你对塞进上下文的东西毫无掌控感。Pi 的作者把这种克制写进了设计纲领（<a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a>）：系统提示词加工具定义合计<strong>不到 1000 tokens</strong>，默认只给模型 <strong>4 个工具</strong>（<code>read</code> / <code>write</code> / <code>edit</code> / <code>bash</code>）。官方 README 还明确列出了 pi 不做的事，每一条都指向同一条出路：<em>build it with extensions, or install a package</em>。</p>
+        <div class="blog-table-wrap"><table><thead><tr>
+<th>pi 不做的事（官方清单）</th>
+<th>官方给出的出路</th>
+</tr></thead><tbody>
+<tr><td>No MCP</td><td>用 Skills 做带 README 的 CLI 工具，或写扩展支持 MCP</td></tr>
+<tr><td>No sub-agents</td><td>用 tmux 起多个 pi 实例，或用扩展自己实现</td></tr>
+<tr><td>No permission popups</td><td>跑在容器里，或用扩展自建确认流程</td></tr>
+<tr><td>No plan mode</td><td>把计划写进文件，或用扩展实现——piex 的 <code>plan</code> 包正是如此</td></tr>
+<tr><td>No built-in to-dos</td><td>用 TODO.md，或自己造</td></tr>
+<tr><td>No background bash</td><td>用 tmux，全程可观测、可直接交互</td></tr>
+</tbody></table></div>
+        <div class="blog-callout note">
+          <div class="blog-callout-icon" aria-hidden="true">ℹ️</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">可扩展</p>
+            <p>Pi 的定位是 <em>"a minimal terminal coding harness"</em>，官方原话：<em>"aggressively extensible so it doesn't have to dictate your workflow"</em>，并且开篇即承诺 <em>"without having to fork and modify pi internals"</em>。工具、命令、事件钩子、UI、Provider、主题全部开放给扩展——对个人开发者而言，一个克制而完全可读的内核，加上一套几乎无所不能的 Extension API，是深入理解并掌控自己工具链的最佳起点。</p>
+          </div>
+        </div>
+
+        <h3 id="为什么不直接用-oh-my-pi">为什么不直接用 oh-my-pi</h3>
+        <p><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a>（omp）基于 pi 拓展实现了很多优秀的工具，开箱即用，也是 piex 最主要的功能来源。但它选择了一条不同的路线：<strong>fork 而非扩展</strong>（官方自述 <em>"fork of pi-mono, batteries included"</em>），并且<strong>全量内置</strong>——这恰恰回到了「重」的老问题。</p>
+        <div class="blog-table-wrap"><table><thead><tr>
+<th>维度</th>
+<th>oh-my-pi</th>
+<th>piex</th>
+</tr></thead><tbody>
+<tr><td>路线</td><td>fork pi-mono，自行分叉演进</td><td>100% Extension API，不碰 pi 内核</td></tr>
+<tr><td>功能</td><td>全量内置（32 个内置工具 + ~5.5 万行 Rust 内核）</td><td>7 个独立 package，按需安装、随时卸载</td></tr>
+<tr><td>跟随上游</td><td>维护 porting playbook 持续 backport，含回归陷阱清单</td><td>pi 升级不影响扩展（API 向后兼容）</td></tr>
+<tr><td>运行时</td><td>Bun-only</td><td>跟随 pi（Node.js ≥ 18，hashline 亦兼容 Bun）</td></tr>
+<tr><td>适合谁</td><td>想要开箱即用的全套功能</td><td>想按需掌控、并理解每个功能的人</td></tr>
+</tbody></table></div>
+
+        <h3 id="为什么做-piex">为什么做 Piex</h3>
+        <p>基于以上思考，Piex 选择第三条路：<strong>不 fork pi，只用官方 Extension API，把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展</strong>。在日常工作中深度使用，遇到问题就迭代优化，逐步打造最适合自己的工具链。</p>
+
+        <h2 id="核心原则">核心原则</h2>
+        <h3 id="1-100-基于-pi-extension-api">1. 100% 基于 pi Extension API</h3>
+        <p>不 fork pi，不修改 pi 内部代码。所有功能通过 pi 的标准扩展接口实现：</p>
+        <div class="blog-table-wrap"><table><thead><tr>
 <th>能力</th>
 <th>实现方式</th>
 </tr></thead><tbody>
@@ -156,16 +224,17 @@
 <td><code>pi.registerShortcut(Key.shift(&quot;p&quot;), ...)</code></td>
 </tr>
 </tbody></table></div>
-<h3 id="2-随-pi-升级而升级">2. 随 pi 升级而升级</h3>
-<ul><li>每个 piex package 是独立的 npm 包，不嵌入 pi</li><li>pi 升级时 piex 不受影响（扩展 API 向后兼容）</li><li>piex 可通过 <code>pi update</code> 独立升级</li><li>版本号独立管理，无耦合</li></ul>
-<h3 id="3-按需安装">3. 按需安装</h3>
-<p>用户只安装需要的功能：</p>
-<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install npm:@piex-dev/hashline   # hashline 编辑
+        <h3 id="2-按需安装相互独立">2. 按需安装，相互独立</h3>
+        <p>每个扩展是独立的 npm 包，彼此无依赖，用户只安装需要的功能，接入和卸载都足够便捷：</p>
+        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install npm:@piex-dev/hashline   # hashline 编辑
 pi install npm:@piex-dev/dap        # DAP 调试
-pi install npm:@piex-dev/plan       # 计划模式</code></pre></div>
-<h3 id="4-代码来源可追溯">4. 代码来源可追溯</h3>
-<p>每个 package 标注了功能特性和设计灵感的原始来源：</p>
-<div class="blog-table-wrap"><table><thead><tr>
+pi install npm:@piex-dev/plan       # 计划模式
+pi remove npm:@piex-dev/plan        # 随时卸载</code></pre></div>
+        <h3 id="3-随-pi-升级而升级">3. 随 pi 升级而升级</h3>
+        <ul><li>每个 piex package 是独立的 npm 包，不嵌入 pi</li><li>pi 升级时 piex 不受影响（扩展 API 向后兼容）</li><li>piex 可通过 <code>pi update</code> 独立升级</li><li>版本号独立管理，无耦合</li></ul>
+        <h3 id="4-代码来源可追溯">4. 代码来源可追溯</h3>
+        <p>每个 package 标注了功能特性和设计灵感的原始来源：</p>
+        <div class="blog-table-wrap"><table><thead><tr>
 <th>Package</th>
 <th>功能来源</th>
 <th>实现方式</th>
@@ -201,18 +270,27 @@ pi install npm:@piex-dev/plan       # 计划模式</code></pre></div>
 <td>pi.themes 静态主题 JSON 分发</td>
 </tr>
 </tbody></table></div>
-<h2 id="架构模式">架构模式</h2>
-<h3 id="扩展-package-模式">扩展 Package 模式</h3>
-<p>每个 package 遵循统一结构：</p>
-<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
+        <h3 id="5-可度量评测驱动">5. 可度量：评测驱动</h3>
+        <p><strong>无法度量引入一个工具的效果，那就不要引入它。</strong>每个扩展都必须有明确的评测标准与数据支撑：仓库内置 Docker 化评测框架（<code>eval/</code>），在 Aider Polyglot 与 SWE-bench Lite 上对比 pi (bare) / pi + piex / omp 三个 agent，指标涵盖 <code>resolve_rate</code>、<code>avg_tokens</code>、<code>avg_time</code>、<code>est_cost</code> 及归因指标（<code>edit_accuracy</code>、<code>debug_success</code>、<code>plan_follow_rate</code>）。方案详见 <a href="/docs/evaluation/">评测方案</a>。</p>
+
+        <h2 id="目标">目标</h2>
+        <ul>
+<li>基于 Pi 打造最适合自己的 coding agent 工具链——每个功能都是自己选择、自己理解、自己掌控的。</li>
+<li>深入理解每一个功能特性的底层实现原理，在持续迭代中提升自身的工具产品设计品味。</li>
+</ul>
+
+        <h2 id="架构模式">架构模式</h2>
+        <h3 id="扩展-package-模式">扩展 Package 模式</h3>
+        <p>每个 package 遵循统一结构：</p>
+        <div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
 ├── package.json          # npm 包，含 &quot;pi&quot; manifest
 ├── README.md             # package 文档
 └── extensions/
     └── &lt;name&gt;.ts         # pi 扩展入口，export default function(pi)
     └── ...辅助模块.ts</code></pre></div>
-<p><code>package.json</code> 中的 <code>&quot;pi&quot;: { &quot;extensions&quot;: [&quot;./extensions&quot;] }</code> 告诉 pi 自动发现扩展文件。</p>
-<h3 id="扩展加载流程">扩展加载流程</h3>
-<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi 启动
+        <p><code>package.json</code> 中的 <code>&quot;pi&quot;: { &quot;extensions&quot;: [&quot;./extensions&quot;] }</code> 告诉 pi 自动发现扩展文件。</p>
+        <h3 id="扩展加载流程">扩展加载流程</h3>
+        <div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi 启动
   ├── 解析 settings.json → 发现 piex package
   ├── 读取 package.json → 找到 extensions/ 目录
   ├── jiti 加载 .ts 文件
@@ -220,33 +298,33 @@ pi install npm:@piex-dev/plan       # 计划模式</code></pre></div>
       ├── pi.registerTool(...)    ← 注册工具
       ├── pi.registerCommand(...)  ← 注册命令
       └── pi.on(&quot;event&quot;, ...)     ← 订阅事件</code></pre></div>
-<h3 id="扩展入口函数签名">扩展入口函数签名</h3>
-<div class="blog-code" data-lang="typescript"><div class="blog-code-bar"><span>typescript</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>// 同步（普通扩展）
+        <h3 id="扩展入口函数签名">扩展入口函数签名</h3>
+        <div class="blog-code" data-lang="typescript"><div class="blog-code-bar"><span>typescript</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>// 同步（普通扩展）
 export default function myExtension(pi: ExtensionAPI) { ... }
 
 // 异步（需要初始化例如 fetch 远程配置）
 export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre></div>
-<h3 id="主题-package-模式">主题 Package 模式</h3>
-<p>主题 package 没有 TypeScript 扩展代码，而是通过静态 JSON 文件分发。pi 支持 <code>themes/</code> 约定目录或 <code>pi.themes</code> 显式文件数组；为兼容 <code>/settings</code> 预览与运行时加载，推荐用约定目录形式：</p>
-<div class="blog-code" data-lang="json"><div class="blog-code-bar"><span>json</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>{
+        <h3 id="主题-package-模式">主题 Package 模式</h3>
+        <p>主题 package 没有 TypeScript 扩展代码，而是通过静态 JSON 文件分发。pi 支持 <code>themes/</code> 约定目录或 <code>pi.themes</code> 显式文件数组；为兼容 <code>/settings</code> 预览与运行时加载，推荐用约定目录形式：</p>
+        <div class="blog-code" data-lang="json"><div class="blog-code-bar"><span>json</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>{
   &quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }
 }</code></pre></div>
-<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
+        <div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
 ├── package.json          # npm 包，&quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }
 ├── README.md
 └── themes/
     └── &lt;name&gt;.json       # pi theme JSON（51 color tokens）</code></pre></div>
-<p><code>package.json</code> 中的 <code>&quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }</code> 告诉 pi 自动发现主题文件。</p>
-<p><strong>安装方式选择：</strong></p>
-<ul>
+        <p><code>package.json</code> 中的 <code>&quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }</code> 告诉 pi 自动发现主题文件。</p>
+        <p><strong>安装方式选择：</strong></p>
+        <ul>
 <li><strong>全局 settings</strong>（<code>~/.pi/agent/settings.json</code>）：本地包路径必须传绝对路径，否则 <code>/reload</code> 后相对路径会按 settings 文件位置解析导致主题丢失。例：</li>
 </ul>
-<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install /abspath-to-piex/packages/theme-dark-terminal</code></pre></div>
-<ul>
+        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install /abspath-to-piex/packages/theme-dark-terminal</code></pre></div>
+        <ul>
 <li><strong>项目级 settings</strong>（<code>.pi/settings.json</code>）：可用相对路径，团队共享。例：</li>
 </ul>
-<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install -l ./packages/theme-dark-terminal</code></pre></div>
-<p>主题 JSON 包含 <code>name</code>（唯一主题名）、<code>vars</code>（可选色板变量）和 <code>colors</code>（51 个必需 token）。pi 启动时自动加载，<code>/settings</code> 切换。</p>
+        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install -l ./packages/theme-dark-terminal</code></pre></div>
+        <p>主题 JSON 包含 <code>name</code>（唯一主题名）、<code>vars</code>（可选色板变量）和 <code>colors</code>（51 个必需 token）。pi 启动时自动加载，<code>/settings</code> 切换。</p>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Doc navigation">
@@ -264,18 +342,25 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
         源稿 Markdown：
         <a href="https://github.com/piex-dev/piex/blob/main/docs/design.md" target="_blank" rel="noopener">docs/design.md</a>
       </p>
-    
-    
+
+
     </article>
 
     <aside class="page-toc" aria-label="On this page">
       <p class="blog-toc-title">本页目录</p>
       <nav>
-<a href="#核心原则">核心原则</a>
+<a href="#背景与动机">背景与动机</a>
+        <a href="#为什么选择开源-agent" class="depth-3">为什么选择开源 Agent</a>
+        <a href="#为什么选择-pi" class="depth-3">为什么选择 Pi</a>
+        <a href="#为什么不直接用-oh-my-pi" class="depth-3">为什么不直接用 oh-my-pi</a>
+        <a href="#为什么做-piex" class="depth-3">为什么做 Piex</a>
+        <a href="#核心原则">核心原则</a>
         <a href="#1-100-基于-pi-extension-api" class="depth-3">1. 100% 基于 pi Extension API</a>
-        <a href="#2-随-pi-升级而升级" class="depth-3">2. 随 pi 升级而升级</a>
-        <a href="#3-按需安装" class="depth-3">3. 按需安装</a>
+        <a href="#2-按需安装相互独立" class="depth-3">2. 按需安装，相互独立</a>
+        <a href="#3-随-pi-升级而升级" class="depth-3">3. 随 pi 升级而升级</a>
         <a href="#4-代码来源可追溯" class="depth-3">4. 代码来源可追溯</a>
+        <a href="#5-可度量评测驱动" class="depth-3">5. 可度量：评测驱动</a>
+        <a href="#目标">目标</a>
         <a href="#架构模式">架构模式</a>
         <a href="#扩展-package-模式" class="depth-3">扩展 Package 模式</a>
         <a href="#扩展加载流程" class="depth-3">扩展加载流程</a>
@@ -291,7 +376,7 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
     </div>
   </footer>
 
-  <script src="../../assets/blog.js?v=20260718e"></script>
-  <script src="../../assets/main.js?v=20260718e"></script>
+  <script src="../../assets/blog.js?v=20260718f"></script>
+  <script src="../../assets/main.js?v=20260718f"></script>
 </body>
 </html>
