@@ -4,17 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>设计理念 — PieX</title>
-  <meta name="description" content="为什么做 piex：开源透明、克制可控、不 fork、可度量。五条核心原则与扩展/主题 package 模式。" />
+  <meta name="description" content="为什么做 piex：充分拓展而非 fork、按需自由切换、知其所以然、评测优先。四条核心设计理念与扩展/主题 package 模式。" />
   <link rel="canonical" href="https://piex.dev/docs/design/" />
   <meta property="og:title" content="设计理念 — PieX" />
-  <meta property="og:description" content="为什么做 piex：开源透明、克制可控、不 fork、可度量。五条核心原则与扩展/主题 package 模式。" />
+  <meta property="og:description" content="为什么做 piex：充分拓展而非 fork、按需自由切换、知其所以然、评测优先。四条核心设计理念与扩展/主题 package 模式。" />
   <meta property="og:url" content="https://piex.dev/docs/design/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/style.css?v=20260718f" />
-  <link rel="stylesheet" href="../../assets/blog.css?v=20260718f" />
+  <link rel="stylesheet" href="../../assets/style.css?v=20260718h" />
+  <link rel="stylesheet" href="../../assets/blog.css?v=20260718h" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
   <script>
@@ -87,12 +87,11 @@
         <a href="#为什么选择-pi" class="depth-3">为什么选择 Pi</a>
         <a href="#为什么不直接用-oh-my-pi" class="depth-3">为什么不直接用 oh-my-pi</a>
         <a href="#为什么做-piex" class="depth-3">为什么做 Piex</a>
-        <a href="#核心原则">核心原则</a>
-        <a href="#1-100-基于-pi-extension-api" class="depth-3">1. 100% 基于 pi Extension API</a>
-        <a href="#2-按需安装相互独立" class="depth-3">2. 按需安装，相互独立</a>
-        <a href="#3-随-pi-升级而升级" class="depth-3">3. 随 pi 升级而升级</a>
-        <a href="#4-代码来源可追溯" class="depth-3">4. 代码来源可追溯</a>
-        <a href="#5-可度量评测驱动" class="depth-3">5. 可度量：评测驱动</a>
+        <a href="#核心设计理念">核心设计理念</a>
+        <a href="#1-充分拓展-pi而不是-fork" class="depth-3">1. 充分拓展 pi，而不是 fork</a>
+        <a href="#2-按需拓展自由切换" class="depth-3">2. 按需拓展，自由切换</a>
+        <a href="#3-知其所以然掌控感" class="depth-3">3. 知其所以然，掌控感</a>
+        <a href="#4-评测优先" class="depth-3">4. 评测优先</a>
         <a href="#目标">目标</a>
         <a href="#架构模式">架构模式</a>
         <a href="#扩展-package-模式" class="depth-3">扩展 Package 模式</a>
@@ -107,15 +106,15 @@
           <span class="blog-tag">Principles</span>
         </div>
         <h1>设计理念</h1>
-        <p class="blog-lede">为什么做 piex：开源透明、克制可控、不 fork、可度量——五条核心原则与扩展/主题 package 模式。</p>
+        <p class="blog-lede">为什么做 piex：充分拓展而非 fork、按需自由切换、知其所以然、评测优先——四条核心设计理念与扩展/主题 package 模式。</p>
       </header>
 
       <div class="blog-prose">
 <div class="blog-callout insight">
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
-            <p class="blog-callout-label">一句话</p>
-            <p>Piex 的路线：<strong>不 fork pi，只用官方 Extension API</strong>，把主流 coding agent 验证过的优秀能力，逐个做成<strong>独立、可选装、可度量</strong>的 package，逐步打造最适合自己的工具链。</p>
+            <p class="blog-callout-label">核心设计理念</p>
+            <p><strong>充分拓展 pi 而非 fork · 按需拓展自由切换 · 知其所以然 · 评测优先（无法度量就不引入）</strong>。开源与信息安全是选择平台的重要前提，但不是创建 Piex 的核心原因。</p>
           </div>
         </div>
 
@@ -170,11 +169,11 @@
 </tbody></table></div>
 
         <h3 id="为什么做-piex">为什么做 Piex</h3>
-        <p>基于以上思考，Piex 选择第三条路：<strong>不 fork pi，只用官方 Extension API，把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展</strong>。在日常工作中深度使用，遇到问题就迭代优化，逐步打造最适合自己的工具链。</p>
+        <p>基于以上思考，Piex 选择第三条路：<strong>不 fork pi，只用官方 Extension API，把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展</strong>，在日常工作中深度使用、持续迭代，逐步打造最适合自己的工具链。需要说明的是：<strong>开源与信息安全是选择 agent 平台的重要前提，但并非创建 Piex 的核心原因</strong>——Piex 的核心设计理念是下面四点。</p>
 
-        <h2 id="核心原则">核心原则</h2>
-        <h3 id="1-100-基于-pi-extension-api">1. 100% 基于 pi Extension API</h3>
-        <p>不 fork pi，不修改 pi 内部代码。所有功能通过 pi 的标准扩展接口实现：</p>
+        <h2 id="核心设计理念">核心设计理念</h2>
+        <h3 id="1-充分拓展-pi而不是-fork">1. 充分拓展 pi，而不是 fork</h3>
+        <p>100% 基于 pi Extension API，不 fork pi，不修改 pi 内部代码。所有功能通过 pi 的标准扩展接口实现：</p>
         <div class="blog-table-wrap"><table><thead><tr>
 <th>能力</th>
 <th>实现方式</th>
@@ -224,16 +223,16 @@
 <td><code>pi.registerShortcut(Key.shift(&quot;p&quot;), ...)</code></td>
 </tr>
 </tbody></table></div>
-        <h3 id="2-按需安装相互独立">2. 按需安装，相互独立</h3>
-        <p>每个扩展是独立的 npm 包，彼此无依赖，用户只安装需要的功能，接入和卸载都足够便捷：</p>
+        <p>这也是与 omp 的理念差别所在：omp 走 fork + batteries included 的路线——把认为优秀的功能全部内置进自己的分叉内核，替用户做好所有选择；piex 不拥有内核、只做扩展，把每个能力的取舍留给用户。正因如此，piex 无需 backport 上游，始终跟随 pi 官方演进。</p>
+        <p>每个 piex package 是独立的 npm 包，不嵌入 pi；pi 升级时 piex 不受影响（扩展 API 向后兼容），piex 可通过 <code>pi update</code> 独立升级，版本号独立管理——随 pi 升级而升级。</p>
+        <h3 id="2-按需拓展自由切换">2. 按需拓展，自由切换</h3>
+        <p>每个扩展相互独立、彼此无依赖，即装即卸、自由组合——只为用到的能力付出 token，克制可控：</p>
         <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install npm:@piex-dev/hashline   # hashline 编辑
 pi install npm:@piex-dev/dap        # DAP 调试
 pi install npm:@piex-dev/plan       # 计划模式
 pi remove npm:@piex-dev/plan        # 随时卸载</code></pre></div>
-        <h3 id="3-随-pi-升级而升级">3. 随 pi 升级而升级</h3>
-        <ul><li>每个 piex package 是独立的 npm 包，不嵌入 pi</li><li>pi 升级时 piex 不受影响（扩展 API 向后兼容）</li><li>piex 可通过 <code>pi update</code> 独立升级</li><li>版本号独立管理，无耦合</li></ul>
-        <h3 id="4-代码来源可追溯">4. 代码来源可追溯</h3>
-        <p>每个 package 标注了功能特性和设计灵感的原始来源：</p>
+        <h3 id="3-知其所以然掌控感">3. 知其所以然，掌控感</h3>
+        <p>取百家之长：从 oh-my-pi、Claude Code、OpenCode 等主流 agent 中借鉴经过验证的优秀设计，搞清楚底层原理，再以 pi 扩展的形式按需引入。每个功能都是自己选择、自己理解、自己掌控的——把「用工具」变成「懂工具」。每个 package 都标注功能与设计的原始来源：</p>
         <div class="blog-table-wrap"><table><thead><tr>
 <th>Package</th>
 <th>功能来源</th>
@@ -270,8 +269,8 @@ pi remove npm:@piex-dev/plan        # 随时卸载</code></pre></div>
 <td>pi.themes 静态主题 JSON 分发</td>
 </tr>
 </tbody></table></div>
-        <h3 id="5-可度量评测驱动">5. 可度量：评测驱动</h3>
-        <p><strong>无法度量引入一个工具的效果，那就不要引入它。</strong>每个扩展都必须有明确的评测标准与数据支撑：仓库内置 Docker 化评测框架（<code>eval/</code>），在 Aider Polyglot 与 SWE-bench Lite 上对比 pi (bare) / pi + piex / omp 三个 agent，指标涵盖 <code>resolve_rate</code>、<code>avg_tokens</code>、<code>avg_time</code>、<code>est_cost</code> 及归因指标（<code>edit_accuracy</code>、<code>debug_success</code>、<code>plan_follow_rate</code>）。方案详见 <a href="/docs/evaluation/">评测方案</a>。</p>
+        <h3 id="4-评测优先">4. 评测优先</h3>
+        <p><strong>若无法度量一个扩展的效果，那就不引入它。</strong>对影响 agent 行为的扩展（hashline、dap、lsp、plan、review）：仓库内置 Docker 化评测框架（<code>eval/</code>），在 Aider Polyglot 与 SWE-bench Lite 上对比 pi (bare) / pi + piex / omp 三个 agent，指标涵盖 <code>resolve_rate</code>、<code>avg_tokens</code>、<code>avg_time</code>、<code>est_cost</code> 及归因指标（<code>edit_accuracy</code>、<code>debug_success</code>、<code>plan_follow_rate</code>），评测数据将持续公开；主题、登录 provider 等不改变 agent 行为的包不适用此原则。方案详见 <a href="/docs/evaluation/">评测方案</a>。</p>
 
         <h2 id="目标">目标</h2>
         <ul>
@@ -354,12 +353,11 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
         <a href="#为什么选择-pi" class="depth-3">为什么选择 Pi</a>
         <a href="#为什么不直接用-oh-my-pi" class="depth-3">为什么不直接用 oh-my-pi</a>
         <a href="#为什么做-piex" class="depth-3">为什么做 Piex</a>
-        <a href="#核心原则">核心原则</a>
-        <a href="#1-100-基于-pi-extension-api" class="depth-3">1. 100% 基于 pi Extension API</a>
-        <a href="#2-按需安装相互独立" class="depth-3">2. 按需安装，相互独立</a>
-        <a href="#3-随-pi-升级而升级" class="depth-3">3. 随 pi 升级而升级</a>
-        <a href="#4-代码来源可追溯" class="depth-3">4. 代码来源可追溯</a>
-        <a href="#5-可度量评测驱动" class="depth-3">5. 可度量：评测驱动</a>
+        <a href="#核心设计理念">核心设计理念</a>
+        <a href="#1-充分拓展-pi而不是-fork" class="depth-3">1. 充分拓展 pi，而不是 fork</a>
+        <a href="#2-按需拓展自由切换" class="depth-3">2. 按需拓展，自由切换</a>
+        <a href="#3-知其所以然掌控感" class="depth-3">3. 知其所以然，掌控感</a>
+        <a href="#4-评测优先" class="depth-3">4. 评测优先</a>
         <a href="#目标">目标</a>
         <a href="#架构模式">架构模式</a>
         <a href="#扩展-package-模式" class="depth-3">扩展 Package 模式</a>
@@ -376,7 +374,7 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
     </div>
   </footer>
 
-  <script src="../../assets/blog.js?v=20260718f"></script>
-  <script src="../../assets/main.js?v=20260718f"></script>
+  <script src="../../assets/blog.js?v=20260718h"></script>
+  <script src="../../assets/main.js?v=20260718h"></script>
 </body>
 </html>

@@ -2,12 +2,12 @@
 
 基于 [Pi](https://pi.dev) Extension API 构建的功能拓展集合，从 oh-my-pi、Claude Code、OpenCode 等优秀 coding agent 中提取核心功能特性，以独立 piex package 形式分发。
 
-## 为什么是 Piex？
+## Why PieX？
 
-- **开源透明**：闭源 agent 接连曝出安全事件（Claude Code 隐藏监控、Grok Build 未告知上传用户仓库），开源 agent 每一行代码都可审计，也让你能从"用工具"走向"懂工具"。
-- **克制可控**：Pi 系统提示词 + 工具定义不到 1000 tokens，默认仅 4 个工具；功能只通过扩展按需叠加，token 不浪费，上下文尽在掌控。
-- **不 fork**：omp 很优秀但选择了 fork 分叉 + 全量内置的路线；Piex 100% 基于 pi 官方 Extension API，随 pi 升级而升级。
-- **可度量**：每个扩展都有评测标准与数据支撑（见 [评测方案](docs/evaluation.md)）——无法度量效果的功能，不引入。
+- **充分拓展，而非 fork**：omp 选择 fork + 全量内置；Piex 只做官方扩展——100% 基于 pi Extension API，不碰内核，随 pi 升级而升级。
+- **按需拓展，自由切换**：扩展相互独立、即装即卸；克制可控，只为用到的能力付出 token。
+- **知其所以然**：取百家之长——借鉴主流 agent 的优秀设计，搞懂底层原理再以扩展引入；每个功能自己选择、自己理解、自己掌控。
+- **评测优先**：影响 agent 行为的扩展都有评测标准与数据支撑（见 [评测方案](docs/evaluation.md)）；无法度量效果，就不引入。
 
 完整论述见 [设计理念](docs/design.md)。
 
@@ -42,28 +42,32 @@ pi -e ./packages/hashline/extensions/hashline.ts
 
 ## Package 总览
 
-| Package | 工具 | 来源 | 行数 |
-|---------|------|------|------|
-| hashline | 覆盖 `edit`（hashline 语法） | oh-my-pi | 318 |
-| dap | `debug`（14 个 adapter） | oh-my-pi | 2154 |
-| lsp | `lsp`（11 个 server） | oh-my-pi | 1069 |
-| plan | `/plan`, `/todos` | pi 示例 | 348 |
-| review | `/review`, `review` 工具 | oh-my-pi | 330 |
-| xai-oauth | `/login` xAI Grok OAuth 订阅登录（含实时模型发现） | oh-my-pi / pi-grok | 949 |
-| theme-dark-terminal | 暗终端高对比度主题 | [opencode-themes](https://github.com/debugtalk/opencode-themes) | — |
+
+| Package             | 工具                                    | 来源                                                              | 行数   |
+| ------------------- | ------------------------------------- | --------------------------------------------------------------- | ---- |
+| hashline            | 覆盖 `edit`（hashline 语法）                | oh-my-pi                                                        | 318  |
+| dap                 | `debug`（14 个 adapter）                 | oh-my-pi                                                        | 2154 |
+| lsp                 | `lsp`（11 个 server）                    | oh-my-pi                                                        | 1069 |
+| plan                | `/plan`, `/todos`                     | pi 示例                                                           | 348  |
+| review              | `/review`, `review` 工具                | oh-my-pi                                                        | 330  |
+| xai-oauth           | `/login` xAI Grok OAuth 订阅登录（含实时模型发现） | oh-my-pi / pi-grok                                              | 949  |
+| theme-dark-terminal | 暗终端高对比度主题                             | [opencode-themes](https://github.com/debugtalk/opencode-themes) | —    |
+
 
 各 package 详细文档见对应目录下的 `README.md`。
 
 ## 文档
 
-| 文档 | 说明 |
-|------|------|
-| [设计理念](docs/design.md) | 背景动机、核心原则与架构模式 |
-| [架构概览](docs/architecture.md) | 项目结构、工具注册、API 映射 |
-| [实施路线](docs/roadmap.md) | 已完成 & 待规划 |
-| [评测方案](docs/evaluation.md) | 评测集选择、Docker 架构、指标设计、实施路径 |
-| [测试指南](docs/testing.md) | package 快速测试与功能验证命令 |
-| [参考资料](docs/references.md) | pi 文档、来源项目索引 |
+
+| 文档                           | 说明                        |
+| ---------------------------- | ------------------------- |
+| [设计理念](docs/design.md)       | 背景动机、核心设计理念与架构模式         |
+| [架构概览](docs/architecture.md) | 项目结构、工具注册、API 映射          |
+| [实施路线](docs/roadmap.md)      | 已完成 &amp; 待规划             |
+| [评测方案](docs/evaluation.md)   | 评测集选择、Docker 架构、指标设计、实施路径 |
+| [测试指南](docs/testing.md)      | package 快速测试与功能验证命令       |
+| [参考资料](docs/references.md)   | pi 文档、来源项目索引              |
+
 
 ## 开发
 

@@ -1,6 +1,6 @@
 # 设计理念
 
-Piex 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。本文先讲清楚动机——为什么走这条路，再给出核心原则与架构模式。
+Piex 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding agent（oh-my-pi、Claude Code、OpenCode 等）中提取核心功能特性，以独立 piex package 形式分发。本文先讲清楚动机——为什么走这条路，再给出核心设计理念与架构模式。
 
 ## 背景与动机
 
@@ -25,13 +25,13 @@ Piex 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding age
 
 ### 为什么做 Piex
 
-基于以上思考，Piex 选择第三条路：**不 fork pi，只用官方 Extension API 把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展**。在日常工作中深度使用，遇到问题就迭代优化，逐步打造最适合自己的工具链。
+基于以上思考，Piex 选择第三条路：**不 fork pi，只用官方 Extension API 把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展**，在日常工作中深度使用、持续迭代，逐步打造最适合自己的工具链。需要说明的是：开源与信息安全是选择 agent 平台的重要前提，但并非创建 Piex 的核心原因——Piex 的核心设计理念是下面四点。
 
-## 核心原则
+## 核心设计理念
 
-### 1. 100% 基于 pi Extension API
+### 1. 充分拓展 pi，而不是 fork
 
-不 fork pi，不修改 pi 内部代码。所有功能通过 pi 的标准扩展接口实现：
+100% 基于 pi Extension API，不 fork pi，不修改 pi 内部代码。所有功能通过 pi 的标准扩展接口实现：
 
 | 能力 | 实现方式 |
 |------|---------|
@@ -47,9 +47,13 @@ Piex 是 [Pi](https://pi.dev) 的功能拓展集合，从各类优秀 coding age
 | 交互弹窗 | `ctx.ui.select(...)`, `ctx.ui.editor(...)` |
 | 快捷键 | `pi.registerShortcut(Key.shift("p"), ...)` |
 
-### 2. 按需安装，相互独立
+这也是与 omp 的理念差别所在：omp 走 fork + batteries included 的路线——把认为优秀的功能全部内置进自己的分叉内核，替用户做好所有选择；piex 不拥有内核、只做扩展，把每个能力的取舍留给用户。正因如此，piex 无需 backport 上游，始终跟随 pi 官方演进。
 
-每个扩展是独立的 npm 包，彼此无依赖，用户只安装需要的功能，接入和卸载都足够便捷：
+每个 piex package 是独立的 npm 包，不嵌入 pi；pi 升级时 piex 不受影响（扩展 API 向后兼容），piex 可通过 `pi update` 独立升级，版本号独立管理——随 pi 升级而升级。
+
+### 2. 按需拓展，自由切换
+
+每个扩展相互独立、彼此无依赖，即装即卸、自由组合——只为用到的能力付出 token，克制可控：
 
 ```bash
 pi install npm:@piex-dev/hashline   # hashline 编辑
@@ -58,16 +62,9 @@ pi install npm:@piex-dev/plan       # 计划模式
 pi remove npm:@piex-dev/plan        # 随时卸载
 ```
 
-### 3. 随 pi 升级而升级
+### 3. 知其所以然，掌控感
 
-- 每个 piex package 是独立的 npm 包，不嵌入 pi
-- pi 升级时 piex 不受影响（扩展 API 向后兼容）
-- piex 可通过 `pi update` 独立升级
-- 版本号独立管理，无耦合
-
-### 4. 代码来源可追溯
-
-每个 package 标注了功能特性和设计灵感的原始来源：
+取百家之长：从 oh-my-pi、Claude Code、OpenCode 等主流 agent 中借鉴经过验证的优秀设计，搞清楚底层原理，再以 pi 扩展的形式按需引入。每个功能都是自己选择、自己理解、自己掌控的——把"用工具"变成"懂工具"。每个 package 都标注功能与设计的原始来源：
 
 | Package | 功能来源 | 实现方式 |
 |---------|---------|---------|
@@ -78,9 +75,9 @@ pi remove npm:@piex-dev/plan        # 随时卸载
 | review | oh-my-pi /review | 从 omp 精简移植 |
 | theme-dark-terminal | [opencode-themes](https://github.com/debugtalk/opencode-themes) | pi.themes 静态主题 JSON 分发 |
 
-### 5. 可度量：评测驱动
+### 4. 评测优先
 
-无法度量引入一个工具的效果，那就不要引入它。每个扩展都必须有明确的评测标准与数据支撑：仓库内置 Docker 化评测框架（`eval/`），在 Aider Polyglot 与 SWE-bench Lite 上对比 pi (bare) / pi + piex / omp 三个 agent，指标涵盖 `resolve_rate`、`avg_tokens`、`avg_time`、`est_cost` 及归因指标（`edit_accuracy`、`debug_success`、`plan_follow_rate`）。方案详见 [评测方案](evaluation.md)。
+若无法度量一个扩展的效果，那就不引入它。对影响 agent 行为的扩展（hashline、dap、lsp、plan、review）：仓库内置 Docker 化评测框架（`eval/`），在 Aider Polyglot 与 SWE-bench Lite 上对比 pi (bare) / pi + piex / omp 三个 agent，指标涵盖 `resolve_rate`、`avg_tokens`、`avg_time`、`est_cost` 及归因指标（`edit_accuracy`、`debug_success`、`plan_follow_rate`），评测数据将持续公开；主题、登录 provider 等不改变 agent 行为的包不适用此原则。方案详见 [评测方案](evaluation.md)。
 
 ## 目标
 
