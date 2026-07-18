@@ -5,16 +5,14 @@
 ```
 piex/                                  # monorepo
 ├── README.md                         # 项目入口
-├── docs/                             # 📚 文档
-│   ├── design.md                     #   设计理念与核心原则
-│   ├── architecture.md               #   架构概览（本文档）
-│   ├── roadmap.md                    #   实施计划与进度
-│   ├── testing.md                    #   测试指南
-│   ├── references.md                 #   参考资料索引
-│   ├── migration/                    #   迁移方案记录
-│   │   └── plan-review.md
-│   └── blogs/                        #   博客 Markdown
-│       └── pi-extension-mechanism.md
+├── docs/                             # 📚 文档 + 静态站（piex.dev，Pages 根）
+│   ├── index.html                    #   主页
+│   ├── <slug>.md                     #   文档源稿（design/architecture/…）
+│   ├── docs/<slug>/index.html        #   文档 HTML → /docs/<slug>/
+│   ├── notes/<slug>.md               #   博客 Markdown 底稿
+│   ├── blogs/<slug>/index.html       #   博客 HTML → /blogs/<slug>/
+│   ├── assets/                       #   style / main / blog 静态资源
+│   └── migration/                    #   迁移方案记录
 └── packages/                         # 📦 7 个独立 piex package
     ├── hashline/
     │   ├── README.md

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>架构概览 — PieX</title>
+  <meta name="description" content="仓库结构、7 个 package 总览、工具/Provider 注册表，以及 omp 能力到 pi Extension API 的映射。" />
+  <link rel="canonical" href="https://piex.dev/docs/architecture/" />
+  <meta property="og:title" content="架构概览 — PieX" />
+  <meta property="og:description" content="仓库结构、7 个 package 总览、工具/Provider 注册表，以及 omp 能力到 pi Extension API 的映射。" />
+  <meta property="og:url" content="https://piex.dev/docs/architecture/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/style.css?v=20260718e" />
+  <link rel="stylesheet" href="../../assets/blog.css?v=20260718e" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#principles" data-i18n="nav.principles">Principles</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/docs/design/" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Documentation">
+      <p class="blog-toc-title">文档</p>
+      <nav>
+        <a href="/docs/design/">设计理念</a>
+        <a href="/docs/architecture/" class="is-active">架构概览</a>
+        <a href="/docs/roadmap/">实施路线</a>
+        <a href="/docs/evaluation/">评测方案</a>
+        <a href="/docs/testing/">测试指南</a>
+        <a href="/docs/references/">参考资料</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>文档导航</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/docs/design/">设计理念</a>
+        <a href="/docs/architecture/" class="is-active">架构概览</a>
+        <a href="/docs/roadmap/">实施路线</a>
+        <a href="/docs/evaluation/">评测方案</a>
+        <a href="/docs/testing/">测试指南</a>
+        <a href="/docs/references/">参考资料</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+<a href="#项目结构">项目结构</a>
+        <a href="#package-总览">Package 总览</a>
+        <a href="#工具注册总览">工具注册总览</a>
+        <a href="#provider-注册总览">Provider 注册总览</a>
+        <a href="#pi-extension-api-映射">pi Extension API 映射</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Docs</span>
+          <span class="blog-tag">Architecture</span>
+        </div>
+        <h1>架构概览</h1>
+        <p class="blog-lede">仓库结构、7 个 package 总览、工具/Provider 注册表，以及 omp 能力到 pi Extension API 的映射。</p>
+      </header>
+
+      <div class="blog-prose">
+<h2 id="项目结构">项目结构</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>piex/                                  # monorepo
+├── README.md                         # 项目入口
+├── docs/                             # 📚 文档 + 静态站（piex.dev，Pages 根）
+│   ├── index.html                    #   主页
+│   ├── &lt;slug&gt;.md                     #   文档源稿（design/architecture/…）
+│   ├── docs/&lt;slug&gt;/index.html        #   文档 HTML → /docs/&lt;slug&gt;/
+│   ├── notes/&lt;slug&gt;.md               #   博客 Markdown 底稿
+│   ├── blogs/&lt;slug&gt;/index.html       #   博客 HTML → /blogs/&lt;slug&gt;/
+│   ├── assets/                       #   style / main / blog 静态资源
+│   └── migration/                    #   迁移方案记录
+└── packages/                         # 📦 7 个独立 piex package
+    ├── hashline/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── hashline.ts
+    │       └── bun-polyfill.ts
+    ├── dap/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── dap.ts, client.ts, session.ts
+    │       ├── config.ts, types.ts, utils.ts
+    │       ├── defaults.json, non-interactive-env.ts
+    ├── lsp/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── lsp.ts, defaults.json
+    ├── plan/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       └── plan.ts
+    ├── review/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       └── review.ts
+    ├── xai-oauth/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── xai-oauth.ts
+    │       └── models.ts
+    └── theme-dark-terminal/
+        ├── README.md
+        ├── package.json
+        └── themes/
+            └── dark-terminal.json</code></pre></div>
+<h2 id="package-总览">Package 总览</h2>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>Package</th>
+<th>代码量</th>
+<th>工具</th>
+<th>外部依赖</th>
+<th>功能来源</th>
+</tr></thead><tbody>
+<tr><td>hashline</td><td>191 行 + polyfill 127 行</td><td>覆盖 <code>edit</code></td><td><code>@oh-my-pi/hashline</code></td><td>oh-my-pi</td></tr>
+<tr><td>dap</td><td>1942 行 + 212 行 JSON</td><td><code>debug</code></td><td>无</td><td>oh-my-pi</td></tr>
+<tr><td>lsp</td><td>570 行 + 499 行 JSON</td><td><code>lsp</code></td><td>无</td><td>oh-my-pi</td></tr>
+<tr><td>plan</td><td>348 行</td><td><code>/plan</code>, <code>/todos</code></td><td>无</td><td>pi 示例</td></tr>
+<tr><td>review</td><td>330 行</td><td><code>/review</code>, <code>review</code></td><td>无</td><td>oh-my-pi</td></tr>
+<tr><td>xai-oauth</td><td>530 行 + 419 行 models</td><td><code>/login</code> xAI Grok OAuth 订阅登录（含实时模型发现）</td><td>无</td><td>oh-my-pi / pi-grok</td></tr>
+<tr><td>theme-dark-terminal</td><td>—</td><td>暗终端高对比度主题</td><td>无</td><td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td></tr>
+</tbody></table></div>
+<h2 id="工具注册总览">工具注册总览</h2>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>工具名</th>
+<th>来源</th>
+<th>类型</th>
+<th>说明</th>
+</tr></thead><tbody>
+<tr><td><code>read</code></td><td>pi 内置</td><td>读</td><td>读取文件</td></tr>
+<tr><td><code>bash</code></td><td>pi 内置</td><td>读写</td><td>执行命令</td></tr>
+<tr><td><code>write</code></td><td>pi 内置</td><td>写</td><td>写入文件</td></tr>
+<tr><td><code>grep</code></td><td>pi 内置</td><td>读</td><td>搜索内容</td></tr>
+<tr><td><code>find</code></td><td>pi 内置</td><td>读</td><td>搜索文件</td></tr>
+<tr><td><code>ls</code></td><td>pi 内置</td><td>读</td><td>列出目录</td></tr>
+<tr><td><strong><code>edit</code></strong></td><td><strong>hashline</strong></td><td>写</td><td>hashline 编辑（覆盖内置）</td></tr>
+<tr><td><strong><code>debug</code></strong></td><td><strong>dap</strong></td><td>读写</td><td>DAP 调试（launch/attach/step/evaluate）</td></tr>
+<tr><td><strong><code>lsp</code></strong></td><td><strong>lsp</strong></td><td>读写</td><td>LSP 语言服务器（diagnostics/hover/references）</td></tr>
+<tr><td><strong><code>review</code></strong></td><td><strong>review</strong></td><td>读</td><td>代码评审（diff/file/branch/commit）</td></tr>
+</tbody></table></div>
+<h2 id="provider-注册总览">Provider 注册总览</h2>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>Provider</th>
+<th>来源</th>
+<th>认证</th>
+<th>说明</th>
+</tr></thead><tbody>
+<tr><td><strong><code>xai-oauth</code></strong></td><td><strong>xai-oauth</strong></td><td>OAuth 订阅</td><td>SuperGrok / X Premium+ 登录；订阅模型经 cli-chat-proxy，支持登录后后台模型发现</td></tr>
+</tbody></table></div>
+<h2 id="pi-extension-api-映射">pi Extension API 映射</h2>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>原功能概念</th>
+<th>来源</th>
+<th>piex 实现</th>
+<th>pi API</th>
+</tr></thead><tbody>
+<tr><td>覆盖 edit 工具</td><td>omp</td><td>hashline.ts</td><td><code>pi.registerTool({ name: &quot;edit&quot; })</code></td></tr>
+<tr><td>Hook read 追加 header</td><td>omp</td><td>hashline.ts</td><td><code>pi.on(&quot;tool_result&quot;, ...)</code></td></tr>
+<tr><td>注册 debug 工具</td><td>omp</td><td>dap.ts</td><td><code>pi.registerTool({ name: &quot;debug&quot; })</code></td></tr>
+<tr><td>会话清理 DAP 进程</td><td>omp</td><td>dap.ts</td><td><code>pi.on(&quot;session_shutdown&quot;, ...)</code></td></tr>
+<tr><td>注册 lsp 工具</td><td>omp</td><td>lsp.ts</td><td><code>pi.registerTool({ name: &quot;lsp&quot; })</code></td></tr>
+<tr><td>计划模式 /plan</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.registerCommand(&quot;plan&quot;, ...)</code></td></tr>
+<tr><td>只读工具切换</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.setActiveTools([...])</code></td></tr>
+<tr><td>危险命令拦截</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.on(&quot;tool_call&quot;, ...)</code> → block</td></tr>
+<tr><td>进度追踪 [DONE:n]</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.on(&quot;turn_end&quot;, ...)</code></td></tr>
+<tr><td>交互评审菜单</td><td>omp</td><td>review.ts</td><td><code>pi.registerCommand(&quot;review&quot;, ...)</code></td></tr>
+<tr><td>注册 review 工具</td><td>omp</td><td>review.ts</td><td><code>pi.registerTool({ name: &quot;review&quot; })</code></td></tr>
+<tr><td>状态持久化</td><td>pi</td><td>plan.ts</td><td><code>pi.appendEntry(&quot;plan-mode&quot;, ...)</code></td></tr>
+<tr><td>Footer/Widge</td><td>pi</td><td>plan.ts</td><td><code>ctx.ui.setStatus/setWidget(...)</code></td></tr>
+<tr><td>注册 xAI OAuth provider</td><td>omp</td><td>xai-oauth.ts</td><td><code>pi.registerProvider(&quot;xai-oauth&quot;, { oauth: {...} })</code></td></tr>
+</tbody></table></div>
+      </div>
+
+            <nav class="blog-footer-nav" aria-label="Doc navigation">
+        <a class="blog-nav-card" href="/docs/design/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">设计理念</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/docs/roadmap/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">实施路线</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/architecture.md" target="_blank" rel="noopener">docs/architecture.md</a>
+      </p>
+    
+    
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+<a href="#项目结构">项目结构</a>
+        <a href="#package-总览">Package 总览</a>
+        <a href="#工具注册总览">工具注册总览</a>
+        <a href="#provider-注册总览">Provider 注册总览</a>
+        <a href="#pi-extension-api-映射">pi Extension API 映射</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/blog.js?v=20260718e"></script>
+  <script src="../../assets/main.js?v=20260718e"></script>
+</body>
+</html>

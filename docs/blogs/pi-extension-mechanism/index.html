@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pi Extension 机制及工作原理 — PieX</title>
+  <meta name="description" content="深入剖析 Pi 的 Extension API 设计哲学、三层架构、工具注册、Hook 系统与完整生命周期。" />
+  <link rel="canonical" href="https://piex.dev/blogs/pi-extension-mechanism/" />
+  <meta property="og:title" content="Pi Extension 机制及工作原理 — PieX" />
+  <meta property="og:description" content="Pi 为什么用 Extension 而不是内置特性？loader / runner / wrapper 如何协作？" />
+  <meta property="og:url" content="https://piex.dev/blogs/pi-extension-mechanism/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/style.css?v=20260718e" />
+  <link rel="stylesheet" href="../../assets/blog.css?v=20260718e" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#principles" data-i18n="nav.principles">Principles</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Blog">
+      <p class="blog-toc-title">博客</p>
+      <nav>
+        <a href="/blogs/hashline/">Hashline 方案的原理及借鉴</a>
+        <a href="/blogs/pi-extension-mechanism/" class="is-active">Pi Extension 机制及工作原理</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>博客导航</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/blogs/hashline/">Hashline 方案的原理及借鉴</a>
+        <a href="/blogs/pi-extension-mechanism/" class="is-active">Pi Extension 机制及工作原理</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+<a href="#philosophy">设计哲学</a>
+        <a href="#layers">三层架构</a>
+        <a href="#loader">加载层 loader</a>
+        <a href="#runner">运行层 runner</a>
+        <a href="#wrapper">包装层 wrapper</a>
+        <a href="#lifecycle">完整生命周期</a>
+        <a href="#summary">设计要点总结</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-date">2026-07-14</span>
+          <span class="blog-tag">Pi Extension</span>
+        </div>
+        <h1>Pi Extension 机制及工作原理</h1>
+        <p class="blog-lede">
+          Pi 的核心理念是<strong>极致可扩展，最小化核心</strong>。
+          Plan Mode、Sub-agent、权限弹窗、待办列表——内核都不做；
+          用户通过 Extension API 按需构建。本文拆开 loader / runner / wrapper 三层。
+        </p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">一句话</p>
+            <p>
+              Extension 机制是<strong>插件化的事件驱动架构</strong>：
+              内核只保留四种基础工具 + TUI，行为决策权全部在 Extension 层。
+              piex 的每一个 package 都只走这套标准 API。
+            </p>
+          </div>
+        </div>
+
+        <h2 id="philosophy">设计哲学：为什么用 Extension？</h2>
+        <blockquote style="margin:1rem 0;padding:0.75rem 1rem;border-left:3px solid var(--green-dim);background:var(--bg);color:var(--text-muted);border-radius:0 var(--radius) var(--radius) 0;">
+          Pi is aggressively extensible so it doesn't have to dictate your workflow.
+        </blockquote>
+        <p>
+          其他 AI 编码助手内置的特性——Plan Mode、Sub-agent、MCP、权限弹窗、待办列表、后台 Shell——
+          pi 全部不做。取而代之的是一套 Extension 机制，让用户按自己需要构建这些能力。
+        </p>
+        <p>
+          内核只做最小的事：四种基础工具（read、write、edit、bash）加上基本 TUI。
+          所有高级特性通过 Extension 实现，不侵入核心代码。
+        </p>
+
+        <h2 id="layers">三层架构</h2>
+        <div class="arch-stack">
+          <div class="arch-layer">
+            <p class="arch-layer-name">ExtensionFactory</p>
+            <p>用户写的 <code>export default function(pi)</code>。注册工具、命令、事件 handler。</p>
+          </div>
+          <div class="arch-layer">
+            <p class="arch-layer-name">loader.ts — 加载 &amp; 发现 &amp; API 工厂</p>
+            <ul>
+              <li>发现扩展路径（全局 / 项目 / 配置）</li>
+              <li>jiti 运行时加载 TypeScript</li>
+              <li>执行工厂函数 → 填充 Extension 对象</li>
+              <li>创建共享 ExtensionRuntime</li>
+            </ul>
+          </div>
+          <div class="arch-layer">
+            <p class="arch-layer-name">runner.ts — 编排 &amp; 事件分发</p>
+            <ul>
+              <li>bindCore() 注入真实实现</li>
+              <li>createContext() 构造 ExtensionContext</li>
+              <li>按加载顺序串行分发事件</li>
+              <li>错误隔离，单扩展不拖垮 pi</li>
+            </ul>
+          </div>
+          <div class="arch-layer">
+            <p class="arch-layer-name">wrapper.ts — 工具包装</p>
+            <p>注册的 ToolDefinition → AgentTool，供 agent-core 调用。</p>
+          </div>
+        </div>
+
+        <h2 id="loader">一、加载层（loader.ts）</h2>
+
+        <h3 id="jiti">运行时依赖解析</h3>
+        <p>
+          Extension 是 TypeScript 文件，通过
+          <a href="https://github.com/unjs/jiti" target="_blank" rel="noopener">jiti</a>
+          在运行时直接加载，无需编译。模块别名保证扩展 import 的是 pi 内部打包实例：
+        </p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead>
+              <tr><th>模式</th><th>解析方式</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Bun 二进制</td>
+                <td><code>virtualModules</code></td>
+                <td>将 pi 系列包直接注入 jiti 缓存</td>
+              </tr>
+              <tr>
+                <td>Node.js / 开发</td>
+                <td><code>alias</code></td>
+                <td>映射到本地 workspace 路径</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="discover">扩展发现</h3>
+        <p><code>discoverAndLoadExtensions()</code> 按优先级扫描三处（不递归，只一层）：</p>
+        <div class="blog-timeline">
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">Priority 1</p>
+            <h4>项目级 · <code>{cwd}/.pi/extensions/</code></h4>
+            <p>需信任项目后才加载。</p>
+          </div>
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">Priority 2</p>
+            <h4>全局 · <code>~/.pi/agent/extensions/</code></h4>
+            <p>对所有项目生效。</p>
+          </div>
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">Priority 3</p>
+            <h4>配置 · <code>settings.json → extensions</code></h4>
+            <p>显式路径；npm 包通过 <code>package.json</code> 的 <code>pi.extensions</code> 字段声明入口。</p>
+          </div>
+        </div>
+
+        <div class="blog-code" data-lang="text">
+          <div class="blog-code-bar">
+            <span>extensions/ layout</span>
+            <button type="button" class="blog-code-copy">Copy</button>
+          </div>
+          <pre><code>extensions/
+├── my-ext.ts          → 单文件扩展
+├── my-package/        → 子目录
+│   ├── package.json   → 优先读 pi.extensions
+│   └── index.ts
+└── with-deps/         → 可带 node_modules
+    ├── package.json
+    └── src/index.ts</code></pre>
+        </div>
+
+        <h3 id="extension-model">Extension 对象模型</h3>
+        <p>每个扩展加载后生成独立 <code>Extension</code> 对象，数据不共享：</p>
+        <div class="blog-code" data-lang="typescript">
+          <div class="blog-code-bar">
+            <span>Extension</span>
+            <button type="button" class="blog-code-copy">Copy</button>
+          </div>
+          <pre><code>interface Extension {
+  sourceInfo: SourceInfo;
+  handlers:         Map&lt;string, Function[]&gt;;
+  tools:            Map&lt;string, RegisteredTool&gt;;
+  commands:         Map&lt;string, RegisteredCommand&gt;;
+  flags:            Map&lt;string, ExtensionFlag&gt;;
+  shortcuts:        Map&lt;string, ExtensionShortcut&gt;;
+  messageRenderers: Map&lt;string, Function&gt;;
+  entryRenderers:   Map&lt;string, Function&gt;;
+}</code></pre>
+        </div>
+
+        <h3 id="api-delegate">ExtensionAPI 的两层委托</h3>
+        <div class="blog-split">
+          <div class="blog-split-pane">
+            <h4>注册类 → Extension 自身</h4>
+            <ul>
+              <li><code>pi.registerTool()</code></li>
+              <li><code>pi.on("event", fn)</code></li>
+              <li><code>pi.registerCommand()</code></li>
+            </ul>
+            <p style="margin-top:0.55rem">数据归属扩展，互不污染。</p>
+          </div>
+          <div class="blog-split-pane">
+            <h4>行动类 → 共享 Runtime</h4>
+            <ul>
+              <li><code>pi.sendMessage()</code></li>
+              <li><code>pi.setActiveTools()</code></li>
+              <li><code>pi.appendEntry()</code></li>
+              <li><code>pi.exec()</code></li>
+            </ul>
+            <p style="margin-top:0.55rem">需要与会话系统交互，走全局后端。</p>
+          </div>
+        </div>
+
+        <h3 id="runtime">ExtensionRuntime：延迟绑定</h3>
+        <p>
+          共享 Runtime 初始化时，所有 action 方法都是 <strong>throwing stub</strong>。
+          扩展加载期是纯声明阶段，不能发消息、改工具集。
+          <code>bindCore()</code> 后 stub 被替换为真实 AgentSession 实现。
+        </p>
+        <div class="blog-callout note">
+          <div class="blog-callout-icon" aria-hidden="true">ℹ️</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">Provider 注册队列</p>
+            <p>
+              <code>pi.registerProvider()</code> 在加载期不会立即执行，而是压入
+              <code>pendingProviderRegistrations</code>，在 <code>bindCore()</code> 时批量冲刷——
+              解决 ModelRegistry 尚未就绪的时序问题。
+            </p>
+          </div>
+        </div>
+
+        <h2 id="runner">二、运行层（runner.ts）</h2>
+
+        <h3 id="bindcore">bindCore：连接真实世界</h3>
+        <div class="blog-code" data-lang="typescript">
+          <div class="blog-code-bar">
+            <span>bindCore</span>
+            <button type="button" class="blog-code-copy">Copy</button>
+          </div>
+          <pre><code>runner.bindCore(
+  actions,         // sendMessage, appendEntry, ...
+  contextActions,  // getModel, isIdle, abort, compact, ...
+  providerActions, // registerProvider（可选）
+);</code></pre>
+        </div>
+        <ol>
+          <li>注入 actions → 替换 throwing stub</li>
+          <li>保存 context 闭包（getModel、isIdle…）</li>
+          <li>冲刷 provider 队列</li>
+          <li>之后 registerProvider 立即生效</li>
+        </ol>
+
+        <h3 id="context">createContext：懒求值</h3>
+        <p>
+          <code>ExtensionContext</code> 用 <strong>getter</strong>，每次访问实时取值，
+          避免 session 切换后闭包快照过时：
+        </p>
+        <div class="blog-code" data-lang="typescript">
+          <div class="blog-code-bar">
+            <span>createContext</span>
+            <button type="button" class="blog-code-copy">Copy</button>
+          </div>
+          <pre><code>return {
+  get ui() { return runner.uiContext; },
+  get cwd() { return runner.cwd; },
+  get model() { return getModel(); },
+  get signal() { return runner.getSignalFn(); },
+  isIdle: () => runner.isIdleFn(),
+  compact: (opts) => runner.compactFn(opts),
+};</code></pre>
+        </div>
+
+        <h3 id="dispatch">事件分发的三种模式</h3>
+        <p>按扩展加载顺序串行；每个 handler 包 try-catch，异常绝不向上传播。</p>
+        <div class="blog-cards">
+          <div class="blog-card-item">
+            <span class="card-kicker">Mode A</span>
+            <h3 class="card-title">Fire-and-forget</h3>
+            <p><code>session_start</code>、<code>turn_end</code>、<code>agent_start</code> 等 30+ 事件。返回值忽略。</p>
+          </div>
+          <div class="blog-card-item">
+            <span class="card-kicker">Mode B</span>
+            <h3 class="card-title">First-cancel-wins</h3>
+            <p><code>session_before_*</code> 系列。任一 handler 返回 <code>{ cancel: true }</code> 即停止后续分发。</p>
+          </div>
+          <div class="blog-card-item is-highlight">
+            <span class="card-kicker">Mode C</span>
+            <h3 class="card-title">Chain 链式转换</h3>
+            <p><code>tool_result</code>、<code>context</code>、<code>before_agent_start</code>。修改累积传递，下一 handler 看到上一步结果。</p>
+          </div>
+        </div>
+
+        <div class="blog-code" data-lang="typescript">
+          <div class="blog-code-bar">
+            <span>emitToolResult (Chain)</span>
+            <button type="button" class="blog-code-copy">Copy</button>
+          </div>
+          <pre><code>async emitToolResult(event) {
+  const currentEvent = { ...event };
+  for (const ext of this.extensions) {
+    for (const handler of handlers) {
+      const result = await handler(currentEvent, ctx);
+      if (result?.content) currentEvent.content = result.content;
+      if (result?.details) currentEvent.details = result.details;
+      if (result?.isError) currentEvent.isError = result.isError;
+    }
+  }
+  return { content, details, isError };
+}</code></pre>
+        </div>
+        <p>
+          hashline 的 read hook 正是挂在 <code>tool_result</code> 链上，
+          把 <code>[PATH#TAG]</code> 快照头注入模型可见结果。
+        </p>
+
+        <h3 id="stale">Stale Context 保护</h3>
+        <p>
+          Session 切换 / fork / reload 后，<code>invalidate()</code> 标记 stale，
+          旧 <code>pi</code> / <code>ctx</code> 上任何操作都抛异常——
+          防止扩展误用旧引用（最容易出 bug 的地方）。
+        </p>
+
+        <h2 id="wrapper">三、包装层（wrapper.ts）</h2>
+        <p>
+          扩展工具经 <code>wrapRegisteredTool()</code> 变成 agent-core 的 <code>AgentTool</code>。
+          每次 execute 创建新 context；若执行期间动态 <code>registerTool</code>，
+          返回 <code>addedToolNames</code> 通知系统刷新工具集。
+        </p>
+        <div class="feature-grid">
+          <div class="feature-item">
+            <div class="feature-icon">↦</div>
+            <div>
+              <h4>工具覆盖</h4>
+              <p>注册与内置同名工具（如 <code>edit</code>）即可覆盖。省略的 render 槽位自动继承内置实现。</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">+</div>
+            <div>
+              <h4>动态注册</h4>
+              <p>扩展可在 execute 期间注册新工具，下一轮 LLM 调用自动包含。</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lifecycle">四、完整生命周期</h2>
+        <div class="blog-timeline">
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">1 · Boot</p>
+            <h4>discoverAndLoadExtensions()</h4>
+            <p>扫描路径 → jiti 加载 → factory(pi) → 返回 extensions[] + runtime</p>
+          </div>
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">2 · Session</p>
+            <h4>AgentSession 初始化</h4>
+            <p>new ExtensionRunner → bindCore → bindCommandContext → setUIContext</p>
+          </div>
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">3–5 · Start</p>
+            <h4>project_trust → session_start → resources_discover</h4>
+            <p>信任决策、会话启动、扩展可提供 skill/prompt/theme 路径</p>
+          </div>
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">6–9 · Loop</p>
+            <h4>用户输入 → Agent 循环</h4>
+            <ul>
+              <li>扩展命令匹配 / input transform</li>
+              <li>before_agent_start 注入上下文</li>
+              <li>每 turn：context → provider hooks → LLM → tool_call / tool_result 链</li>
+              <li>turn_end → agent_end → agent_settled</li>
+            </ul>
+          </div>
+          <div class="blog-tl-item">
+            <p class="blog-tl-step">10 · Shutdown</p>
+            <h4>session_shutdown → invalidate</h4>
+            <p>标记旧 ctx 失效；reload / 切换 session 时重建 Runner</p>
+          </div>
+        </div>
+
+        <h2 id="summary">五、设计要点总结</h2>
+        <div class="blog-table-wrap">
+          <table>
+            <thead>
+              <tr><th>设计</th><th>实现</th><th>目的</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>数据归属清晰</td>
+                <td>注册 → Extension；行动 → Runtime</td>
+                <td>扩展独立，互不污染</td>
+              </tr>
+              <tr>
+                <td>延迟绑定</td>
+                <td>Runtime 初建 throwing stub</td>
+                <td>加载阶段纯声明</td>
+              </tr>
+              <tr>
+                <td>Context 懒求值</td>
+                <td>getter 实时取值</td>
+                <td>避免闭包过时</td>
+              </tr>
+              <tr>
+                <td>串行事件分发</td>
+                <td>按加载顺序</td>
+                <td>行为可预测</td>
+              </tr>
+              <tr>
+                <td>错误不传播</td>
+                <td>try-catch + emitError</td>
+                <td>单扩展不拖垮 pi</td>
+              </tr>
+              <tr>
+                <td>三种分发模式</td>
+                <td>Fire / Cancel / Chain</td>
+                <td>按语义选策略</td>
+              </tr>
+              <tr>
+                <td>Stale 保护</td>
+                <td>invalidate()</td>
+                <td>防 session 切换误用</td>
+              </tr>
+              <tr>
+                <td>Provider 队列</td>
+                <td>加载期入队，bind 时冲刷</td>
+                <td>解决注册时序</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">π</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">对 piex 的意义</p>
+            <p>
+              正因为这套 API 边界清晰，piex 才能 100% 通过 Extension 实现 hashline / dap / lsp / plan / review，
+              <strong>不 fork pi、不改内核</strong>，并随 pi 升级而升级。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Post navigation">
+        <a class="blog-nav-card" href="/blogs/hashline/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">Hashline 方案的原理及借鉴</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/#blog">
+          <span class="blog-nav-label">All posts →</span>
+          <span class="blog-nav-title">回到 Blog 列表</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/pi-extension-mechanism.md" target="_blank" rel="noopener">docs/notes/pi-extension-mechanism.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+<a href="#philosophy">设计哲学</a>
+        <a href="#layers">三层架构</a>
+        <a href="#loader">加载层 loader</a>
+        <a href="#runner">运行层 runner</a>
+        <a href="#wrapper">包装层 wrapper</a>
+        <a href="#lifecycle">完整生命周期</a>
+        <a href="#summary">设计要点总结</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/blog.js?v=20260718e"></script>
+  <script src="../../assets/main.js?v=20260718e"></script>
+</body>
+</html>

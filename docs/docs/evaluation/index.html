@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>评测方案 — PieX</title>
+  <meta name="description" content="pi bare vs pi+piex vs omp 的 Docker 评测架构、指标设计与实施路径。" />
+  <link rel="canonical" href="https://piex.dev/docs/evaluation/" />
+  <meta property="og:title" content="评测方案 — PieX" />
+  <meta property="og:description" content="pi bare vs pi+piex vs omp 的 Docker 评测架构、指标设计与实施路径。" />
+  <meta property="og:url" content="https://piex.dev/docs/evaluation/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/style.css?v=20260718e" />
+  <link rel="stylesheet" href="../../assets/blog.css?v=20260718e" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#principles" data-i18n="nav.principles">Principles</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Documentation">
+      <p class="blog-toc-title">文档</p>
+      <nav>
+        <a href="/docs/design/">设计理念</a>
+        <a href="/docs/architecture/">架构概览</a>
+        <a href="/docs/roadmap/">实施路线</a>
+        <a href="/docs/evaluation/" class="is-active">评测方案</a>
+        <a href="/docs/testing/">测试指南</a>
+        <a href="/docs/references/">参考资料</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>文档导航</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/docs/design/">设计理念</a>
+        <a href="/docs/architecture/">架构概览</a>
+        <a href="/docs/roadmap/">实施路线</a>
+        <a href="/docs/evaluation/" class="is-active">评测方案</a>
+        <a href="/docs/testing/">测试指南</a>
+        <a href="/docs/references/">参考资料</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+<a href="#评测目标">评测目标</a>
+        <a href="#对比矩阵">对比矩阵</a>
+        <a href="#自测-agent" class="depth-3">自测 Agent</a>
+        <a href="#竞品参考-引用公开数据" class="depth-3">竞品参考（引用公开数据）</a>
+        <a href="#piex-评测范围">Piex 评测范围</a>
+        <a href="#已实现-评测覆盖" class="depth-3">已实现（评测覆盖）</a>
+        <a href="#规划中-评测预留" class="depth-3">规划中（评测预留）</a>
+        <a href="#评测集选择">评测集选择</a>
+        <a href="#tier-1-核心评测" class="depth-3">Tier 1 — 核心评测</a>
+        <a href="#tier-2-专项评测" class="depth-3">Tier 2 — 专项评测</a>
+        <a href="#tier-3-扩展评测-覆盖规划功能后启用" class="depth-3">Tier 3 — 扩展评测（覆盖规划功能后启用）</a>
+        <a href="#指标设计">指标设计</a>
+        <a href="#核心指标-三者可对比" class="depth-3">核心指标（三者可对比）</a>
+        <a href="#归因指标-pi-系列内部对比-定位-piex-各-package-的贡献" class="depth-3">归因指标（pi 系列内部对比，定位 piex 各 package 的贡献）</a>
+        <a href="#docker-架构">Docker 架构</a>
+        <a href="#单-task-执行流" class="depth-3">单 Task 执行流</a>
+        <a href="#docker-镜像" class="depth-3">Docker 镜像</a>
+        <a href="#目录结构">目录结构</a>
+        <a href="#报告格式">报告格式</a>
+        <a href="#实施路径">实施路径</a>
+        <a href="#phase-1-docker-基础设施-首个评测-预估-1-周" class="depth-3">Phase 1 — Docker 基础设施 + 首个评测（预估 1 周）</a>
+        <a href="#phase-2-swe-bench-接入-预估-1-周" class="depth-3">Phase 2 — SWE-bench 接入（预估 1 周）</a>
+        <a href="#phase-3-专项评测-按需" class="depth-3">Phase 3 — 专项评测（按需）</a>
+        <a href="#约束与风险">约束与风险</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Docs</span>
+          <span class="blog-tag">Evaluation</span>
+        </div>
+        <h1>评测方案</h1>
+        <p class="blog-lede">pi bare vs pi+piex vs omp 的 Docker 评测架构、指标设计与实施路径。</p>
+      </header>
+
+      <div class="blog-prose">
+<p>以 pi 为基准线，在相同评测集下对比 pi + piex 和 omp，核心目标是量化 piex 对 pi 的提升幅度，同时以 omp 作为参照了解 piex 在行业中的相对水平。</p>
+<h2 id="评测目标">评测目标</h2>
+<p>核心问题：<strong>piex 能帮助 pi 提升多少？相比 omp 的指标如何？</strong></p>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>角色</th>
+<th>Agent</th>
+<th>说明</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>基准线</strong></td>
+<td>pi (bare)</td>
+<td>pi 原生，不加载任何扩展——展示起点</td>
+</tr>
+<tr>
+<td><strong>评测对象</strong></td>
+<td>pi + piex</td>
+<td>加载全部已实现 piex packages——量化提升</td>
+</tr>
+<tr>
+<td><strong>参照系</strong></td>
+<td>omp</td>
+<td>oh-my-pi，piex 能力来源——行业相对水平参照</td>
+</tr>
+</tbody></table></div>
+<p>通过三者同评测集对比，回答：</p>
+<ul><li>piex 对 pi 的量化提升有多大？</li><li>pi + piex 相比 omp 的指标差距如何？</li></ul>
+<h2 id="对比矩阵">对比矩阵</h2>
+<p>在相同评测集、相同模型下，三者一起评测。竞品数据引用公开 leaderboard，不自行跑分。</p>
+<h3 id="自测-agent">自测 Agent</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>角色</th>
+<th>Agent</th>
+<th>配置</th>
+</tr></thead><tbody>
+<tr>
+<td>基准线</td>
+<td>pi (bare)</td>
+<td>pi 原生，不加载任何 extension</td>
+</tr>
+<tr>
+<td>评测对象</td>
+<td>pi + piex</td>
+<td>pi + 全部已实现 piex packages</td>
+</tr>
+<tr>
+<td>参照系</td>
+<td>omp</td>
+<td>oh-my-pi，内建全部能力</td>
+</tr>
+</tbody></table></div>
+<h3 id="竞品参考-引用公开数据">竞品参考（引用公开数据）</h3>
+<p>SWE-bench Leaderboard、官方 Blog、论文中 Claude Code / Aider / OpenHands / Devin 等 Agent 的公开评测结果。</p>
+<h2 id="piex-评测范围">Piex 评测范围</h2>
+<p>每次评测加载全部已实现的 piex packages，未来新增 package 后重跑即可。</p>
+<h3 id="已实现-评测覆盖">已实现（评测覆盖）</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>Package</th>
+<th>能力</th>
+<th>评测关联</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>hashline</strong></td>
+<td>覆盖 <code>edit</code>（hashline 语法）</td>
+<td>SWE-bench（编辑正确率、token 效率）、Can It Edit</td>
+</tr>
+<tr>
+<td><strong>dap</strong></td>
+<td><code>debug</code>（14 个 adapter）</td>
+<td>DebugBench、SWE-bench（调试路径）</td>
+</tr>
+<tr>
+<td><strong>lsp</strong></td>
+<td><code>lsp</code>（11 个 server）</td>
+<td>RepoBench、SWE-bench（代码理解）</td>
+</tr>
+<tr>
+<td><strong>plan</strong></td>
+<td><code>/plan</code>、<code>/todos</code>（计划模式）</td>
+<td>SWE-bench（多步任务规划）</td>
+</tr>
+<tr>
+<td><strong>review</strong></td>
+<td><code>/review</code>、<code>review</code> 工具</td>
+<td>CodeReviewer / c-CRAB</td>
+</tr>
+</tbody></table></div>
+<h3 id="规划中-评测预留">规划中（评测预留）</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>Package</th>
+<th>状态</th>
+<th>评测关联</th>
+</tr></thead><tbody>
+<tr>
+<td>todo</td>
+<td>📋 P0</td>
+<td>SWE-bench（任务管理）</td>
+</tr>
+<tr>
+<td>conflict</td>
+<td>📋 P0</td>
+<td>自定义合并冲突评测</td>
+</tr>
+<tr>
+<td>ast-grep / ast-edit</td>
+<td>📋 P1</td>
+<td>SWE-bench（搜索/编辑精准度）</td>
+</tr>
+<tr>
+<td>web-search</td>
+<td>📋 P1</td>
+<td>外部知识评测</td>
+</tr>
+<tr>
+<td>eval</td>
+<td>📋 P1</td>
+<td>数据分析类任务</td>
+</tr>
+<tr>
+<td>memory</td>
+<td>📋 P1</td>
+<td>跨 session 知识保留</td>
+</tr>
+<tr>
+<td>gh</td>
+<td>📋 P1</td>
+<td>PR/Issue 操作</td>
+</tr>
+<tr>
+<td>browser</td>
+<td>📋 P2</td>
+<td>Web 交互评测</td>
+</tr>
+</tbody></table></div>
+<h2 id="评测集选择">评测集选择</h2>
+<h3 id="tier-1-核心评测">Tier 1 — 核心评测</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>评测集</th>
+<th>规模</th>
+<th>测什么</th>
+<th>piex 关联</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>SWE-bench Verified</strong></td>
+<td>500 题，12 Python 仓库</td>
+<td>仓库级 bug 修复全链路</td>
+<td>覆盖编辑、搜索、调试、规划，几乎所有 piex 能力</td>
+</tr>
+<tr>
+<td><strong>Aider Polyglot</strong></td>
+<td>225 题，多语言</td>
+<td>自然语言 → 代码编辑</td>
+<td>hashline 编辑能力</td>
+</tr>
+<tr>
+<td><strong>Can It Edit</strong></td>
+<td>多语言编辑指令</td>
+<td>细粒度代码修改</td>
+<td>hashline / ast-edit 精准度</td>
+</tr>
+</tbody></table></div>
+<h3 id="tier-2-专项评测">Tier 2 — 专项评测</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>评测集</th>
+<th>规模</th>
+<th>piex 关联</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>DebugBench</strong></td>
+<td>4,253 bug</td>
+<td>dap：自动定位并修复 bug</td>
+</tr>
+<tr>
+<td><strong>RepoBench</strong></td>
+<td>跨文件补全</td>
+<td>lsp + ast-grep：多文件上下文理解</td>
+</tr>
+<tr>
+<td><strong>CodeReviewer / c-CRAB</strong></td>
+<td>PR review</td>
+<td>review：AI review quality</td>
+</tr>
+</tbody></table></div>
+<h3 id="tier-3-扩展评测-覆盖规划功能后启用">Tier 3 — 扩展评测（覆盖规划功能后启用）</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>评测集</th>
+<th>piex 关联</th>
+</tr></thead><tbody>
+<tr>
+<td>SWE-bench Multimodal</td>
+<td>browser（图片 issue）</td>
+</tr>
+</tbody></table></div>
+<h2 id="指标设计">指标设计</h2>
+<h3 id="核心指标-三者可对比">核心指标（三者可对比）</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>指标</th>
+<th>定义</th>
+<th>重点关注</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>resolve_rate</strong></td>
+<td>任务通过率 (pass / total)</td>
+<td>pi + piex 与 omp 的差距</td>
+</tr>
+<tr>
+<td><strong>avg_tokens</strong></td>
+<td>平均每任务消耗 token</td>
+<td>效率对比</td>
+</tr>
+<tr>
+<td><strong>avg_time</strong></td>
+<td>平均 wall time</td>
+<td>速度对比</td>
+</tr>
+<tr>
+<td><strong>est_cost</strong></td>
+<td>平均每任务 API 费用</td>
+<td>成本对比</td>
+</tr>
+</tbody></table></div>
+<h3 id="归因指标-pi-系列内部对比-定位-piex-各-package-的贡献">归因指标（pi 系列内部对比，定位 piex 各 package 的贡献）</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>指标</th>
+<th>定义</th>
+<th>关联 package</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>edit_accuracy</strong></td>
+<td>edit 调用中 hashline 语法正确的比例</td>
+<td>hashline</td>
+</tr>
+<tr>
+<td><strong>search_precision</strong></td>
+<td>grep/glob/lsp 结果中相关的比例</td>
+<td>lsp</td>
+</tr>
+<tr>
+<td><strong>first_try_rate</strong></td>
+<td>第一次 edit 就正确的比例</td>
+<td>hashline</td>
+</tr>
+<tr>
+<td><strong>debug_success</strong></td>
+<td>dap 调用后成功定位到 bug 的比例</td>
+<td>dap</td>
+</tr>
+<tr>
+<td><strong>plan_follow_rate</strong></td>
+<td>Agent 按 plan 执行的比例</td>
+<td>plan</td>
+</tr>
+<tr>
+<td><strong>review_quality</strong></td>
+<td>review 发现真实问题的比例</td>
+<td>review</td>
+</tr>
+</tbody></table></div>
+<h2 id="docker-架构">Docker 架构</h2>
+<p>每个 Task 在同一 Docker 环境中，依次用基准线（pi bare）、评测对象（pi + piex）、对标参考（omp）执行，由标准 harness 统一判题。</p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>┌────────────────────────────────────────────────────────────┐
+│                        Eval Orchestrator                    │
+│  eval/runner.ts                                            │
+│                                                             │
+│  Task Loader ──→ Agent Runner ──→ Sandbox ──→ Judge       │
+│  (JSONL)        (pi/omp CLI)    (Docker)    (SWE-bench)    │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Metrics Collector                        │  │
+│  │  resolve_rate │ token 用量 │ wall time │ API 成本    │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Report Generator                         │  │
+│  │  基准线 → 评测对象 → 对标参考 + 公开 leaderboard     │  │
+│  └──────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────┘</code></pre></div>
+<h3 id="单-task-执行流">单 Task 执行流</h3>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>1. Task Loader: 读取 { repo_url, base_commit, issue_text, test_patch }
+
+2. Sandbox: docker run swebench-image-{repo}
+   → 容器内已 checkout base_commit，依赖已安装
+
+3. Agent Runner:
+   docker exec pi pi --model ${MODEL} \
+     -e /piex/packages/hashline/extensions/hashline.ts \
+     -e /piex/packages/dap/extensions/dap.ts \
+     -e /piex/packages/lsp/extensions/lsp.ts \
+     -e /piex/packages/plan/extensions/plan.ts \
+     -e /piex/packages/review/extensions/review.ts \
+     -p &quot;${ISSUE_TEXT}&quot; &gt; /workspace/result.json
+
+4. 收集: result.json → patch + tool_calls + token_usage
+
+5. Judge: 应用 patch → 运行 test_patch → pass/fail
+
+6. Metrics: SQLite / JSONL 持久化</code></pre></div>
+<h3 id="docker-镜像">Docker 镜像</h3>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>镜像</th>
+<th>说明</th>
+</tr></thead><tbody>
+<tr>
+<td><code>pi.Dockerfile</code></td>
+<td>pi 基础镜像（Node.js），同时用于 pi bare 和 pi+piex</td>
+</tr>
+<tr>
+<td><code>omp.Dockerfile</code></td>
+<td>omp 镜像（Bun 环境）</td>
+</tr>
+<tr>
+<td><code>swebench.Dockerfile</code></td>
+<td>SWE-bench 仓库运行环境</td>
+</tr>
+</tbody></table></div>
+<p>pi bare 和 pi+piex 使用同一镜像，通过 <code>-e</code> 参数控制扩展加载。</p>
+<h2 id="目录结构">目录结构</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>piex/eval/
+├── README.md                  # 评测工具使用文档
+├── package.json
+├── tsconfig.json
+│
+├── src/
+│   ├── runner.ts              # CLI 主入口
+│   ├── orchestrator.ts        # 任务调度（并行、重试）
+│   ├── sandbox.ts             # Docker 容器管理
+│   ├── agents/
+│   │   ├── pi.ts              # pi bare + piex 两种模式
+│   │   └── omp.ts             # omp runner
+│   ├── benchmarks/
+│   │   ├── swebench.ts        # SWE-bench 数据集 + 判题
+│   │   ├── aider-polyglot.ts  # Aider Polyglot
+│   │   ├── can-it-edit.ts     # Can It Edit
+│   │   ├── debugbench.ts      # DebugBench
+│   │   └── repobench.ts       # RepoBench
+│   ├── metrics.ts             # 指标收集与计算
+│   └── report.ts              # Markdown / JSON 报告生成
+│
+├── docker/
+│   ├── pi.Dockerfile          # pi 基础镜像（共享）
+│   ├── omp.Dockerfile         # omp 镜像
+│   └── swebench.Dockerfile    # SWE-bench 环境
+│
+├── results/                   # gitignored
+│   └── 2026-07-14/
+│       ├── swebench-pi-bare.json
+│       ├── swebench-pi-piex.json
+│       ├── swebench-omp.json
+│       └── report.md
+│
+└── fixtures/                  # 自定义评测素材
+    └── merge-conflicts/       # 合并冲突评测集（conflict 后续使用）</code></pre></div>
+<h2 id="报告格式">报告格式</h2>
+<p>每次评测生成 Markdown 报告，先呈现 piex 对 pi 的提升，再以 omp 为参照系对比：</p>
+<div class="blog-code" data-lang="markdown"><div class="blog-code-bar"><span>markdown</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>## SWE-bench Verified — piex 评测报告 (2026-07-14)
+
+### 评测结果
+
+| 角色 | Agent | Model | Resolve Rate | Avg Tokens | Avg Time | Est. Cost |
+|------|-------|-------|-------------|------------|----------|-----------|
+| 基准线 | pi (bare) | deepseek-v3 | 12.4% | 85K | 3.2min | $0.18 |
+| **评测对象** | **pi + piex** | deepseek-v3 | **18.8%** | 62K | 2.8min | $0.14 |
+| 参照系 | omp | deepseek-v3 | 19.2% | 60K | 2.6min | $0.13 |
+
+### pi + piex 效果分析
+
+| 指标 | pi (bare) 基准线 | pi + piex | omp 参照系 | 相对基准提升 | 与 omp 参照差距 |
+|------|-----------------|-----------|---------|------------|-----------|
+| resolve_rate | 12.4% | 18.8% | 19.2% | **+51.6%** | **-2.1%** |
+| avg_tokens | 85K | 62K | 60K | **-27.1%** | **+3.3%** |
+| edit_accuracy | 67% | 91% | 92% | **+35.8%** | **-1.1%** |
+| avg_tool_calls | 42 | 28 | 26 | **-33.3%** | **+7.7%** |
+
+### 公开 Leaderboard 参考（同评测集）
+
+| Agent | Resolve Rate | 来源 |
+|-------|-------------|------|
+| Claude 4 Opus + SWE-agent | 42.6% | anthropic.com/blog |
+| Devin | 35.8% | swebench.com |
+| GPT-5 + OpenHands | 38.2% | openhands.dev |
+
+### 结论
+
+- piex 对 pi 的量化提升：resolve rate **+51.6%**，token 用量降低 **27.1%**
+- 相比 omp 参照系：pi + piex 差距 **&lt; 5%**，核心编辑能力在相近水平
+- pi Extension API 可承载 omp 级别 agent 能力，piex 架构更轻量</code></pre></div>
+<h2 id="实施路径">实施路径</h2>
+<h3 id="phase-1-docker-基础设施-首个评测-预估-1-周">Phase 1 — Docker 基础设施 + 首个评测（预估 1 周）</h3>
+<ul class="checklist">
+<li>☐ <code>docker/pi.Dockerfile</code>：pi 基础镜像</li>
+<li>☐ <code>docker/omp.Dockerfile</code>：omp 镜像</li>
+<li>☐ <code>docker/swebench.Dockerfile</code>：SWE-bench 环境</li>
+<li>☐ <code>src/sandbox.ts</code>：Docker 容器生命周期管理</li>
+<li>☐ <code>src/agents/pi.ts</code>：pi bare + piex 两种模式</li>
+<li>☐ <code>src/agents/omp.ts</code>：omp runner</li>
+<li>☐ <code>src/benchmarks/aider-polyglot.ts</code>：首个评测集，验证全链路</li>
+</ul>
+<h3 id="phase-2-swe-bench-接入-预估-1-周">Phase 2 — SWE-bench 接入（预估 1 周）</h3>
+<ul class="checklist">
+<li>☐ <code>src/benchmarks/swebench.ts</code>：数据集加载 + 官方 harness 判题</li>
+<li>☐ pi vs pi+piex vs omp 首份对比报告</li>
+</ul>
+<h3 id="phase-3-专项评测-按需">Phase 3 — 专项评测（按需）</h3>
+<ul class="checklist">
+<li>☐ <code>can-it-edit.ts</code> → hashline 编辑能力</li>
+<li>☐ <code>debugbench.ts</code> → DAP 调试能力</li>
+<li>☐ <code>repobench.ts</code> → LSP 代码理解</li>
+<li>☐ <code>src/benchmarks/code-reviewer.ts</code> → review 评审准确率</li>
+</ul>
+<h2 id="约束与风险">约束与风险</h2>
+<div class="blog-table-wrap"><table><thead><tr>
+<th>风险</th>
+<th>对策</th>
+</tr></thead><tbody>
+<tr>
+<td>SWE-bench 数据污染</td>
+<td>关注相对提升而非绝对值；后续接入 LiveCodeBench</td>
+</tr>
+<tr>
+<td>ARM64 x86 模拟性能</td>
+<td>优先跑 SWE-bench Lite（300 题）；可上 Modal 云端</td>
+</tr>
+<tr>
+<td>pi 非交互模式限制</td>
+<td>验证 <code>-p</code> 模式效果；必要时用 PTY 模拟</td>
+</tr>
+<tr>
+<td>评测成本</td>
+<td>Lite 先行，按需跑全量 Verified</td>
+</tr>
+</tbody></table></div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Doc navigation">
+        <a class="blog-nav-card" href="/docs/roadmap/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">实施路线</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/docs/testing/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">测试指南</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/evaluation.md" target="_blank" rel="noopener">docs/evaluation.md</a>
+      </p>
+    
+    
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+<a href="#评测目标">评测目标</a>
+        <a href="#对比矩阵">对比矩阵</a>
+        <a href="#自测-agent" class="depth-3">自测 Agent</a>
+        <a href="#竞品参考-引用公开数据" class="depth-3">竞品参考（引用公开数据）</a>
+        <a href="#piex-评测范围">Piex 评测范围</a>
+        <a href="#已实现-评测覆盖" class="depth-3">已实现（评测覆盖）</a>
+        <a href="#规划中-评测预留" class="depth-3">规划中（评测预留）</a>
+        <a href="#评测集选择">评测集选择</a>
+        <a href="#tier-1-核心评测" class="depth-3">Tier 1 — 核心评测</a>
+        <a href="#tier-2-专项评测" class="depth-3">Tier 2 — 专项评测</a>
+        <a href="#tier-3-扩展评测-覆盖规划功能后启用" class="depth-3">Tier 3 — 扩展评测（覆盖规划功能后启用）</a>
+        <a href="#指标设计">指标设计</a>
+        <a href="#核心指标-三者可对比" class="depth-3">核心指标（三者可对比）</a>
+        <a href="#归因指标-pi-系列内部对比-定位-piex-各-package-的贡献" class="depth-3">归因指标（pi 系列内部对比，定位 piex 各 package 的贡献）</a>
+        <a href="#docker-架构">Docker 架构</a>
+        <a href="#单-task-执行流" class="depth-3">单 Task 执行流</a>
+        <a href="#docker-镜像" class="depth-3">Docker 镜像</a>
+        <a href="#目录结构">目录结构</a>
+        <a href="#报告格式">报告格式</a>
+        <a href="#实施路径">实施路径</a>
+        <a href="#phase-1-docker-基础设施-首个评测-预估-1-周" class="depth-3">Phase 1 — Docker 基础设施 + 首个评测（预估 1 周）</a>
+        <a href="#phase-2-swe-bench-接入-预估-1-周" class="depth-3">Phase 2 — SWE-bench 接入（预估 1 周）</a>
+        <a href="#phase-3-专项评测-按需" class="depth-3">Phase 3 — 专项评测（按需）</a>
+        <a href="#约束与风险">约束与风险</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/blog.js?v=20260718e"></script>
+  <script src="../../assets/main.js?v=20260718e"></script>
+</body>
+</html>
