@@ -346,16 +346,20 @@ pre .comment { color: var(--text-muted); }
 /* ---- sections ---- */
 
 section {
-  padding: 4rem 1.25rem;
+  padding: 4.25rem 1.25rem;
   max-width: var(--max);
   margin: 0 auto;
   position: relative;
 }
-section + section { padding-top: 0; }
+/* Keep a real top inset so titles never sit flush on section-alt borders,
+   but don't fully double-count previous section's bottom padding. */
+section + section {
+  padding-top: 3.25rem;
+}
 
 .section-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 }
 
 .section-heading {
@@ -410,12 +414,11 @@ section + section { padding-top: 0; }
 }
 
 /* ---- principles ---- */
-
 .principles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 0.85rem;
-  margin-top: 2.5rem;
+  margin-top: 0;
 }
 
 .card {
@@ -458,7 +461,7 @@ section + section { padding-top: 0; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: 0.85rem;
-  margin-top: 2.5rem;
+  margin-top: 0;
 }
 
 .pkg-card {
@@ -773,7 +776,8 @@ section + section { padding-top: 0; }
 /* tablet */
 @media (max-width: 900px) {
   .hero { padding: 3rem 1rem 1.5rem; }
-  section { padding: 3rem 1rem; }
+  section { padding: 3.5rem 1rem; }
+  section + section { padding-top: 2.75rem; }
 
   .packages-grid { grid-template-columns: 1fr; }
 }
@@ -900,10 +904,11 @@ section + section { padding-top: 0; }
   }
 
   section {
-    padding: 2.25rem 1rem;
+    padding: 2.75rem 1rem;
     width: 100%;
     box-sizing: border-box;
   }
+  section + section { padding-top: 2.25rem; }
 
   .section-alt {
     padding-left: 1rem;
