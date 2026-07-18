@@ -39,7 +39,7 @@
 | 4. 预览 | `cd docs && python3 -m http.server 8080` | 同左 |
 | 5. 发布 | push `main` 且触及 `docs/**` → `pages.yml` | 同左 |
 
-### 生成原则（摘要）
+### 生成原则
 
 1. **提炼而非 dump**：结论前置；对比用卡片/表；流程用 timeline/arch-stack  
 2. **复用组件**：`blog.css` 的 callout / cards / table / code / split / timeline 等  
@@ -47,7 +47,42 @@
 4. **无 JS 可读完全文**；脚本只增强体验  
 5. **md 与 HTML 同步**：论点改 md 再改 HTML  
 
-完整检查清单与 Agent 提示词见仓库根目录 `AGENTS.md`「文档站 · MD → HTML 原则」。
+### 可用组件（`assets/blog.css`）
+
+| Class | 用途 |
+|-------|------|
+| `.blog-callout.insight\|note\|warn` | 结论 / 提示 / 警告 |
+| `.blog-cards` / `.blog-card-item` | 多方案并排对比 |
+| `.blog-table-wrap` | 横向滚动表（表头强调） |
+| `.blog-code` + `.blog-code-bar` | 可复制代码块 |
+| `.blog-split` | 左右对照 |
+| `.arch-stack` | 分层架构 |
+| `.blog-timeline` / `.phase-list` | 生命周期 / 路线阶段 |
+| `.fail-map` | 失效范围等条形可视化 |
+| `.feature-grid` | 要点网格 |
+| `.docs-layout` + `.docs-nav` + `.page-toc` | 三栏：左站内导航 · 中正文 · 右本页目录 |
+
+### 页面壳检查清单（每篇 HTML）
+
+- [ ] `canonical` / `og:url` = `https://piex.dev/docs/<slug>/` 或 `/blogs/<slug>/`
+- [ ] 资源路径 `../../assets/style.css`、`blog.css`、`blog.js`、`main.js`（改样式则 bump `?v=`）
+- [ ] 左栏 `.docs-nav`：列出**全部**同类文章，当前页 `is-active`（加新文要改**所有**同类页）
+- [ ] 右栏 `.page-toc`：本篇 `h2/h3` 锚点；`id` 稳定
+- [ ] 窄屏：`.docs-mobile-nav`（站内导航）+ `.blog-toc-mobile`（本页目录）
+- [ ] 页脚 prev/next 或回列表；源稿 GitHub 链接指向对应 md
+- [ ] **无**顶部「返回」链（左栏已承担导航）
+
+### Agent 生成提示（可直接当任务描述）
+
+```
+根据源稿 <path/to/slug.md> 生成/更新结构化 HTML 阅读页：
+- 输出路径：docs/docs/<slug>/index.html 或 docs/blogs/<slug>/index.html
+- 复制同类型最近一篇页面作壳（docs-layout 三栏）
+- 内容：提炼信息结构，用 blog.css 组件，不要 md 直出
+- 同步：所有同类页左侧导航 + 主页卡片/列表 + 本页 TOC
+- 验收：cd docs && python3 -m http.server 8080 ，检查桌面三栏与窄屏折叠
+- 输出静态 HTML 正文，脚本仅增强体验
+```
 
 ### 反模式
 
