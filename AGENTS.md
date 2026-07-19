@@ -4,7 +4,7 @@
 
 ## 项目概览
 
-PieX 是 [Pi](https://pi.dev)（pi-coding-agent）的功能扩展集合，以独立 npm 包 `@piex-dev/*` 分发的 monorepo。它从 oh-my-pi (omp)、Claude Code、OpenCode 等 coding agent 中提取核心功能，**100% 基于 pi Extension API 重新实现**——不 fork pi、不修改 pi 内部代码。
+PieX 是 [Pi](https://pi.dev)（pi-coding-agent）的功能扩展集合，以独立 npm 包 `@piex-dev/*` 分发的 monorepo。它从 oh-my-pi (omp)、Claude Code、OpenCode 等 coding agent 中提取核心功能，**100% 基于 pi Extension API 重新实现**，不 fork pi、不修改 pi 内部代码。
 
 核心原则（详见 `docs/design.md`，线上中英 HTML 见 `/zh|en/docs/design/`）：
 
@@ -50,7 +50,7 @@ piex/
 值得注意的偏差：
 
 - `packages/hashline/`：**唯一有运行时依赖的 package**（`@oh-my-pi/hashline`），含 `node_modules/` + `package-lock.json`，本地使用前需先 `npm install`。辅助模块：`bun-polyfill.ts`、`filesystem.ts`、`patches.ts`（EditGuard 容错）。
-- `packages/dap/extensions/`：多模块——`client.ts`（JSON-RPC 客户端）、`session.ts`、`config.ts`、`non-interactive-env.ts`、`defaults.json`（adapter 默认配置）等。
+- `packages/dap/extensions/`：多模块，含 `client.ts`（JSON-RPC 客户端）、`session.ts`、`config.ts`、`non-interactive-env.ts`、`defaults.json`（adapter 默认配置）等。
 - `packages/lsp/extensions/`：`lsp.ts` + `defaults.json`（server 默认配置）。
 - `packages/xai-oauth/`：辅助模块 `models.ts`；单元测试在 package 根目录（`xai-oauth.test.ts`、`models.test.ts`，从 `./extensions/` 导入）。
 - `packages/theme-dark-terminal/`：无 `extensions/`，主题为 `themes/dark-terminal.json`（`name` + 可选 `vars` + 51 个必需 color token）。
@@ -148,7 +148,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 ## 文档站（docs/ → piex.dev）
 
-`docs/` 是零构建静态站：无 SSG、无 CI 编译，GitHub Pages 原样托管。**线上正文是结构化 HTML**；**Markdown 只写中文**（文档在 `docs/*.md`，博客在 `docs/notes/`），作 Git 底稿与内容唯一来源——只改 md 不改 HTML，线上不会变。
+`docs/` 是零构建静态站：无 SSG、无 CI 编译，GitHub Pages 原样托管。**线上正文是结构化 HTML**；**Markdown 只写中文**（文档在 `docs/*.md`，博客在 `docs/notes/`），作 Git 底稿与内容唯一来源。只改 md 不改 HTML，线上不会变。
 
 ### 源稿与产出（中文 md 唯一源）
 
@@ -181,7 +181,11 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 **Agent 义务：** 用户要求 commit 且 staged/变更包含 `docs/*.md`（除 `site.md`）或 `docs/notes/**/*.md` 时，必须先跑 `./scripts/check-docs-i18n.sh --staged`，失败则先补齐中英 HTML 再提交。
 
-组件详表、页面壳检查清单、Agent 生成提示、部署与 DNS 细节均见 `docs/site.md`。
+### 文案约定（破折号）
+
+- **该用**：表格空值（`| — |`）、标题分隔（`设计理念 — PieX`）、引用原文中的破折号
+- **不该用**：中文正文叙述（解释用 `：`，转折用「但/而」，补充用逗号/句号或拆句）。禁止全局替换 `——`/`—`
+
 
 ## 代码约定
 
@@ -190,7 +194,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 - Node 内置模块一律 `node:` 前缀：`import * as path from "node:path";`。
 - 类型用 type-only import：`import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";`。
-- 相对导入的扩展名**各包不统一**：hashline 用 `.js`、dap 不带扩展名、xai-oauth 用 `.ts`。jiti 都能加载——修改时**跟随所在文件的现有写法**，不要统一重改。
+- 相对导入的扩展名**各包不统一**：hashline 用 `.js`、dap 不带扩展名、xai-oauth 用 `.ts`。jiti 都能加载；修改时**跟随所在文件的现有写法**，不要统一重改。
 - 模块级单例常见（如 dap 的 `DapSessionManager`、hashline 的 `InMemorySnapshotStore`/`EditGuard`）。
 
 ### 代码风格（packages 与 eval 不同）
@@ -208,7 +212,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 ### 典型实现模式
 
 - **工具覆盖**：hashline 注册同名工具覆盖内置 `edit`（`pi.registerTool({ name: "edit", ... })`），并 hook `tool_result` 捕获 read 结果、注入 `[PATH#TAG]` 快照头。
-- **容错 guard**：hashline `patches.ts` 的 `EditGuard`——连续 3 次 byte-identical noop 抛 `[E_NOOP_LOOP]`、成功编辑后重发相同 payload 抛 `[E_DUPLICATE_EDIT]`、DSL 方言归一化（CRLF/代码块包裹/多余空行）。
+- **容错 guard**：hashline `patches.ts` 的 `EditGuard` 会在连续 3 次 byte-identical noop 时抛 `[E_NOOP_LOOP]`、成功编辑后重发相同 payload 时抛 `[E_DUPLICATE_EDIT]`，并对 DSL 方言做归一化（CRLF/代码块包裹/多余空行）。
 - **跨运行时 polyfill**：hashline 为 `@oh-my-pi/hashline` 用到的 Bun API 提供 Node polyfill，必须先于依赖导入（`import "./bun-polyfill.js"` 在前，`await import("@oh-my-pi/hashline")` 在后，规避 ES 模块提升）。
 - **配置即数据**：dap、lsp 把 adapter/server 默认配置放在 `defaults.json`，与代码分离。
 - **错误处理**：防御性 guard + 单例；异步操作用 `AbortSignal` 超时（dap JSON-RPC client）；自定义错误类型（`MismatchError`、`OAuthError`、`LoginCancelledError`）。
@@ -224,7 +228,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 - **凭据处理**：xai-oauth 处理 OAuth token，代码有意避免输出可能含 token/PII 的原始响应体；端点校验仅接受 `https://*.x.ai` 主机（`validateXAIEndpoint`）。修改时保持这些防护。
 - **破坏性命令防护**：plan 模式下 `edit`/`write` 被禁用（只保留 `read`/`bash`/`grep`/`find`/`ls`），且 `plan.ts` 内置 bash 危险命令拦截。
-- **eval 环境变量透传**：`eval/src/orchestrator.ts` 的 `collectApiEnvVars()` 会把宿主机匹配 `API_KEY`/`AUTH_TOKEN`/`ANTHROPIC_*`/`OPENAI_*` 等模式的环境变量传入 Docker 容器——跑不可信任务时注意凭据暴露面。
+- **eval 环境变量透传**：`eval/src/orchestrator.ts` 的 `collectApiEnvVars()` 会把宿主机匹配 `API_KEY`/`AUTH_TOKEN`/`ANTHROPIC_*`/`OPENAI_*` 等模式的环境变量传入 Docker 容器。跑不可信任务时注意凭据暴露面。
 - **发布不可逆**：`scripts/publish-all.sh` 直接 `npm publish` 到公共 registry（`publishConfig.access: public`），执行前确认版本号已 bump。
 - 仓库不存放任何密钥；根 `.gitignore` 仅忽略 `node_modules/`、`*.log`、`.DS_Store`，`eval/.gitignore` 额外忽略 `results/`、`dist/`。
 

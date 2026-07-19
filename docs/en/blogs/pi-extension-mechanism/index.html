@@ -179,9 +179,9 @@ pi.registerCommand() →  extension.commands.set()
 pi.sendMessage()     →  runtime.sendMessage()     (shared Runtime)
 pi.setActiveTools()  →  runtime.setActiveTools()
 pi.exec()            →  runtime</code></pre></div>
-<p>Registration mutates extension-local data. Action methods need the session system—hence a shared backend.</p>
+<p>Registration mutates extension-local data. Action methods need the session system; hence a shared backend.</p>
 <h3 id="1-5-extensionruntime-delayed-binding">1.5 ExtensionRuntime: delayed binding</h3>
-<p>All action methods start as <strong>throwing stubs</strong>. Loading is a pure declaration phase—no side effects. <code>bindCore()</code> replaces stubs with real AgentSession implementations.</p>
+<p>All action methods start as <strong>throwing stubs</strong>. Loading is a pure declaration phase: no side effects. <code>bindCore()</code> replaces stubs with real AgentSession implementations.</p>
 <p>Provider registration is queued into <code>pendingProviderRegistrations</code> and flushed at <code>bindCore()</code> so ModelRegistry need not be ready yet.</p>
 <h3 id="1-6-factory-cache">1.6 Factory cache</h3>
 <p><code>extensionCache</code> keyed by <code>cwd + generation</code>. Project switch clears it; <code>/reload</code> bumps generation. Same project restarts avoid recompilation.</p>
@@ -206,7 +206,7 @@ pi.exec()            →  runtime</code></pre></div>
 };</code></pre></div>
 <p>Getters (not closure snapshots) keep ctx fresh across session switch / reload.</p>
 <h3 id="2-4-three-dispatch-modes">2.4 Three dispatch modes</h3>
-<p>Events run <strong>serially in load order</strong>. Errors are try/caught per handler and never propagate—one bad extension cannot crash Pi.</p>
+<p>Events run <strong>serially in load order</strong>. Errors are try/caught per handler and never propagate: one bad extension cannot crash Pi.</p>
 <div class="blog-table-wrap"><table>
 <thead><tr><th>Mode</th><th>Events</th><th>Behavior</th></tr></thead>
 <tbody>
@@ -262,7 +262,7 @@ pi.exec()            →  runtime</code></pre></div>
 <tr><td>Stale protection</td><td>invalidate()</td><td>safe session replace</td></tr>
 <tr><td>Provider queue</td><td>flush at bindCore</td><td>ordering</td></tr>
 </tbody></table></div>
-<p>Pi’s Extension system is a <strong>pluginized event-driven architecture</strong>—kernel does the minimum (four tools + TUI), and extensions own behavior. That lets Pi fit any workflow without imposing one.</p>
+<p>Pi’s Extension system is a <strong>pluginized event-driven architecture</strong>: kernel does the minimum (four tools + TUI), and extensions own behavior. That lets Pi fit any workflow without imposing one.</p>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Post navigation">

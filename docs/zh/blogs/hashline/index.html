@@ -110,7 +110,7 @@
             <p>
               piex 继承 oh-my-pi 的 <strong>tree-sitter block 操作</strong> 与 <strong>boundary repair</strong>，
               再用 pi-hashline-edit 思路补齐 <strong>Noop Loop / Duplicate Edit / 方言归一化</strong>。
-              哈希模型仍是全文件 4-hex tag——简单、可验证；Phase 2 再补 stale 恢复与多版本快照。
+              哈希模型仍是全文件 4-hex tag，简单、可验证；Phase 2 再补 stale 恢复与多版本快照。
             </p>
           </div>
         </div>
@@ -264,7 +264,7 @@
   ← 锚定在行 2 的哈希 VR 上</code></pre>
         </div>
         <p>
-          <strong>优点</strong>：局部失效——只改第 5 行，第 50 行锚点仍有效，减少 re-read round-trip。
+          <strong>优点</strong>：局部失效。只改第 5 行，第 50 行锚点仍有效，减少 re-read round-trip。
           <strong>缺点</strong>：哈希碰撞更突出，需要额外策略。
         </p>
 
@@ -278,7 +278,7 @@
   xxHash32(prev + "\0" + curr + "\0" + next)</code></pre>
         </div>
         <p>
-          第 N 行哈希依赖 N−1、N、N+1。编辑第 5 行只让 4/5/6 失效，远处锚点保持有效——
+          第 N 行哈希依赖 N−1、N、N+1。编辑第 5 行只让 4/5/6 失效，远处锚点保持有效：
           比整体哈希宽松，比纯内容哈希更安全。
         </p>
 
@@ -329,7 +329,7 @@
           <div class="blog-card-item">
             <span class="card-kicker">oh-my-pi</span>
             <h3 class="card-title">Recovery · anchor remapping</h3>
-            <p>diffArrays 建行号映射；所有锚点必须统一 offset。严格但保守——一个对不上，全部拒绝。</p>
+            <p>diffArrays 建行号映射；所有锚点必须统一 offset。严格但保守：一个对不上，全部拒绝。</p>
           </div>
           <div class="blog-card-item">
             <span class="card-kicker">pi-hashline-edit</span>
@@ -423,7 +423,7 @@ MV lib/a.ts    ← 重命名</code></pre>
             <p class="blog-callout-label">Block 操作</p>
             <p>
               <code>SWAP.BLK N:</code> 通过 tree-sitter 解析第 N 行所在的<strong>完整语法块</strong>。
-              这是三个实现中<strong>唯一具备语法感知</strong>的设计——模型不必精确计算函数起止行号。
+              这是三个实现中<strong>唯一具备语法感知</strong>的设计：模型不必精确计算函数起止行号。
             </p>
           </div>
         </div>
@@ -607,7 +607,7 @@ MV lib/a.ts    ← 重命名</code></pre>
         <h2 id="refs">参考资料</h2>
         <ul>
           <li><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/hashline" target="_blank" rel="noopener">oh-my-pi hashline</a></li>
-          <li><a href="https://github.com/RimuruW/pi-hashline-edit" target="_blank" rel="noopener">pi-hashline-edit</a> — 含 7 个 ADR</li>
+          <li><a href="https://github.com/RimuruW/pi-hashline-edit" target="_blank" rel="noopener">pi-hashline-edit</a>：含 7 个 ADR</li>
           <li><a href="https://github.com/YuGiMob/pi-hashline-edit-pro" target="_blank" rel="noopener">pi-hashline-edit-pro</a></li>
           <li>关键 ADR：
             <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0003-context-based-line-hashing.md" target="_blank" rel="noopener">Context-Based Hashing</a> ·

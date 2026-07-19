@@ -59,7 +59,7 @@
 
 ## 其他参考项目
 
-- [oh-my-pi](https://github.com/can1357/oh-my-pi) — 功能特性的主要来源
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — 交互模式参考
-- [OpenCode](https://github.com/opencode-ai/opencode) — 扩展机制参考
-- [opencode-themes](https://github.com/debugtalk/opencode-themes) — 终端暗色主题配色来源
+- [oh-my-pi](https://github.com/can1357/oh-my-pi)：功能特性的主要来源
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)：交互模式参考
+- [OpenCode](https://github.com/opencode-ai/opencode)：扩展机制参考
+- [opencode-themes](https://github.com/debugtalk/opencode-themes)：终端暗色主题配色来源

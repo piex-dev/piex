@@ -25,8 +25,8 @@
 | # | Package | 一层 | 二层 | 功能 | 来源 | 行数 |
 |---|---------|------|------|------|------|------|
 | 1 | **hashline** | ➕ 功能增量 | 📈 指标优化（准确率↑ token↓） | hashline 编辑（覆盖 edit 工具） | omp | 318 |
-| 2 | **dap** | 🆕 新功能 | — | DAP 调试 — 14 个 debug adapter | omp | 2154 |
-| 3 | **lsp** | 🆕 新功能 | — | LSP 语言服务器 — 11 个 server | omp | 1069 |
+| 2 | **dap** | 🆕 新功能 | — | DAP 调试：14 个 debug adapter | omp | 2154 |
+| 3 | **lsp** | 🆕 新功能 | — | LSP 语言服务器：11 个 server | omp | 1069 |
 | 4 | **plan** | 🆕 新功能 | ✨ 体验优化（步骤审批、工具锁定） | Plan Mode（/plan 命令 + 计划工作流） | omp | 348 |
 | 5 | **review** | 🆕 新功能 | — | 代码评审（/review + review 工具，轻量版） | omp | 330 |
 | 6 | **theme-dark-terminal** | 🆕 新功能 | ✨ 体验优化 | 暗终端高对比度主题（pi.themes 分发） | [opencode-themes](https://github.com/debugtalk/opencode-themes) | — |
@@ -135,7 +135,7 @@
 | **P2-2** | commit | 🆕 新功能 | 📈 指标优化 | 原子提交分析，算法独立但需要深度的 diff 理解 |
 | **P2-3** | checkpoint | 🆕 新功能 | ✨ 体验优化 | Checkpoint/rewind，需 session 状态管理 |
 | **P2-4** | ssh | 🆕 新功能 | — | SSH 远程执行，需 SSH client 能力 |
-| **P2-5** | subagent | ➕ 功能增量 | — | 子 agent 机制 — 等待 pi Extension API 完善 |
+| **P2-5** | subagent | ➕ 功能增量 | — | 子 agent 机制：等待 pi Extension API 完善 |
 
 ### 未排优先级（Tier 1/2 中 pi 已有基础版本，边际价值待评估）
 
@@ -226,9 +226,9 @@
 
 迁移优先级评估的三要素：
 
-1. **pi Extension API 兼容度** — 功能是否可被 registerTool / registerCommand / on event / ctx.ui 覆盖
-2. **依赖隔离度** — 功能是否依赖 omp 内部引擎（SessionManager / ModelRegistry / 自有 TUI）
-3. **用户价值** — 对日常编码工作流的实际提升
+1. **pi Extension API 兼容度**：功能是否可被 registerTool / registerCommand / on event / ctx.ui 覆盖
+2. **依赖隔离度**：功能是否依赖 omp 内部引擎（SessionManager / ModelRegistry / 自有 TUI）
+3. **用户价值**：对日常编码工作流的实际提升
 
 Tier 定义：
 

@@ -85,7 +85,6 @@
         </button>
         <nav class="blog-toc-mobile-nav">
         <a href="#background-motivation">Background &amp; Motivation</a>
-        <a href="#why-an-open-source-agent" class="depth-3">Why an open-source agent</a>
         <a href="#why-pi" class="depth-3">Why Pi</a>
         <a href="#why-not-just-use-oh-my-pi" class="depth-3">Why not just use oh-my-pi</a>
         <a href="#why-piex" class="depth-3">Why PieX</a>
@@ -108,7 +107,7 @@
           <span class="blog-tag">Principles</span>
         </div>
         <h1>Design Philosophy</h1>
-        <p class="blog-lede">Why piex: extend without forking, switch on demand, know how it works, eval first—four principles and extension/theme package patterns.</p>
+        <p class="blog-lede">Why this path first: then the four principles, and the extension / theme package patterns.</p>
       </header>
 
       <div class="blog-prose">
@@ -116,35 +115,23 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">Core principles</p>
-            <p><strong>Extend Pi, never fork · On demand · Know how it works · Eval first (no measurement, no adoption)</strong>. Open source and security matter when choosing a platform, but they are not the primary reason PieX exists.</p>
+            <p><strong>Extend Pi, never fork · On demand · Know how it works · Eval first (no measurement, no adoption)</strong>.</p>
           </div>
         </div>
-
-        <div class="blog-callout warn">
-          <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
-          <div class="blog-callout-body">
-            <p class="blog-callout-label">July 2026 — two public disclosures</p>
-            <p><strong>Claude Code</strong> was flagged by China’s NVDB for built-in monitoring that could exfiltrate locale and identity without consent (versions 2.1.91–2.1.196); Alibaba listed it as high-risk and banned it company-wide.</p>
-            <p><strong>Grok Build CLI</strong> uploaded entire git repos (including unredacted <code>.env</code> secrets) without clear disclosure; the opt-out covered retention, not transmission.</p>
-          </div>
-        </div>
-
-<p>PieX is a collection of feature extensions for <a href="https://pi.dev" target="_blank" rel="noopener">Pi</a>. It extracts core capabilities from strong coding agents (oh-my-pi, Claude Code, OpenCode, and others) and ships them as independent piex packages. This page starts with motivation—why this path—then the core design principles and package patterns.</p>
 <h2 id="background-motivation">Background & Motivation</h2>
-<h3 id="why-an-open-source-agent">Why an open-source agent</h3>
-<p><strong>Security & auditability.</strong> Closed-source coding agents hold repositories, credentials, and context, yet their behavior is a black box. In July 2026 alone, two incidents were publicly disclosed: Claude Code was flagged by China’s NVDB for built-in monitoring that could exfiltrate locale and identity signals without consent (affected versions 2.1.91–2.1.196); Alibaba subsequently listed it as high-risk and banned it company-wide (<a href="http://finance.people.com.cn/BIG5/n1/2026/0708/c1004-40756179.html" target="_blank" rel="noopener">People’s Daily</a>, <a href="https://new.qq.com/rain/a/20260708A099RH00" target="_blank" rel="noopener">Southern Metropolis Daily</a>). Separately, security researcher cereblab showed that xAI’s Grok Build CLI uploaded entire git repos—including unredacted <code>.env</code> secrets and full history—without clear disclosure; the opt-out only covered retention, not transmission (<a href="https://github.com/cereblab/grok-build-exfil-repro" target="_blank" rel="noopener">repro</a>, <a href="https://gist.github.com/cereblab/dc9a40bc26120f4540e4e09b75ffb547" target="_blank" rel="noopener">packet analysis</a>). With an open-source agent, every line of code and every network call is auditable—transparency is the security control.</p>
-<p><strong>Know-how.</strong> Coding agents churn quickly. Hopping tools keeps you at the “how do I click this” layer. Deep use of one open-source agent—reading how it works, contributing, iterating—turns “using tools” into “understanding tools.”</p>
 <h3 id="why-pi">Why Pi</h3>
-<p><strong>Restraint.</strong> Agents keep getting heavier, but most features go unused—wasted tokens and cognitive load, with no real control over what enters context. Pi’s author wrote this restraint into the design (<a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a>): system prompt + tool definitions under ~1000 tokens, four default tools (<code>read</code> / <code>write</code> / <code>edit</code> / <code>bash</code>). The official README lists what Pi does <em>not</em> do—No MCP, No sub-agents, No plan mode, No built-in to-dos, No permission popups, No background bash—and every item has the same exit: <em>build it with extensions, or install a package</em>.</p>
-<p><strong>Extensibility.</strong> Pi positions itself as “a minimal terminal coding harness,” and is <em>“aggressively extensible so it doesn't have to dictate your workflow.”</em> Tools, commands, event hooks, UI, providers, and themes are all open to extensions, with an explicit promise of <em>“without having to fork and modify pi internals.”</em> For an individual developer, a small readable core plus a nearly unbounded Extension API is the best starting point for owning your toolchain.</p>
+<p>Coding agents keep shipping. Chasing each new one mostly spends you on yet another round of feature tryouts, still stuck at “I can use it.” The gap opens when you pick one open-source agent and go deep: read how it works, change it yourself, iterate with it, and turn “I can use it” into “I get it.” Pi is restrained and open; that is the right base for this path.</p>
+<p><strong>Restraint.</strong> If you have used coding agents for a while, you know the discomfort: more features, fuller context, rising token bills and latency, yet day to day you only really need a handful of capabilities. Worse, you barely control what gets stuffed into context. Pi’s author wrote that restraint into the design (<a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a>): system prompt + tool definitions under ~1000 tokens, four default tools (<code>read</code> / <code>write</code> / <code>edit</code> / <code>bash</code>). The official README lists what Pi does <em>not</em> do: No MCP, No sub-agents, No plan mode, No built-in to-dos, No permission popups, No background bash. Every item has the same exit: <em>build it with extensions, or install a package</em>.</p>
+<p><strong>Extensibility.</strong> A lean default is not a weak platform. Pi positions itself as “a minimal terminal coding harness,” and is <em>“aggressively extensible so it doesn't have to dictate your workflow.”</em> Tools, commands, event hooks, UI, providers, and themes are all open to extensions, with an explicit promise of <em>“without having to fork and modify pi internals.”</em> You do not have to patch the kernel or wait on upstream to shape the workflow you want. A small, readable core plus a nearly unbounded Extension API is how you actually own your toolchain.</p>
 <h3 id="why-not-just-use-oh-my-pi">Why not just use oh-my-pi</h3>
-<p><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a> (omp) ships many excellent tools on top of Pi, is batteries-included, and is piex’s primary feature source. It chose a different path:</p>
+<p><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a> (omp) ships many excellent capabilities on top of Pi, is batteries-included, and is piex’s primary feature source. A natural question: if omp already packages “it just works,” why not use it?</p>
+<p>The answer is the path it chose:</p>
 <ul>
-<li><strong>Fork, not extension.</strong> omp is a fork of pi (<em>“fork of pi-mono, batteries included”</em>). It maintains a dedicated <a href="https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md" target="_blank" rel="noopener">porting playbook</a> to backport upstream, plus ~55k lines of Rust core and a Bun-only runtime. Following a fork means surrendering upgrade cadence and architectural decisions.</li>
-<li><strong>Everything bundled.</strong> omp ships 32 tools and a large surface by default—many unused day-to-day—which reintroduces “heavy”: token cost and loss of control over context.</li>
+<li><strong>Fork, not extension.</strong> omp is a fork of pi (<em>“fork of pi-mono, batteries included”</em>). It maintains a dedicated <a href="https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md" target="_blank" rel="noopener">porting playbook</a> to backport upstream, plus ~55k lines of Rust core and a Bun-only runtime. Follow a fork, and upgrade cadence plus architectural decisions stop being yours.</li>
+<li><strong>Everything bundled.</strong> omp ships 32 tools and a large surface by default, much of it unused day to day. That is “heavy” again: tokens burn, while you do not get to trim the context.</li>
 </ul>
 <h3 id="why-piex">Why PieX</h3>
-<p>Given the above, PieX takes a third path: <strong>do not fork Pi; use only the official Extension API to turn proven agent capabilities into independent, optional, measurable packages.</strong> Use them deeply in daily work, iterate continuously, and shape a toolchain that fits.</p>
+<p>So PieX takes a third path: <strong>do not fork Pi; use only the official Extension API to turn proven agent capabilities into independent, optional, measurable packages.</strong> Install what you need, remove what you do not; use them deeply in daily work, iterate continuously, and shape a toolchain that actually fits you.</p>
 <h2 id="core-design-principles">Core Design Principles</h2>
 <p>PieX rests on four principles.</p>
 <h3 id="1-extend-pi-fully-never-fork">1. Extend Pi fully—never fork</h3>
@@ -164,16 +151,16 @@
 <tr><td>Interactive UI</td><td><code>ctx.ui.select(...)</code>, <code>ctx.ui.editor(...)</code></td></tr>
 <tr><td>Shortcuts</td><td><code>pi.registerShortcut(Key.shift(&quot;p&quot;), ...)</code></td></tr>
 </tbody></table></div>
-<p>This is the philosophical gap vs omp: omp forks and batteries-includes—shipping every “good” feature into its own kernel and choosing for the user. piex owns no kernel; it only extends, and leaves trade-offs to the user. Consequently piex needs no upstream backport and tracks official Pi evolution.</p>
-<p>Each piex package is a standalone npm package, not embedded in Pi. Pi upgrades do not break piex (extension API is backward-compatible); piex upgrades independently via <code>pi update</code> with its own versioning—upgrade with Pi, not against it.</p>
+<p>This is the philosophical gap vs omp: omp forks and batteries-includes, shipping every “good” feature into its own kernel and choosing for the user. piex owns no kernel; it only extends, and leaves trade-offs to the user. Consequently piex needs no upstream backport and tracks official Pi evolution.</p>
+<p>Each piex package is a standalone npm package, not embedded in Pi. Pi upgrades do not break piex (extension API is backward-compatible); piex upgrades independently via <code>pi update</code> with its own versioning, upgrading with Pi rather than against it.</p>
 <h3 id="2-on-demand-switch-freely">2. On demand, switch freely</h3>
-<p>Packages are independent and dependency-free across each other—install, remove, and compose at will. Pay tokens only for what you use:</p>
+<p>Packages are independent and dependency-free across each other: install, remove, and compose at will. Pay tokens only for what you use:</p>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install npm:@piex-dev/hashline   # hashline edit
 pi install npm:@piex-dev/dap        # DAP debug
 pi install npm:@piex-dev/plan       # plan mode
 pi remove npm:@piex-dev/plan        # uninstall anytime</code></pre></div>
 <h3 id="3-know-how-it-works-ownership">3. Know how it works—ownership</h3>
-<p>Borrow proven designs from oh-my-pi, Claude Code, OpenCode, and peers; understand the underlying mechanics; reintroduce them as Pi extensions on demand. Every feature is chosen, understood, and owned—turning “using tools” into “understanding tools.” Each package documents provenance:</p>
+<p>Borrow proven designs from oh-my-pi, Claude Code, OpenCode, and peers; understand the underlying mechanics; reintroduce them as Pi extensions on demand. Every feature is chosen, understood, and owned, turning “using tools” into “understanding tools.” Each package documents provenance:</p>
 <div class="blog-table-wrap"><table>
 <thead><tr><th>Package</th><th>Origin</th><th>Implementation</th></tr></thead>
 <tbody>
@@ -188,7 +175,7 @@ pi remove npm:@piex-dev/plan        # uninstall anytime</code></pre></div>
 <p>If an extension’s effect cannot be measured, do not adopt it. For behavior-changing packages (hashline, dap, lsp, plan, review): the repo ships a Dockerized eval framework (<code>eval/</code>) comparing pi (bare) / pi + piex / omp on Aider Polyglot and SWE-bench Lite, with metrics including <code>resolve_rate</code>, <code>avg_tokens</code>, <code>avg_time</code>, <code>est_cost</code>, and attribution metrics (<code>edit_accuracy</code>, <code>debug_success</code>, <code>plan_follow_rate</code>). Results will be published continuously. Themes and login providers that do not change agent behavior are out of scope for this rule. See <a href="/en/docs/evaluation/">Evaluation Plan</a>.</p>
 <h2 id="goals">Goals</h2>
 <ul>
-<li>Build a coding-agent toolchain on Pi that fits <em>you</em>—every feature chosen, understood, and owned.</li>
+<li>Build a coding-agent toolchain on Pi that fits <em>you</em>: every feature chosen, understood, and owned.</li>
 <li>Understand the implementation of each capability, and raise product taste through continuous iteration.</li>
 </ul>
 <h2 id="architecture-patterns">Architecture Patterns</h2>
@@ -260,7 +247,6 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
       <p class="blog-toc-title">On this page</p>
       <nav>
         <a href="#background-motivation">Background &amp; Motivation</a>
-        <a href="#why-an-open-source-agent" class="depth-3">Why an open-source agent</a>
         <a href="#why-pi" class="depth-3">Why Pi</a>
         <a href="#why-not-just-use-oh-my-pi" class="depth-3">Why not just use oh-my-pi</a>
         <a href="#why-piex" class="depth-3">Why PieX</a>

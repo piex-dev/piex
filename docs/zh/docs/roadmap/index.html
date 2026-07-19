@@ -188,7 +188,7 @@
 <td><strong>dap</strong></td>
 <td>🆕 新功能</td>
 <td>—</td>
-<td>DAP 调试 — 14 个 debug adapter</td>
+<td>DAP 调试：14 个 debug adapter</td>
 <td>omp</td>
 <td>2154</td>
 </tr>
@@ -197,7 +197,7 @@
 <td><strong>lsp</strong></td>
 <td>🆕 新功能</td>
 <td>—</td>
-<td>LSP 语言服务器 — 11 个 server</td>
+<td>LSP 语言服务器：11 个 server</td>
 <td>omp</td>
 <td>1069</td>
 </tr>
@@ -761,7 +761,7 @@
 <td>subagent</td>
 <td>➕ 功能增量</td>
 <td>—</td>
-<td>子 agent 机制 — 等待 pi Extension API 完善</td>
+<td>子 agent 机制：等待 pi Extension API 完善</td>
 </tr>
 </tbody></table></div>
 <h3 id="未排优先级-tier-1-2-中-pi-已有基础版本-边际价值待评估">未排优先级（Tier 1/2 中 pi 已有基础版本，边际价值待评估）</h3>
@@ -1058,7 +1058,7 @@
 <hr />
 <h2 id="方法论说明">方法论说明</h2>
 <p>迁移优先级评估的三要素：</p>
-<ol><li><strong>pi Extension API 兼容度</strong> — 功能是否可被 registerTool / registerCommand / on event / ctx.ui 覆盖</li><li><strong>依赖隔离度</strong> — 功能是否依赖 omp 内部引擎（SessionManager / ModelRegistry / 自有 TUI）</li><li><strong>用户价值</strong> — 对日常编码工作流的实际提升</li></ol>
+<ol><li><strong>pi Extension API 兼容度</strong>：功能是否可被 registerTool / registerCommand / on event / ctx.ui 覆盖</li><li><strong>依赖隔离度</strong>：功能是否依赖 omp 内部引擎（SessionManager / ModelRegistry / 自有 TUI）</li><li><strong>用户价值</strong>：对日常编码工作流的实际提升</li></ol>
 <p>Tier 定义：</p>
 <ul><li><strong>Tier 1</strong>：API 兼容 + 低耦合 → 直接拆出，随装随用</li><li><strong>Tier 2</strong>：API 兼容 + 中耦合 → 需要适配层，但可行</li><li><strong>Tier 3</strong>：API 不兼容 或 高耦合 → 等待 pi 能力增强，或放弃</li></ul>
 <h3 id="pi-对-omp-的替代关系">pi 对 omp 的替代关系</h3>

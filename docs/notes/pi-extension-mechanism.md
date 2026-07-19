@@ -6,7 +6,7 @@ tags: [Pi Extension]
 
 ## 设计哲学：为什么用 Extension 而不是内置特性？
 
-Pi 的核心理念是**极致可扩展，最小化核心**。其他 AI 编码助手内置的特性——Plan Mode、Sub-agent、MCP 支持、权限弹窗、待办列表、后台 Shell——pi 全部不做。取而代之的是一套 Extension 机制，让用户按自己需要构建这些能力。
+Pi 的核心理念是**极致可扩展，最小化核心**。其他 AI 编码助手内置的特性（Plan Mode、Sub-agent、MCP 支持、权限弹窗、待办列表、后台 Shell），pi 全部不做。取而代之的是一套 Extension 机制，让用户按自己需要构建这些能力。
 
 > Pi is aggressively extensible so it doesn't have to dictate your workflow.
 
@@ -235,7 +235,7 @@ createContext(): ExtensionContext {
 
 事件分发按**扩展加载顺序**串行迭代（全局 → 项目 → 配置路径）。同一扩展注册的多个同名 handler 也按注册顺序执行。
 
-**错误隔离**：每个 handler 包裹在 try-catch 中，异常通过 `emitError()` 通知监听器（TUI 中显示 warning），**绝不向上传播**——一个扩展的 bug 不会让 pi 崩溃。
+**错误隔离**：每个 handler 包裹在 try-catch 中，异常通过 `emitError()` 通知监听器（TUI 中显示 warning），**绝不向上传播**，一个扩展的 bug 不会让 pi 崩溃。
 
 ---
 
@@ -319,7 +319,7 @@ invalidate(message) {
 }
 ```
 
-这防止了扩展在 Session 替换后误用旧引用——这是最容易出 bug 的地方。
+这防止了扩展在 Session 替换后误用旧引用，而这是最容易出 bug 的地方。
 
 ---
 
@@ -437,4 +437,4 @@ export function wrapRegisteredTool(registeredTool, runner) {
 | **Stale 保护** | invalidate() 后抛异常 | 防止 session 切换后误用旧引用 |
 | **Provider 注册队列** | 加载期入队，bindCore 时批量冲刷 | 解决注册时序问题 |
 
-Pi 的 Extension 机制本质上是一个**插件化的事件驱动架构**——内核承担最少职责（四种工具 + TUI 渲染），把行为决策权全部交给 Extension 层。这种设计让 pi 能适配任意工作流，而不会强加一种特定的使用方式。
+Pi 的 Extension 机制本质上是一个**插件化的事件驱动架构**：内核承担最少职责（四种工具 + TUI 渲染），把行为决策权全部交给 Extension 层。这种设计让 pi 能适配任意工作流，而不会强加一种特定的使用方式。

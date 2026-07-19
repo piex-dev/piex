@@ -76,7 +76,7 @@ AI 编码助手的 edit 工具面临一个根本问题：**模型用行号描述
 3. 匹配 → 该行内容未变，安全编辑
 4. 不匹配 → `E_STALE_ANCHOR`
 
-**优点**：局部失效——只改第 5 行，第 50 行的锚点仍然有效。读完需要的范围就可以编辑，减少不必要的 re-read round-trip。
+**优点**：局部失效。只改第 5 行，第 50 行的锚点仍然有效。读完需要的范围就可以编辑，减少不必要的 re-read round-trip。
 
 **缺点**：哈希碰撞更突出（每行独立哈希，同内容行碰撞需要额外策略）。
 
@@ -99,7 +99,7 @@ computeHashFromContext(prev, curr, next) =
   第 3、7、8... 行锚点保持有效 ← 远处不受影响
 ```
 
-比整体哈希（全局失效）宽松，比纯内容哈希（只失效编辑行）更安全——紧邻编辑区的锚点确实应该被标记为不可信。
+比整体哈希（全局失效）宽松，比纯内容哈希（只失效编辑行）更安全：紧邻编辑区的锚点确实应该被标记为不可信。
 
 ### 2.4 Stable Hash Mapping（pi-hashline-edit-pro 独有）
 
@@ -158,7 +158,7 @@ pi-hashline-edit-pro 采用纯内容哈希，但在编辑后执行 **stable hash
 6. 失败 → 尝试更早版本快照，全部失败则回退到 E_STALE_ANCHOR
 ```
 
-**fuzzFactor=0 是关键约束**——如果外部修改和模型编辑有冲突（同一行被两边改了），合并必然失败，不会静默覆盖任何一方的修改。
+**fuzzFactor=0 是关键约束**：如果外部修改和模型编辑有冲突（同一行被两边改了），合并必然失败，不会静默覆盖任何一方的修改。
 
 **pi-hashline-edit-pro — 无恢复，依赖 stable hash mapping 降低失效概率。**
 
@@ -205,7 +205,7 @@ lastAppliedPayload[path] = payloadKey
 
 ### 3.5 方言归一化（pi-hashline-edit 独有）
 
-模型可能用不符合 schema 的格式调用 edit tool——例如用 pi 原生的 `oldText/newText`、把 edits 序列化成 JSON 字符串、用 `file_path` 代替 `path`。
+模型可能用不符合 schema 的格式调用 edit tool，例如用 pi 原生的 `oldText/newText`、把 edits 序列化成 JSON 字符串、用 `file_path` 代替 `path`。
 
 pi-hashline-edit 的 `prepareArguments` hook 在验证前自动吸收这些变异：
 
@@ -282,13 +282,13 @@ MV lib/greet.ts          ← 移动/重命名文件
 }
 ```
 
-### 4.2 Block 操作——oh-my-pi 的独特优势
+### 4.2 Block 操作：oh-my-pi 的独特优势
 
 oh-my-pi 的 `SWAP.BLK N:` 通过 tree-sitter 将第 N 行所在的**完整语法块**解析出来，模型不需要计算精确的起止行号。无论目标函数是 3 行还是 30 行，tree-sitter 精确解析从 `function` 到 `}` 的完整范围。
 
 **这是三个实现中唯一具备语法感知能力的设计**。两个逐行哈希实现全是纯行级编辑，无语法感知。
 
-### 4.3 操作多样性——pi-hashline-edit 的优势
+### 4.3 操作多样性：pi-hashline-edit 的优势
 
 pi-hashline-edit 提供五种操作类型：
 
@@ -424,7 +424,7 @@ Phase 1 实现文件：[`extensions/patches.ts`](https://github.com/piex-dev/pie
 ## 七、参考资料
 
 - [oh-my-pi hashline](https://github.com/can1357/oh-my-pi/tree/main/packages/hashline)
-- [pi-hashline-edit](https://github.com/RimuruW/pi-hashline-edit) — 含 7 个 ADR 文档
+- [pi-hashline-edit](https://github.com/RimuruW/pi-hashline-edit)：含 7 个 ADR 文档
 - [pi-hashline-edit-pro](https://github.com/YuGiMob/pi-hashline-edit-pro)
 - pi-hashline-edit 关键 ADR：
   - [0001: Keep Two-Character Hashlines](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0001-keep-two-character-hashlines.md)

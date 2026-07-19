@@ -165,7 +165,7 @@ On edit:
 <li>Match → line unchanged; safe</li>
 <li>Mismatch → <code>E_STALE_ANCHOR</code></li>
 </ol>
-<p><strong>Pros:</strong> local invalidation—edit line 5, line 50 still holds; read only the needed range.</p>
+<p><strong>Pros:</strong> local invalidation: edit line 5, line 50 still holds; read only the needed range.</p>
 <p><strong>Cons:</strong> collisions matter more (same content lines need extra policy).</p>
 <h3 id="2-3-context-aware-hashing-pi-hashline-edit-only">2.3 Context-aware hashing (pi-hashline-edit only)</h3>
 <div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>computeHashFromContext(prev, curr, next) =
@@ -176,7 +176,7 @@ On edit:
   line 5 stale (self)
   line 6 stale (prev changed)
   lines 3, 7, 8… still valid</code></pre></div>
-<p>Looser than whole-file (global fail), safer than pure content hash (only the edited line)—neighbors of the edit should not be trusted.</p>
+<p>Looser than whole-file (global fail), safer than pure content hash (only the edited line): neighbors of the edit should not be trusted.</p>
 <h3 id="2-4-stable-hash-mapping-pi-hashline-edit-pro-only">2.4 Stable hash mapping (pi-hashline-edit-pro only)</h3>
 <p>Pure content hashes, plus <strong>stable hash mapping</strong> after edits: match old hashes to same-content lines in the new file so unchanged lines keep old hashes. The model can keep editing the same file <strong>without re-read</strong> after a successful edit.</p>
 <h2 id="fail-map">Invalidation ranges</h2>
@@ -205,7 +205,7 @@ content + stable mapping (pi-hashline-edit-pro):
 4. applyPatch(live, patch, {fuzzFactor: 0})
 5. success → merged result + warning
 6. fail → older snapshots; else E_STALE_ANCHOR</code></pre></div>
-<p><strong>fuzzFactor=0</strong> is the key: conflicting edits on the same line fail the merge—no silent overwrite.</p>
+<p><strong>fuzzFactor=0</strong> is the key: conflicting edits on the same line fail the merge; no silent overwrite.</p>
 <p><strong>pi-hashline-edit-pro</strong> — no recovery; relies on stable mapping to lower failure rate.</p>
 <h3 id="3-2-noop-loop-guard-pi-hashline-edit-only">3.2 Noop loop guard (pi-hashline-edit only)</h3>
 <p>Models often ignore soft hints and retry the same noop payload. Extreme case: 205 byte-identical noop edits in one session.</p>
@@ -221,14 +221,14 @@ model re-reads → clear lastAppliedPayload</code></pre></div>
 <h3 id="3-4-boundary-repair">3.4 Boundary repair</h3>
 <p>oh-my-pi’s repair engine (~1200 LOC) is the most complete: boundary echo, delimiter imbalance, JSX closer mismatch, after-insert landing by indent. The per-line designs only have simplified versions (warn or autoFix trim).</p>
 <h3 id="3-5-dialect-normalization-pi-hashline-edit-only">3.5 Dialect normalization (pi-hashline-edit only)</h3>
-<p>Models call edit with non-schema shapes—Pi native <code>oldText/newText</code>, stringified edits JSON, <code>file_path</code> instead of <code>path</code>. <code>prepareArguments</code> normalizes before validation so a bad shape still runs without an extra model turn.</p>
+<p>Models call edit with non-schema shapes: Pi native <code>oldText/newText</code>, stringified edits JSON, <code>file_path</code> instead of <code>path</code>. <code>prepareArguments</code> normalizes before validation so a bad shape still runs without an extra model turn.</p>
 <h3 id="3-6-texthint-cross-check-pi-hashline-edit-only">3.6 textHint cross-check (pi-hashline-edit only)</h3>
 <p>Anchor form <code>LINE#HASH:content</code> may carry optional textHint:</p>
 <ul>
 <li>hash matches but textHint does not → stale (guards 1/256 collision)</li>
 <li>hash misses but textHint matches fuzzily → accept (whitespace tolerance)</li>
 </ul>
-<p>textHint is free—already present in read output.</p>
+<p>textHint is free: already present in read output.</p>
 <hr />
 <h2 id="4-edit-operation-models">4. Edit operation models</h2>
 <h3 id="4-1-three-syntax-styles">4.1 Three syntax styles</h3>
@@ -264,9 +264,9 @@ MV lib/greet.ts</code></pre></div>
     { &quot;content_lines&quot;: [&quot;const x = 1;&quot;], &quot;hash_range_inclusive&quot;: [&quot;MQX&quot;, &quot;MQX&quot;] }
   ]
 }</code></pre></div>
-<h3 id="4-2-block-ops-oh-my-pi-s-unique-edge">4.2 Block ops — oh-my-pi’s unique edge</h3>
+<h3 id="4-2-block-ops-oh-my-pi-s-unique-edge">4.2 Block ops: oh-my-pi’s unique edge</h3>
 <p><code>SWAP.BLK N:</code> uses tree-sitter to resolve the full syntactic block starting at line N. Whether the function is 3 or 30 lines, the range is exact. <strong>Only design with syntax awareness.</strong></p>
-<h3 id="4-3-op-diversity-pi-hashline-edit-s-edge">4.3 Op diversity — pi-hashline-edit’s edge</h3>
+<h3 id="4-3-op-diversity-pi-hashline-edit-s-edge">4.3 Op diversity: pi-hashline-edit’s edge</h3>
 <div class="blog-table-wrap"><table>
 <thead><tr><th>Op</th><th>Notes</th></tr></thead>
 <tbody>
@@ -340,7 +340,7 @@ Phase 3 — polish:
 <h2 id="7-references">7. References</h2>
 <ul>
 <li><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/hashline" target="_blank" rel="noopener">oh-my-pi hashline</a></li>
-<li><a href="https://github.com/RimuruW/pi-hashline-edit" target="_blank" rel="noopener">pi-hashline-edit</a> — 7 ADRs</li>
+<li><a href="https://github.com/RimuruW/pi-hashline-edit" target="_blank" rel="noopener">pi-hashline-edit</a>: 7 ADRs</li>
 <li><a href="https://github.com/YuGiMob/pi-hashline-edit-pro" target="_blank" rel="noopener">pi-hashline-edit-pro</a></li>
 <li>Key ADRs: <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0001-keep-two-character-hashlines.md" target="_blank" rel="noopener">0001</a>, <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0003-context-based-line-hashing.md" target="_blank" rel="noopener">0003</a>, <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0004-snapshot-merge-recovery.md" target="_blank" rel="noopener">0004</a>, <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0005-multi-version-snapshot-history.md" target="_blank" rel="noopener">0005</a></li>
 </ul>

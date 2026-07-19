@@ -54,7 +54,7 @@ pi install npm:@piex-dev/xai-oauth
 - `grok-build` / `grok-code-fast-1`
 
 全部走 `openai-completions` API。登录后 pi 自动从 `api.x.ai/v1/models` 和
-`cli-chat-proxy.grok.com/v1/models` 拉取最新模型列表——新模型出现后 `/reload`
+`cli-chat-proxy.grok.com/v1/models` 拉取最新模型列表；新模型出现后 `/reload`
 即可使用，无需升级扩展。
 
 ### 过滤 / 排序模型

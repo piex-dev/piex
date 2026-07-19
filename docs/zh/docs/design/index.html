@@ -84,8 +84,7 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav">
-<a href="#背景与动机">背景与动机</a>
-        <a href="#为什么选择开源-agent" class="depth-3">为什么选择开源 Agent</a>
+        <a href="#背景与动机">背景与动机</a>
         <a href="#为什么选择-pi" class="depth-3">为什么选择 Pi</a>
         <a href="#为什么不直接用-oh-my-pi" class="depth-3">为什么不直接用 oh-my-pi</a>
         <a href="#为什么做-piex" class="depth-3">为什么做 PieX</a>
@@ -108,7 +107,7 @@
           <span class="blog-tag">Principles</span>
         </div>
         <h1>设计理念</h1>
-        <p class="blog-lede">为什么做 piex：充分拓展而非 fork、按需自由切换、知其所以然、评测优先——四条核心设计理念与扩展/主题 package 模式。</p>
+        <p class="blog-lede">先讲清楚为什么走这条路，再落到四条核心设计理念，以及扩展 / 主题 package 的架构模式。</p>
       </header>
 
       <div class="blog-prose">
@@ -116,27 +115,16 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">核心设计理念</p>
-            <p><strong>充分拓展 pi 而非 fork · 按需拓展自由切换 · 知其所以然 · 评测优先（无法度量就不引入）</strong>。开源与信息安全是选择平台的重要前提，但不是创建 PieX 的核心原因。</p>
+            <p><strong>充分拓展 pi 而非 fork · 按需拓展自由切换 · 知其所以然 · 评测优先（无法度量就不引入）</strong>。</p>
           </div>
         </div>
 
         <h2 id="背景与动机">背景与动机</h2>
 
-        <h3 id="为什么选择开源-agent">为什么选择开源 Agent</h3>
-        <p>闭源 coding agent 掌握着开发者的仓库、凭据与上下文，但其行为对用户是黑盒。仅 2026 年 7 月，就有两起公开报道的安全事件：</p>
-        <div class="blog-callout warn">
-          <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
-          <div class="blog-callout-body">
-            <p class="blog-callout-label">2026-07，两起公开披露</p>
-            <p><strong>Claude Code</strong> 被工信部 NVDB 监测发现内置监控机制，可未经用户同意回传地域、身份标识等敏感信息（受影响版本 2.1.91–2.1.196），阿里随后将其列入高风险软件并全员禁用（<a href="http://finance.people.com.cn/BIG5/n1/2026/0708/c1004-40756179.html" target="_blank" rel="noopener">人民网报道</a>、<a href="https://new.qq.com/rain/a/20260708A099RH00" target="_blank" rel="noopener">南方都市报报道</a>）。</p>
-            <p><strong>Grok Build CLI</strong> 被安全研究员 cereblab 抓包证实：未告知用户便将整个 git 仓库（含未脱敏的 <code>.env</code> 凭据与完整提交历史）上传至云端，且 opt-out 开关只管数据留存、不管传输（<a href="https://github.com/cereblab/grok-build-exfil-repro" target="_blank" rel="noopener">复现仓库与证据</a>、<a href="https://gist.github.com/cereblab/dc9a40bc26120f4540e4e09b75ffb547" target="_blank" rel="noopener">完整抓包分析</a>）。</p>
-          </div>
-        </div>
-        <p>开源 agent 的每一行代码、每一次网络请求都可审计，<strong>透明本身就是安全保障</strong>。</p>
-        <p>另一个动机是 KnowHow。Coding agent 推陈出新，在不同工具之间来回切换，耗费大量时间却只停留在功能使用层面。选择一款开源 agent 深度使用，研究其底层工作原理、参与开发迭代，才能把「用工具」变成「懂工具」。</p>
-
         <h3 id="为什么选择-pi">为什么选择 Pi</h3>
-        <p><strong>克制。</strong>Coding agent 的功能越来越丰富，也普遍越来越重，但其中绝大多数功能日常根本用不到——既浪费 token，又带来心智负担：你对塞进上下文的东西毫无掌控感。Pi 的作者把这种克制写进了设计纲领（<a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a>）：系统提示词加工具定义合计<strong>不到 1000 tokens</strong>，默认只给模型 <strong>4 个工具</strong>（<code>read</code> / <code>write</code> / <code>edit</code> / <code>bash</code>）。官方 README 还明确列出了 pi 不做的事，每一条都指向同一条出路：<em>build it with extensions, or install a package</em>。</p>
+        <p>Coding agent 层出不穷，追着换只会把时间耗在一轮又一轮的新功能体验上，却始终停在「会用」的表层。真正拉开差距的，是选定一款开源 agent 沉下去：读懂它如何工作、亲手改、参与迭代，把「会用」升级成「懂行」。Pi 克制而开放，正是这条路最合适的底座。</p>
+
+        <p><strong>克制。</strong>用 coding agent 久了，会碰到一种熟悉的不适：功能越加越多，上下文越塞越满，token 账单和响应延迟一起涨，但你真正天天用到的往往只有那么几样。更糟的是，你对塞进上下文的东西毫无掌控感。Pi 的作者把这种克制写进了设计纲领（<a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a>）：系统提示词加工具定义合计<strong>不到 1000 tokens</strong>，默认只给模型 <strong>4 个工具</strong>（<code>read</code> / <code>write</code> / <code>edit</code> / <code>bash</code>）。官方 README 还明确列出了 pi 不做的事，每一条都指向同一条出路：<em>build it with extensions, or install a package</em>。</p>
         <div class="blog-table-wrap"><table><thead><tr>
 <th>pi 不做的事（官方清单）</th>
 <th>官方给出的出路</th>
@@ -144,20 +132,18 @@
 <tr><td>No MCP</td><td>用 Skills 做带 README 的 CLI 工具，或写扩展支持 MCP</td></tr>
 <tr><td>No sub-agents</td><td>用 tmux 起多个 pi 实例，或用扩展自己实现</td></tr>
 <tr><td>No permission popups</td><td>跑在容器里，或用扩展自建确认流程</td></tr>
-<tr><td>No plan mode</td><td>把计划写进文件，或用扩展实现——piex 的 <code>plan</code> 包正是如此</td></tr>
+<tr><td>No plan mode</td><td>把计划写进文件，或用扩展实现；piex 的 <code>plan</code> 包正是如此</td></tr>
 <tr><td>No built-in to-dos</td><td>用 TODO.md，或自己造</td></tr>
 <tr><td>No background bash</td><td>用 tmux，全程可观测、可直接交互</td></tr>
 </tbody></table></div>
-        <div class="blog-callout note">
-          <div class="blog-callout-icon" aria-hidden="true">ℹ️</div>
-          <div class="blog-callout-body">
-            <p class="blog-callout-label">可扩展</p>
-            <p>Pi 的定位是 <em>"a minimal terminal coding harness"</em>，官方原话：<em>"aggressively extensible so it doesn't have to dictate your workflow"</em>，并且开篇即承诺 <em>"without having to fork and modify pi internals"</em>。工具、命令、事件钩子、UI、Provider、主题全部开放给扩展——对个人开发者而言，一个克制而完全可读的内核，加上一套几乎无所不能的 Extension API，是深入理解并掌控自己工具链的最佳起点。</p>
-          </div>
-        </div>
-
+        <p><strong>可扩展。</strong>默认精简，不代表能力受限。Pi 的定位是 <em>"a minimal terminal coding harness"</em>，官方原话：<em>"aggressively extensible so it doesn't have to dictate your workflow"</em>，并且开篇即承诺 <em>"without having to fork and modify pi internals"</em>。你不必改内核、不必等上游拍板，就能把工作流改成自己的。一个克制可读的内核，加上几乎无所不能的 Extension API，正是把工具链真正握在自己手里的起点。</p>
         <h3 id="为什么不直接用-oh-my-pi">为什么不直接用 oh-my-pi</h3>
-        <p><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a>（omp）基于 pi 拓展实现了很多优秀的工具，开箱即用，也是 piex 最主要的功能来源。但它选择了一条不同的路线：<strong>fork 而非扩展</strong>（官方自述 <em>"fork of pi-mono, batteries included"</em>），并且<strong>全量内置</strong>——这恰恰回到了「重」的老问题。</p>
+        <p><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a>（omp）基于 pi 做了很多优秀能力，开箱即用，也是 piex 最主要的功能来源。很多人会问：既然 omp 已经把「好用」打包好了，为什么不直接用它？</p>
+        <p>答案在路线选择上：</p>
+        <ul>
+          <li><strong>fork 而非扩展。</strong>omp 是 pi 的 fork（官方自述 <em>"fork of pi-mono, batteries included"</em>），需要维护专门的 <a href="https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md" target="_blank" rel="noopener">porting playbook</a> 持续 backport 上游，还得自行维护约 5.5 万行 Rust 内核与 Bun-only 运行时。跟着 fork 走，升级节奏和架构决策就不再由你决定。</li>
+          <li><strong>全量内置。</strong>omp 默认塞进 32 个工具和大量功能，其中很多日常用不到。这又回到了「重」：token 在烧，上下文却不由你裁剪。</li>
+        </ul>
         <div class="blog-table-wrap"><table><thead><tr>
 <th>维度</th>
 <th>oh-my-pi</th>
@@ -171,7 +157,7 @@
 </tbody></table></div>
 
         <h3 id="为什么做-piex">为什么做 PieX</h3>
-        <p>基于以上思考，PieX 选择第三条路：<strong>不 fork pi，只用官方 Extension API，把主流 agent 验证过的优秀能力逐个做成独立、可选装、可度量的扩展</strong>，在日常工作中深度使用、持续迭代，逐步打造最适合自己的工具链。</p>
+        <p>所以 PieX 走第三条路：<strong>不 fork pi，只用官方 Extension API，把主流 agent 验证过的优秀能力，逐个做成独立、可选装、可度量的扩展</strong>。装你需要的，卸你不需要的；在日常工作里深度使用、持续迭代，把工具链一点点打磨成最适合自己的那一版。</p>
 
         <h2 id="核心设计理念">核心设计理念</h2>
         <h3 id="1-充分拓展-pi而不是-fork">1. 充分拓展 pi，而不是 fork</h3>
@@ -225,16 +211,16 @@
 <td><code>pi.registerShortcut(Key.shift(&quot;p&quot;), ...)</code></td>
 </tr>
 </tbody></table></div>
-        <p>这也是与 omp 的理念差别所在：omp 走 fork + batteries included 的路线——把认为优秀的功能全部内置进自己的分叉内核，替用户做好所有选择；piex 不拥有内核、只做扩展，把每个能力的取舍留给用户。正因如此，piex 无需 backport 上游，始终跟随 pi 官方演进。</p>
-        <p>每个 piex package 是独立的 npm 包，不嵌入 pi；pi 升级时 piex 不受影响（扩展 API 向后兼容），piex 可通过 <code>pi update</code> 独立升级，版本号独立管理——随 pi 升级而升级。</p>
+        <p>这也是与 omp 的理念差别所在：omp 走 fork + batteries included 的路线，把认为优秀的功能全部内置进自己的分叉内核，替用户做好所有选择；piex 不拥有内核、只做扩展，把每个能力的取舍留给用户。正因如此，piex 无需 backport 上游，始终跟随 pi 官方演进。</p>
+        <p>每个 piex package 是独立的 npm 包，不嵌入 pi；pi 升级时 piex 不受影响（扩展 API 向后兼容），piex 可通过 <code>pi update</code> 独立升级，版本号独立管理，随 pi 升级而升级。</p>
         <h3 id="2-按需拓展自由切换">2. 按需拓展，自由切换</h3>
-        <p>每个扩展相互独立、彼此无依赖，即装即卸、自由组合——只为用到的能力付出 token，克制可控：</p>
+        <p>每个扩展相互独立、彼此无依赖，即装即卸、自由组合，只为用到的能力付出 token，克制可控：</p>
         <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install npm:@piex-dev/hashline   # hashline 编辑
 pi install npm:@piex-dev/dap        # DAP 调试
 pi install npm:@piex-dev/plan       # 计划模式
 pi remove npm:@piex-dev/plan        # 随时卸载</code></pre></div>
         <h3 id="3-知其所以然掌控感">3. 知其所以然，掌控感</h3>
-        <p>取百家之长：从 oh-my-pi、Claude Code、OpenCode 等主流 agent 中借鉴经过验证的优秀设计，搞清楚底层原理，再以 pi 扩展的形式按需引入。每个功能都是自己选择、自己理解、自己掌控的——把「用工具」变成「懂工具」。每个 package 都标注功能与设计的原始来源：</p>
+        <p>取百家之长：从 oh-my-pi、Claude Code、OpenCode 等主流 agent 中借鉴经过验证的优秀设计，搞清楚底层原理，再以 pi 扩展的形式按需引入。每个功能都是自己选择、自己理解、自己掌控的，把「用工具」变成「懂工具」。每个 package 都标注功能与设计的原始来源：</p>
         <div class="blog-table-wrap"><table><thead><tr>
 <th>Package</th>
 <th>功能来源</th>
@@ -276,7 +262,7 @@ pi remove npm:@piex-dev/plan        # 随时卸载</code></pre></div>
 
         <h2 id="目标">目标</h2>
         <ul>
-<li>基于 Pi 打造最适合自己的 coding agent 工具链——每个功能都是自己选择、自己理解、自己掌控的。</li>
+<li>基于 Pi 打造最适合自己的 coding agent 工具链，每个功能都是自己选择、自己理解、自己掌控的。</li>
 <li>深入理解每一个功能特性的底层实现原理，在持续迭代中提升自身的工具产品设计品味。</li>
 </ul>
 
@@ -350,8 +336,7 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
     <aside class="page-toc" aria-label="On this page">
       <p class="blog-toc-title">本页目录</p>
       <nav>
-<a href="#背景与动机">背景与动机</a>
-        <a href="#为什么选择开源-agent" class="depth-3">为什么选择开源 Agent</a>
+        <a href="#背景与动机">背景与动机</a>
         <a href="#为什么选择-pi" class="depth-3">为什么选择 Pi</a>
         <a href="#为什么不直接用-oh-my-pi" class="depth-3">为什么不直接用 oh-my-pi</a>
         <a href="#为什么做-piex" class="depth-3">为什么做 PieX</a>

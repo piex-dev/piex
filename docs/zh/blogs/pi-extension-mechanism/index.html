@@ -93,7 +93,7 @@
         <h1>Pi Extension 机制及工作原理</h1>
         <p class="blog-lede">
           Pi 的核心理念是<strong>极致可扩展，最小化核心</strong>。
-          Plan Mode、Sub-agent、权限弹窗、待办列表——内核都不做；
+          Plan Mode、Sub-agent、权限弹窗、待办列表，内核都不做；
           用户通过 Extension API 按需构建。本文拆开 loader / runner / wrapper 三层。
         </p>
       </header>
@@ -116,7 +116,7 @@
           Pi is aggressively extensible so it doesn't have to dictate your workflow.
         </blockquote>
         <p>
-          其他 AI 编码助手内置的特性——Plan Mode、Sub-agent、MCP、权限弹窗、待办列表、后台 Shell——
+          其他 AI 编码助手内置的特性（Plan Mode、Sub-agent、MCP、权限弹窗、待办列表、后台 Shell），
           pi 全部不做。取而代之的是一套 Extension 机制，让用户按自己需要构建这些能力。
         </p>
         <p>
@@ -271,7 +271,7 @@
             <p class="blog-callout-label">Provider 注册队列</p>
             <p>
               <code>pi.registerProvider()</code> 在加载期不会立即执行，而是压入
-              <code>pendingProviderRegistrations</code>，在 <code>bindCore()</code> 时批量冲刷——
+              <code>pendingProviderRegistrations</code>，在 <code>bindCore()</code> 时批量冲刷，
               解决 ModelRegistry 尚未就绪的时序问题。
             </p>
           </div>
@@ -364,7 +364,7 @@
         <h3 id="stale">Stale Context 保护</h3>
         <p>
           Session 切换 / fork / reload 后，<code>invalidate()</code> 标记 stale，
-          旧 <code>pi</code> / <code>ctx</code> 上任何操作都抛异常——
+          旧 <code>pi</code> / <code>ctx</code> 上任何操作都抛异常，
           防止扩展误用旧引用（最容易出 bug 的地方）。
         </p>
 

@@ -8,9 +8,9 @@
 
 | 角色 | Agent | 说明 |
 |------|-------|------|
-| **基准线** | pi (bare) | pi 原生，不加载任何扩展——展示起点 |
-| **评测对象** | pi + piex | 加载全部已实现 piex packages——量化提升 |
-| **参照系** | omp | oh-my-pi，piex 能力来源——行业相对水平参照 |
+| **基准线** | pi (bare) | pi 原生，不加载任何扩展，展示起点 |
+| **评测对象** | pi + piex | 加载全部已实现 piex packages，量化提升 |
+| **参照系** | omp | oh-my-pi，piex 能力来源，行业相对水平参照 |
 
 通过三者同评测集对比，回答：
 
@@ -209,7 +209,7 @@ piex/eval/
 每次评测生成 Markdown 报告，先呈现 piex 对 pi 的提升，再以 omp 为参照系对比：
 
 ```markdown
-## SWE-bench Verified — piex 评测报告 (2026-07-14)
+## SWE-bench Verified：piex 评测报告 (2026-07-14)
 
 ### 评测结果
 

@@ -60,7 +60,7 @@
 
 ## 内容生产：中文 MD → 中英 HTML
 
-实践对齐 Claude 的观点：[The unreasonable effectiveness of HTML](https://claude.com/blog/using-claude-code-the-unreasonable-effectiveness-of-html) —— **md 适合写，HTML 适合读**。
+实践对齐 Claude 的观点：[The unreasonable effectiveness of HTML](https://claude.com/blog/using-claude-code-the-unreasonable-effectiveness-of-html)：**md 适合写，HTML 适合读**。
 
 ```
 写/改 docs/<slug>.md  或  docs/notes/<slug>.md
