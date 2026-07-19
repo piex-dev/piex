@@ -1,0 +1,42 @@
+{
+  "name": "@piex-dev/ai-code-report",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI code edit telemetry reporter for pi — direct TEA SDK integration",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "packages/ai-code-report"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "telemetry",
+    "report",
+    "code-edit"
+  ],
+  "pi": {
+    "extensions": ["./extensions/ai-code-report.ts"]
+  },
+  "exports": {
+    ".": "./extensions/ai-code-report.ts"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "dependencies": {
+    "@dp/tea-sdk-node": "^3.0.12",
+    "@logsdk/node-plugin-http": "^4.0.10",
+    "diff": "^8.0.3"
+  }
+}
