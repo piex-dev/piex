@@ -1,0 +1,38 @@
+{
+  "name": "@piex-dev/btw",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "BTW (by-the-way) extension for pi — ask side questions using current session context without polluting future conversation history",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "packages/btw"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "btw",
+    "by-the-way",
+    "side-question",
+    "ephemeral"
+  ],
+  "pi": {
+    "extensions": ["./extensions/btw.ts"]
+  },
+  "exports": {
+    ".": "./extensions/btw.ts"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
