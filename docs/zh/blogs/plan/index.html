@@ -94,6 +94,7 @@
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
                 <a href="#design">设计参考</a>
+                <a href="#appendix">附录</a>
 <a href="#roadmap">优化计划</a>
         </nav>
       </div>
@@ -147,7 +148,35 @@
         </p>
       </div>
 
-      <nav class="blog-footer-nav" aria-label="Post navigation">
+      
+        <h2 id="appendix">附录：omp 与 pi plan-mode 能力逐项对比</h2>
+        <div class="blog-callout note">
+          <div class="blog-callout-icon" aria-hidden="true">📋</div>
+          <div class="blog-callout-body">
+            <p>来源：迁移预研文档，记录两项目能力差距以供实现与演进参考。</p>
+          </div>
+        </div>
+        <div class="blog-table-wrap"><table><thead><tr><th>能力</th><th>omp plan-mode</th><th>pi plan-mode 示例</th><th>piex plan</th></tr></thead>
+<tbody>
+<tr><td>/plan 命令</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>只读工具限制</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>危险 bash 拦截</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Todo 提取</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>执行进度追踪</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Footer 状态</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Widget 进度</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>状态持久化</td><td>✅ appendEntry</td><td>✅</td><td>✅ appendEntry + PLAN.md</td></tr>
+<tr><td>会话恢复</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>快捷键</td><td>Shift+P</td><td>Ctrl+Alt+P</td><td>Shift+Alt+P</td></tr>
+<tr><td>写计划到文件</td><td>✅</td><td>❌</td><td>✅ PLAN.md</td></tr>
+<tr><td>计划审批弹窗</td><td>✅</td><td>❌</td><td>❌ select 替代</td></tr>
+<tr><td>Plan TOC 侧栏</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>子 agent 计划传递</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>Compaction 保护</td><td>✅</td><td>❌</td><td>✅ appendEntry</td></tr>
+</tbody></table></div>
+<p>piex plan 的策略：坚守 pi 示例同源路线，用 appendEntry 跨 turn 持久化 + PLAN.md 落盘补 compaction 缺口；放弃 omp 重 UI。</p>
+
+<nav class="blog-footer-nav" aria-label="Post navigation">
         <a class="blog-nav-card" href="/#blog">
           <span class="blog-nav-label">← 全部文章</span>
           <span class="blog-nav-title">回到 Blog 列表</span>
@@ -171,6 +200,7 @@
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
                 <a href="#design">设计参考</a>
+        <a href="#appendix">附录</a>
 <a href="#roadmap">优化计划</a>
       </nav>
     </aside>

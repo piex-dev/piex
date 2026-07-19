@@ -11,8 +11,7 @@ piex/                                  # monorepo
 │   ├── notes/<slug>.md               #   博客源稿（仅中文）
 │   ├── {lang}/docs/<slug>/index.html #   中/英文档 HTML → /{lang}/docs/<slug>/
 │   ├── {lang}/blogs/<slug>/index.html#   中/英博客 HTML → /{lang}/blogs/<slug>/
-│   ├── assets/                       #   style / main / blog 静态资源
-│   └── migration/                    #   迁移方案记录
+│   └── assets/                       #   style / main / blog 静态资源
 └── packages/                         # 📦 独立 piex package
     ├── hashline/
     │   ├── README.md

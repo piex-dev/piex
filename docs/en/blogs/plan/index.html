@@ -94,6 +94,7 @@
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
                 <a href="#design">Design notes</a>
+                <a href="#appendix">Appendix</a>
 <a href="#roadmap">Roadmap</a>
         </nav>
       </div>
@@ -147,7 +148,35 @@
         </p>
       </div>
 
-      <nav class="blog-footer-nav" aria-label="Post navigation">
+      
+        <h2 id="appendix">Appendix: omp vs pi plan-mode — capability comparison</h2>
+        <div class="blog-callout note">
+          <div class="blog-callout-icon" aria-hidden="true">📋</div>
+          <div class="blog-callout-body">
+            <p>Source: migration research doc, recording capability gaps for implementation and evolution reference.</p>
+          </div>
+        </div>
+        <div class="blog-table-wrap"><table><thead><tr><th>Capability</th><th>omp plan-mode</th><th>pi example</th><th>piex plan</th></tr></thead>
+<tbody>
+<tr><td>/plan command</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Read-only tool restriction</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Dangerous bash interception</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Todo extraction</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Progress tracking</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Footer status</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Widget progress</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>State persistence</td><td>✅ appendEntry</td><td>✅</td><td>✅ appendEntry + PLAN.md</td></tr>
+<tr><td>Session recovery</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Shortcut</td><td>Shift+P</td><td>Ctrl+Alt+P</td><td>Shift+Alt+P</td></tr>
+<tr><td>Write plan to file</td><td>✅</td><td>❌</td><td>✅ PLAN.md</td></tr>
+<tr><td>Plan approval overlay</td><td>✅</td><td>❌</td><td>❌ select-based</td></tr>
+<tr><td>Plan TOC sidebar</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>Sub-agent plan handoff</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>Compaction protection</td><td>✅</td><td>❌</td><td>✅ appendEntry</td></tr>
+</tbody></table></div>
+<p>piex plan strategy: stay close to pi example (light, maintainable), use appendEntry for cross-turn persistence + PLAN.md file for compaction gap; drop omp heavy UI.</p>
+
+<nav class="blog-footer-nav" aria-label="Post navigation">
         <a class="blog-nav-card" href="/#blog">
           <span class="blog-nav-label">← All posts</span>
           <span class="blog-nav-title">Blog list</span>
@@ -171,6 +200,7 @@
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
                 <a href="#design">Design notes</a>
+        <a href="#appendix">Appendix</a>
 <a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
