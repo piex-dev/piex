@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DAP: Real Debugging for Coding Agents — PieX</title>
-  <meta name="description" content="Wire the Debug Adapter Protocol into pi: breakpoints, stepping, variables." />
-  <link rel="canonical" href="https://piex.dev/en/blogs/dap/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/dap/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/dap/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/dap/" />
-  <meta property="og:title" content="DAP: Real Debugging for Coding Agents — PieX" />
-  <meta property="og:description" content="Wire the Debug Adapter Protocol into pi: breakpoints, stepping, variables." />
-  <meta property="og:url" content="https://piex.dev/en/blogs/dap/" />
+  <title>Context: Token Usage at a Glance — PieX</title>
+  <meta name="description" content="/context shows session entry distribution, role breakdown, and token estimates in one command." />
+  <link rel="canonical" href="https://piex.dev/en/blogs/context/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/context/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/context/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/context/" />
+  <meta property="og:title" content="Context: Token Usage at a Glance — PieX" />
+  <meta property="og:description" content="/context shows session entry distribution, role breakdown, and token estimates in one command." />
+  <meta property="og:url" content="https://piex.dev/en/blogs/context/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -54,7 +54,7 @@
       <p class="blog-toc-title">Blog</p>
       <nav>
         <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
-        <a href="/en/blogs/dap/" class="is-active">DAP: Real Debugging for Coding Agents</a>
+        <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
@@ -62,7 +62,7 @@
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
         <a href="/en/blogs/btw/">BTW: Ephemeral Side Questions</a>
-        <a href="/en/blogs/context/">Context: Token Usage at a Glance</a>
+        <a href="/en/blogs/context/" class="is-active">Context: Token Usage at a Glance</a>
         <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism &amp; Internals</a>
       </nav>
     </aside>
@@ -75,7 +75,7 @@
         </button>
         <nav class="blog-toc-mobile-nav docs-nav-mobile">
         <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
-        <a href="/en/blogs/dap/" class="is-active">DAP: Real Debugging for Coding Agents</a>
+        <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
@@ -83,7 +83,7 @@
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
         <a href="/en/blogs/btw/">BTW: Ephemeral Side Questions</a>
-        <a href="/en/blogs/context/">Context: Token Usage at a Glance</a>
+        <a href="/en/blogs/context/" class="is-active">Context: Token Usage at a Glance</a>
         <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism &amp; Internals</a>
         </nav>
       </div>
@@ -97,19 +97,18 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-                <a href="#design">Design notes</a>
-<a href="#roadmap">Roadmap</a>
+        <a href="#roadmap">Roadmap</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">DAP</span>
-          <span class="blog-tag">Debug</span>
+          <span class="blog-tag">Context</span>
+          <span class="blog-tag">Session</span>
           <span class="blog-tag">Extension</span>
         </div>
-        <h1>DAP: Real Debugging for Coding Agents</h1>
-        <p class="blog-lede">Stop print-debugging. Launch, stop, and inspect.</p>
+        <h1>Context: Token Usage at a Glance</h1>
+        <p class="blog-lede">Who's eating context, and which turns are blowing up — one command.</p>
       </header>
 
       <div class="blog-prose">
@@ -117,54 +116,43 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">In short</p>
-            <p>With <code>@piex-dev/dap</code>, agents can run and inspect instead of only guessing. Not a test suite—but variables become readable facts.</p>
+            <p><code>/context</code> shows exactly what's inside your session: who's consuming the context window, which entries are bloated, and where your token budget is going.</p>
           </div>
         </div>
 
         <h2 id="bg">Background</h2>
         <p>
-          Guess–edit–rerun is brittle for runtime bugs. Humans use debuggers; agents shouldn’t be stuck with print-debugging.
-        </p>
-        <p>
-          <code>@piex-dev/dap</code> exposes a <code>debug</code> tool over the Debug Adapter Protocol: launch, breakpoints, stepping, variables.
+          pi's built-in <code>/session</code> only lists sessions — no per-session content analysis. @piex-dev/context fills this gap with structured entry analysis, role breakdowns, and token estimates.
         </p>
         <h2 id="theory">How it works</h2>
         <p>
-          Agent intent → DAP client → adapters (debugpy, dlv, lldb, …). Session states running/stopped/terminated over stdio JSON-RPC. Fourteen adapters selected via file type and root markers. TCP remote attach is intentionally out of scope for now.
+          Token estimation via chars/3.5 (conservative for mixed content but useful). Three analysis axes: Assistant (model output, usually dominant), User (instructions), Tool Results (easiest to bloat). Output as ASCII bar chart + Markdown table.
         </p>
         <h2 id="impl">Implementation</h2>
         <p>
-          Framed client, session manager with breakpoint queues, output caps, idle cleanup, capability checks, and non-interactive env defaults.
+          ~160-line single file. Handles both string and content-block-array formats. Counts by role/type. Complements pi /session: /session for list, /context for distribution.
         </p>
-        
-        <h2 id="design">Design notes</h2>
-        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
-<tbody>
-<tr><td><strong>oh-my-pi dap</strong></td><td>Full DAP client: stdio + TCP + WebSocket; 14+ adapters; structured output; TUI variable explorer</td><td><strong>Adopted</strong>: 14 adapter configs, JSON-RPC framing, breakpoint queue, output cap, idle cleanup. <strong>Dropped</strong>: TCP/WebSocket (stdio sufficient), TUI overlay (pi API limitation)</td></tr>
-<tr><td><strong>VS Code DAP</strong></td><td>Spec three-layer model (editor / client / adapter)</td><td><strong>Borrowed</strong>: three-layer division, capabilities checks, auto context summary after stop</td></tr>
-</tbody></table></div>
-<p>Key tradeoff: stdio-only (simple &amp; safe), no remote attach; text-first output (fast shipping), TUI deferred.</p>
 
 <h2 id="roadmap">Roadmap</h2>
         <p>
-          Richer breakpoints, stop-default context packs, project launch configs, optional TCP, and eval metrics for real debug success.
+          Precise token counting (once tokenizer API available); time-series growth chart; anomaly detection for oversized tool results; configurable estimation coefficients.
         </p>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Post navigation">
-        <a class="blog-nav-card" href="/#blog">
-          <span class="blog-nav-label">← All posts</span>
-          <span class="blog-nav-title">Blog list</span>
+        <a class="blog-nav-card" href="/en/blogs/btw/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">BTW: Ephemeral Side Questions</span>
         </a>
-        <a class="blog-nav-card is-next" href="/en/blogs/lsp/">
-          <span class="blog-nav-label">Next →</span>
-          <span class="blog-nav-title">LSP: Language-Server Eyes for Agents</span>
+        <a class="blog-nav-card is-next" href="/#blog">
+          <span class="blog-nav-label">All posts →</span>
+          <span class="blog-nav-title">Blog list</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         Source Markdown:
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/dap.md" target="_blank" rel="noopener">docs/notes/dap.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/context.md" target="_blank" rel="noopener">docs/notes/context.md</a>
       </p>
     </article>
 
@@ -174,8 +162,7 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-                <a href="#design">Design notes</a>
-<a href="#roadmap">Roadmap</a>
+        <a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
   </div>

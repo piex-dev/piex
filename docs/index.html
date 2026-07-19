@@ -69,18 +69,16 @@
         <pre data-i18n="hero.term.body" data-i18n-html><span class="prompt">$</span> pi install npm:@piex-dev/hashline
 <span class="prompt">$</span> pi install npm:@piex-dev/dap
 <span class="prompt">$</span> pi install npm:@piex-dev/lsp
-<span class="comment"># Override edit · debug · LSP. Upgrades with Pi.</span></pre>
+<span class="comment"># 按需安装，逐包自由组合。一键全部：curl -fsSL piex.dev/install.sh | bash</span></pre>
       </div>
 
       <div class="stats-row anim-fade">
-        <div class="stat"><span class="stat-num">7</span><span class="stat-label" data-i18n="stats.pkg">Packages</span></div>
-        <div class="stat"><span class="stat-num">4.2k+</span><span class="stat-label" data-i18n="stats.lines">Core Lines</span></div>
+        <div class="stat"><span class="stat-num">10</span><span class="stat-label" data-i18n="stats.pkg">Packages</span></div>
+        <div class="stat"><span class="stat-num">~6k+</span><span class="stat-label" data-i18n="stats.lines">Core Lines</span></div>
         <div class="stat"><span class="stat-num">14</span><span class="stat-label" data-i18n="stats.adapters">Debug Adapters</span></div>
         <div class="stat"><span class="stat-num">50+</span><span class="stat-label" data-i18n="stats.servers">LSP Servers</span></div>
       </div>
     </div>
-
-    <!-- ===== WHY ===== -->
     <section id="why" class="section-alt">
       <div class="section-header anim-fade">
         <div class="section-heading">
@@ -177,7 +175,6 @@
           <a class="pkg-link" href="https://github.com/piex-dev/piex/tree/main/packages/review" target="_blank" rel="noopener">README →</a>
         </article>
 
-
         <article class="pkg-card anim-fade">
           <div class="pkg-head">
             <span class="pkg-name">init</span>
@@ -206,6 +203,26 @@
           <p class="pkg-desc" data-i18n="pkg.theme.desc">High-contrast dark terminal theme with green/blue/red accents, distributed via pi.themes.</p>
           <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/theme-dark-terminal</div>
           <a class="pkg-link" href="https://github.com/piex-dev/piex/tree/main/packages/theme-dark-terminal" target="_blank" rel="noopener">README →</a>
+        </article>
+
+        <article class="pkg-card anim-fade">
+          <div class="pkg-head">
+            <span class="pkg-name">btw</span>
+            <span class="pkg-tag">/btw</span>
+          </div>
+          <p class="pkg-desc" data-i18n="pkg.btw.desc">Ephemeral side questions with full session context — answers not saved to conversation history.</p>
+          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/btw</div>
+          <a class="pkg-link" href="https://github.com/piex-dev/piex/tree/main/packages/btw" target="_blank" rel="noopener">README →</a>
+        </article>
+
+        <article class="pkg-card anim-fade">
+          <div class="pkg-head">
+            <span class="pkg-name">context</span>
+            <span class="pkg-tag">/context</span>
+          </div>
+          <p class="pkg-desc" data-i18n="pkg.context.desc">Session usage report: entry distribution, role breakdown, and estimated token allocation.</p>
+          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/context</div>
+          <a class="pkg-link" href="https://github.com/piex-dev/piex/tree/main/packages/context" target="_blank" rel="noopener">README →</a>
         </article>
 
       </div>
@@ -245,14 +262,6 @@
         <article class="blog-card anim-fade">
           <div class="blog-meta">
             <span class="blog-date">2026-07-19</span>
-            <span class="blog-tag">Hashline</span>
-          </div>
-          <h3 class="blog-title"><a href="/en/blogs/hashline/" data-i18n="blog.hashline.title">Hashline: Content-Anchored Edits</a></h3>
-          <p class="blog-excerpt" data-i18n="blog.hashline.excerpt">Tag-verified patches over fragile line numbers, with Phase 1 model guards.</p>
-        </article>
-        <article class="blog-card anim-fade">
-          <div class="blog-meta">
-            <span class="blog-date">2026-07-19</span>
             <span class="blog-tag">DAP</span>
           </div>
           <h3 class="blog-title"><a href="/en/blogs/dap/" data-i18n="blog.dap.title">DAP: Real Debugging for Agents</a></h3>
@@ -282,7 +291,6 @@
           <h3 class="blog-title"><a href="/en/blogs/review/" data-i18n="blog.review.title">Review: First-Class Code Review</a></h3>
           <p class="blog-excerpt" data-i18n="blog.review.excerpt">Scoped git diffs, noise filters, one engine for /review and the review tool.</p>
         </article>
-
         <article class="blog-card anim-fade">
           <div class="blog-meta">
             <span class="blog-date">2026-07-19</span>
@@ -306,6 +314,30 @@
           </div>
           <h3 class="blog-title"><a href="/en/blogs/theme-dark-terminal/" data-i18n="blog.theme.title">Dark Terminal Theme</a></h3>
           <p class="blog-excerpt" data-i18n="blog.theme.excerpt">High-contrast terminal skin for pi — zero behavior change.</p>
+        </article>
+        <article class="blog-card anim-fade">
+          <div class="blog-meta">
+            <span class="blog-date">2026-07-19</span>
+            <span class="blog-tag">BTW</span>
+          </div>
+          <h3 class="blog-title"><a href="/en/blogs/btw/" data-i18n="blog.btw.title">BTW: Ephemeral Side Questions</a></h3>
+          <p class="blog-excerpt" data-i18n="blog.btw.excerpt">Full-context answers that leave no trace in conversation history.</p>
+        </article>
+        <article class="blog-card anim-fade">
+          <div class="blog-meta">
+            <span class="blog-date">2026-07-19</span>
+            <span class="blog-tag">Context</span>
+          </div>
+          <h3 class="blog-title"><a href="/en/blogs/context/" data-i18n="blog.context.title">Context: Token Usage at a Glance</a></h3>
+          <p class="blog-excerpt" data-i18n="blog.context.excerpt">Entry distribution, role breakdown, and token estimates in one command.</p>
+        </article>
+        <article class="blog-card anim-fade">
+          <div class="blog-meta">
+            <span class="blog-date">2026-07-14</span>
+            <span class="blog-tag">Hashline</span>
+          </div>
+          <h3 class="blog-title"><a href="/en/blogs/hashline/" data-i18n="blog.hashline.title">Hashline: Content-Anchored Edits</a></h3>
+          <p class="blog-excerpt" data-i18n="blog.hashline.excerpt">Tag-verified patches over fragile line numbers, with Phase 1 model guards.</p>
         </article>
         <article class="blog-card anim-fade">
           <div class="blog-meta">

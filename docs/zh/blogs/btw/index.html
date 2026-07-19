@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LSP：给 Agent 一双「语言服务器」的眼睛 — PieX</title>
-  <meta name="description" content="诊断、定义、引用、格式化：让 agent 在改代码前后能问 IDE 同一类问题。" />
-  <link rel="canonical" href="https://piex.dev/zh/blogs/lsp/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/lsp/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/lsp/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/lsp/" />
-  <meta property="og:title" content="LSP：给 Agent 一双「语言服务器」的眼睛 — PieX" />
-  <meta property="og:description" content="诊断、定义、引用、格式化：让 agent 在改代码前后能问 IDE 同一类问题。" />
-  <meta property="og:url" content="https://piex.dev/zh/blogs/lsp/" />
+  <title>BTW：不被记住的临时提问 — PieX</title>
+  <meta name="description" content="/btw 临时提问，答案不污染后续对话历史。" />
+  <link rel="canonical" href="https://piex.dev/zh/blogs/btw/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/btw/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/btw/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/btw/" />
+  <meta property="og:title" content="BTW：不被记住的临时提问 — PieX" />
+  <meta property="og:description" content="/btw 临时提问，答案不污染后续对话历史。" />
+  <meta property="og:url" content="https://piex.dev/zh/blogs/btw/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -55,13 +55,13 @@
       <nav>
         <a href="/zh/blogs/hashline/">Hashline：用内容锚点改代码</a>
         <a href="/zh/blogs/dap/">DAP：让 Coding Agent 真正会调试</a>
-        <a href="/zh/blogs/lsp/" class="is-active">LSP：语言服务器的眼睛</a>
+        <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
         <a href="/zh/blogs/init/">Init：一键写出 AGENTS.md</a>
         <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
-        <a href="/zh/blogs/btw/">BTW：不被记住的临时提问</a>
+        <a href="/zh/blogs/btw/" class="is-active">BTW：不被记住的临时提问</a>
         <a href="/zh/blogs/context/">Context：一眼看清 Token 用量</a>
         <a href="/zh/blogs/pi-extension-mechanism/">Pi Extension 机制及工作原理</a>
       </nav>
@@ -76,13 +76,13 @@
         <nav class="blog-toc-mobile-nav docs-nav-mobile">
         <a href="/zh/blogs/hashline/">Hashline：用内容锚点改代码</a>
         <a href="/zh/blogs/dap/">DAP：让 Coding Agent 真正会调试</a>
-        <a href="/zh/blogs/lsp/" class="is-active">LSP：语言服务器的眼睛</a>
+        <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
         <a href="/zh/blogs/init/">Init：一键写出 AGENTS.md</a>
         <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
-        <a href="/zh/blogs/btw/">BTW：不被记住的临时提问</a>
+        <a href="/zh/blogs/btw/" class="is-active">BTW：不被记住的临时提问</a>
         <a href="/zh/blogs/context/">Context：一眼看清 Token 用量</a>
         <a href="/zh/blogs/pi-extension-mechanism/">Pi Extension 机制及工作原理</a>
         </nav>
@@ -97,19 +97,18 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-                <a href="#design">设计参考</a>
-<a href="#roadmap">优化计划</a>
+        <a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">LSP</span>
-          <span class="blog-tag">Diagnostics</span>
+          <span class="blog-tag">BTW</span>
+          <span class="blog-tag">Context</span>
           <span class="blog-tag">Extension</span>
         </div>
-        <h1>LSP：给 Agent 一双「语言服务器」的眼睛</h1>
-        <p class="blog-lede">更关键的是 edit 之后自动看到 ERROR，不必靠模型记得再调诊断。</p>
+        <h1>BTW：不被记住的临时提问</h1>
+        <p class="blog-lede">临时提问上下文，答案不留痕。</p>
       </header>
 
       <div class="blog-prose">
@@ -117,41 +116,26 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">导语</p>
-            <p><code>@piex-dev/lsp</code> 让 agent 能问 IDE 同一类问题；更关键的是 <strong>edit 之后自动看到 ERROR</strong>，不必靠模型记得再调诊断。</p>
+            <p><code>/btw</code> 让你用满上下文问一个临时问题，答案不进入后续对话——就像会议里压低声音问旁边人一句。</p>
           </div>
         </div>
 
         <h2 id="bg">问题背景</h2>
         <p>
-          没有 LSP 时，agent 只靠 read/grep 与脑补类型。改签名漏调用点、红线要等整次构建才知道。人编辑器交给语言服务器；agent 也该能问。
-        </p>
-        <p>
-          <code>@piex-dev/lsp</code>：导航、诊断、rename/code_actions，以及写后 ERROR 闭环。
+          coding agent 的经典困境：想问跟任务有关但又不想它「当真」的问题。另开 session 太麻烦，直接问又污染上下文。oh-my-pi 的 <code>/btw</code> 用引擎级旁路机制解决了这个问题；@piex-dev/btw 用 context 钩子实现等效行为。
         </p>
         <h2 id="theory">技术原理</h2>
         <p>
-          stdio JSON-RPC；rootMarkers 发现 server；publishDiagnostics 缓存。写路径 hook：sync（didOpen/didChange）→ 等诊断 → 仅 ERROR 裁剪后附在 tool 结果。
+          核心三件套：<code>btwActive</code> 标记 → <code>before_agent_start</code> 注入简洁指令（禁用工具、短回答）→ <code>context</code> 钩子过滤所有 <code>[BTW]</code> 消息。会话恢复时 <code>session_start</code> 清理状态防脏启动。
         </p>
         <h2 id="impl">实现方案</h2>
         <p>
-          兼容 initOptions/settings；多 server 聚合诊断、linter 不抢导航；rename 默认 preview；WorkspaceEdit 限 cwd。<code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code> 可关写后诊断。
+          约 110 行单文件。context 钩子用三段式过滤：跳过 btw 系统消息（customType）、跳过 <code>[BTW]</code> user 消息、跳过紧随的 assistant 回复。与 omp btw 的差异：引擎级旁路改为 context 钩子过滤；写入带标记后过滤，而非完全不写。
         </p>
-        <p>
-          闭环：hashline edit → 自动 ERROR → 需要时显式 lsp 导航/重构 → 运行时问题上 dap。
-        </p>
-        
-        <h2 id="design">设计参考</h2>
-        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
-<tbody>
-<tr><td><strong>oh-my-pi lsp</strong></td><td>完整 LSP 客户端：多 server 路由、didChange、完整 action 面、诊断聚合</td><td><strong>采纳</strong>：JSON-RPC client、defaults.json 驱动、按需启动/会话复用、多 server 聚合。<strong>不采纳</strong>：Bun 运行时（改 Node）、大面铺满 action</td></tr>
-<tr><td><strong>OpenCode 写后诊断</strong></td><td>tool_result hook 拦 edit/write → 等 publishDiagnostics → 仅 ERROR、每文件 cap</td><td><strong>采纳</strong>整套模式：sync → wait → only ERROR → cap 20 → 干净文件不附加</td></tr>
-<tr><td><strong>VS Code LSP</strong></td><td>initialize + settings/didChangeConfiguration + workspace/configuration</td><td><strong>借鉴</strong>：initOptions/settings 正确下发路径；full-text didChange；which 查 node_modules/.bin 和 .venv</td></tr>
-</tbody></table></div>
-<p>核心取舍：优先写后 ERROR 闭环（学 OpenCode），诊断优于导航暴露；linter 不抢 primary server 的导航角色。</p>
 
 <h2 id="roadmap">优化计划</h2>
         <p>
-          已完成正确性、写后诊断、rename/code_actions。单测：<code>bun test packages/lsp</code>。下一步：项目级 <code>.lsp.json</code>、模块拆分、假 server 单测、indexing ready。暂缓 lspmux/自动下载/completion。
+          「下一个 assistant 即 btw 回复」的推断在极端场景可能错位，等消息 ID 关联 API 就绪后切换；未来可将过滤策略抽象为通用临时消息分组模式。
         </p>
       </div>
 
@@ -160,15 +144,15 @@
           <span class="blog-nav-label">← 全部文章</span>
           <span class="blog-nav-title">回到 Blog 列表</span>
         </a>
-        <a class="blog-nav-card is-next" href="/zh/blogs/plan/">
+        <a class="blog-nav-card is-next" href="/zh/blogs/context/">
           <span class="blog-nav-label">下一篇 →</span>
-          <span class="blog-nav-title">Plan Mode：先想清楚再动手</span>
+          <span class="blog-nav-title">Context：一眼看清 Token 用量</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         源稿 Markdown：
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/lsp.md" target="_blank" rel="noopener">docs/notes/lsp.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/btw.md" target="_blank" rel="noopener">docs/notes/btw.md</a>
       </p>
     </article>
 
@@ -178,8 +162,7 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-                <a href="#design">设计参考</a>
-<a href="#roadmap">优化计划</a>
+        <a href="#roadmap">优化计划</a>
       </nav>
     </aside>
   </div>

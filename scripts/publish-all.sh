@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)/packages"
-PACKAGES=(hashline dap lsp plan review init theme-dark-terminal xai-oauth)
+PACKAGES=(hashline dap lsp plan review init theme-dark-terminal xai-oauth btw context)
 
 if ! npm whoami >/dev/null 2>&1; then
   echo "Not logged in to npm. Run: npm login"
