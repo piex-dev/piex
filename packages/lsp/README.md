@@ -2,6 +2,11 @@
 
 LSP（Language Server Protocol）语言服务器扩展，注册 `lsp` 工具。
 
+## 深度解读
+
+- 博客：https://piex.dev/zh/blogs/lsp/
+- 源稿：[`docs/notes/lsp.md`](../../docs/notes/lsp.md)
+
 ## 功能
 
 - **lsp 工具**: 内置 LSP 客户端 + JSON-RPC 通信

@@ -2,6 +2,11 @@
 
 xAI Grok OAuth subscription login for pi. Authenticate with a **SuperGrok** or **X Premium+** subscription instead of an API key.
 
+## 深度解读
+
+- 博客：https://piex.dev/zh/blogs/xai-oauth/
+- 源稿：[`docs/notes/xai-oauth.md`](../../docs/notes/xai-oauth.md)
+
 ## 安装
 
 ```bash

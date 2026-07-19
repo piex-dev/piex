@@ -2,6 +2,11 @@
 
 High-contrast terminal-inspired dark theme for pi, adapted from [opencode-themes/dark-terminal](https://github.com/debugtalk/opencode-themes).
 
+## 深度解读
+
+- 博客：https://piex.dev/zh/blogs/theme-dark-terminal/
+- 源稿：[`docs/notes/theme-dark-terminal.md`](../../docs/notes/theme-dark-terminal.md)
+
 ## Palette
 
 | Color | Hex |

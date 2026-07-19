@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hashline：用内容锚点，而不是脆弱行号，改代码 — PieX</title>
-  <meta name="description" content="行号不可靠。piex/hashline 用内容 tag 与 seen-lines 做安全编辑，并补 Phase 1 容错。" />
-  <link rel="canonical" href="https://piex.dev/zh/blogs/hashline/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/hashline/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/hashline/" />
-  <meta property="og:title" content="Hashline：用内容锚点，而不是脆弱行号，改代码 — PieX" />
-  <meta property="og:description" content="行号不可靠。piex/hashline 用内容 tag 与 seen-lines 做安全编辑，并补 Phase 1 容错。" />
-  <meta property="og:url" content="https://piex.dev/zh/blogs/hashline/" />
+  <title>Plan Mode：先想清楚，再动手改 — PieX</title>
+  <meta name="description" content="只读探索、编号计划、审批执行与进度追踪。" />
+  <link rel="canonical" href="https://piex.dev/zh/blogs/plan/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/plan/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/plan/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/plan/" />
+  <meta property="og:title" content="Plan Mode：先想清楚，再动手改 — PieX" />
+  <meta property="og:description" content="只读探索、编号计划、审批执行与进度追踪。" />
+  <meta property="og:url" content="https://piex.dev/zh/blogs/plan/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,10 +53,10 @@
     <aside class="docs-nav" aria-label="Blog">
       <p class="blog-toc-title">博客</p>
       <nav>
-        <a href="/zh/blogs/hashline/" class="is-active">Hashline：用内容锚点改代码</a>
+        <a href="/zh/blogs/hashline/">Hashline：用内容锚点改代码</a>
         <a href="/zh/blogs/dap/">DAP：让 Coding Agent 真正会调试</a>
         <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
-        <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
+        <a href="/zh/blogs/plan/" class="is-active">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
         <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
@@ -71,10 +71,10 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav docs-nav-mobile">
-        <a href="/zh/blogs/hashline/" class="is-active">Hashline：用内容锚点改代码</a>
+        <a href="/zh/blogs/hashline/">Hashline：用内容锚点改代码</a>
         <a href="/zh/blogs/dap/">DAP：让 Coding Agent 真正会调试</a>
         <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
-        <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
+        <a href="/zh/blogs/plan/" class="is-active">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
         <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
@@ -92,18 +92,17 @@
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
         <a href="#roadmap">优化计划</a>
-        <a href="#appendix">附录</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">Hashline</span>
-          <span class="blog-tag">Edit</span>
+          <span class="blog-tag">Plan</span>
+          <span class="blog-tag">Workflow</span>
           <span class="blog-tag">Extension</span>
         </div>
-        <h1>Hashline：用内容锚点，而不是脆弱行号，改代码</h1>
-        <p class="blog-lede">默认编辑从「猜行号」变成「凭读过的版本改」：更少静默写错，代价是偶发 re-read。</p>
+        <h1>Plan Mode：先想清楚，再动手改</h1>
+        <p class="blog-lede">给 agent 一套「先调研再动工」的制度。</p>
       </header>
 
       <div class="blog-prose">
@@ -111,54 +110,28 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">导语</p>
-            <p>装上 <code>@piex-dev/hashline</code> 后，默认编辑从「猜行号」变成「凭读过的版本改」：更少静默写错，代价是偶发 re-read。这是值得付的税。</p>
+            <p><code>/plan</code> 的价值不是多一个命令，而是给 agent 一套「先调研再动工」的制度：写工具暂时没收，计划可见可批，执行进度可盯。</p>
           </div>
         </div>
 
         <h2 id="bg">问题背景</h2>
         <p>
-          AI 编码助手的 <code>edit</code> 工具有一个根本矛盾：模型用<strong>行号</strong>描述改哪里，但行号在真实世界里极不稳定。用户随手改文件、上一轮 edit 插入删除、未读全文件却对「以为存在」的行号下手，都会造成静默写错。
+          agent 失败常不是写不出代码，而是过早动手、范围失控、进度不可见、compaction 丢计划。Plan Mode 解决工作流：先只读探索，再审批执行。
         </p>
         <p>
-          <code>@piex-dev/hashline</code> 用内容锚点覆盖 pi 内置 edit：读时打 tag、改时校验，拒绝未见过的行。
+          <code>@piex-dev/plan</code>：<code>/plan</code> 切换模式，<code>/todos</code> 看清单，footer 显示进度。
         </p>
         <h2 id="theory">技术原理</h2>
         <p>
-          读文件时注入 <code>[path#TAG]</code> 并记录 seen-lines；编辑必须携带同一 tag。全文件 4-hex tag 像乐观锁：任意外部改动即失效，强制 re-read。相对逐行哈希更严，但换来 tree-sitter 块操作与 boundary repair。
-        </p>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>hashline</span></div>
-          <pre><code>[src/main.ts#A3F2]
-SWAP 2.=2:
-+const x = 2;</code></pre>
-        </div>
-        <p>
-          Phase 1 容错：连续 3 次 byte-identical noop → <code>[E_NOOP_LOOP]</code>；成功后同 payload 且文件未变 → <code>[E_DUPLICATE_EDIT]</code>；CRLF / 代码块围栏等方言归一化。
+          计划模式从 active tools 拿掉 edit/write，并对 bash 做危险命令拦截。解析 <code>Plan:</code> 编号列表；执行期用 <code>[DONE:n]</code> 推进。状态经 <code>appendEntry</code> 与 <code>PLAN.md</code> 扛 compaction。
         </p>
         <h2 id="impl">实现方案</h2>
         <p>
-          封装 <code>@oh-my-pi/hashline</code>：<code>hashline.ts</code> 覆盖 edit 并 hook read；<code>PiexNodeFilesystem</code> 直连 node:fs + realpath；<code>EditGuard</code> 管 noop/duplicate；Bun polyfill 只补 <code>xxHash32</code>。
+          单文件扩展，重度使用 registerCommand/Shortcut、setActiveTools、tool_call 拦截、before_agent_start 注入、turn_end 解析、UI status/widget。相对 omp 全屏 overlay 有意做轻。
         </p>
-        <div class="blog-table-wrap">
-          <table>
-            <thead><tr><th>能力</th><th>状态</th></tr></thead>
-            <tbody>
-                            <tr><td>tree-sitter block / REM·MV</td><td>✅ 继承引擎</td></tr>
-              <tr><td>Noop / Duplicate / 归一化</td><td>✅ Phase 1</td></tr>
-              <tr><td>Stale 自动恢复 / 多版本快照</td><td>❌ 待 Phase 2</td></tr>
-            </tbody>
-          </table>
-        </div>
         <h2 id="roadmap">优化计划</h2>
         <p>
-          冲突策略偏拒绝（安全但贵）→ 接 3-way merge / Recovery；快照偏薄 → 多版本 LRU + 锚点 Grep；duplicate 按 section 细化；封装层单测与可选 LSP 联动。
-        </p>
-        <p>
-          Phase 1 已完成；Phase 2 可靠性；Phase 3 体验（Undo / Auto-Read / 测试网）。
-        </p>
-        <h2 id="appendix">附录：实现对比</h2>
-        <p>
-          行业三条路线：oh-my-pi 全文件 tag、pi-hashline-edit 上下文逐行哈希、pi-hashline-edit-pro stable mapping。piex 选前者做引擎，容错借鉴后者。完整对照见源稿。
+          更稳计划 IR（可选 JSON）；DONE 弱验证；与 /review 收尾联动；PLAN.md frontmatter；工具白名单可配置。黑名单不是沙箱。
         </p>
       </div>
 
@@ -167,15 +140,15 @@ SWAP 2.=2:
           <span class="blog-nav-label">← 全部文章</span>
           <span class="blog-nav-title">回到 Blog 列表</span>
         </a>
-        <a class="blog-nav-card is-next" href="/zh/blogs/dap/">
+        <a class="blog-nav-card is-next" href="/zh/blogs/review/">
           <span class="blog-nav-label">下一篇 →</span>
-          <span class="blog-nav-title">DAP：让 Coding Agent 真正会调试</span>
+          <span class="blog-nav-title">Review：Code Review 一等公民</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         源稿 Markdown：
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/hashline.md" target="_blank" rel="noopener">docs/notes/hashline.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/plan.md" target="_blank" rel="noopener">docs/notes/plan.md</a>
       </p>
     </article>
 
@@ -186,7 +159,6 @@ SWAP 2.=2:
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
         <a href="#roadmap">优化计划</a>
-        <a href="#appendix">附录</a>
       </nav>
     </aside>
   </div>

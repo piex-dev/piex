@@ -2,6 +2,11 @@
 
 代码评审扩展 — `/review` 交互命令 + LLM 可调用的 `review` 工具。
 
+## 深度解读
+
+- 博客：https://piex.dev/zh/blogs/review/
+- 源稿：[`docs/notes/review.md`](../../docs/notes/review.md)
+
 ## 功能
 
 - **/review 命令**: 交互式菜单选择评审源

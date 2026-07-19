@@ -2,6 +2,11 @@
 
 计划模式扩展 — "先规划后执行"的工作流。
 
+## 深度解读
+
+- 博客：https://piex.dev/zh/blogs/plan/
+- 源稿：[`docs/notes/plan.md`](../../docs/notes/plan.md)
+
 ## 功能
 
 - **计划模式**: 只读工具，`edit` 和 `write` 禁用，专注分析和规划

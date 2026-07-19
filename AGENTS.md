@@ -186,6 +186,33 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 - **该用**：表格空值（`| — |`）、标题分隔（`设计理念 — PieX`）、引用原文中的破折号
 - **不该用**：中文正文叙述（解释用 `：`，转折用「但/而」，补充用逗号/句号或拆句）。禁止全局替换 `——`/`—`
 
+### Package 博客（每个 package 必有一篇）
+
+每个已实现的 `packages/<name>/` **必须**有对应中文博客源稿，面向读者讲清「为什么 / 怎么做 / 做成了什么 / 下一步」，不是 API 说明书（说明书在 package `README.md`）。
+
+| 项 | 约定 |
+| --- | --- |
+| 路径 | `docs/notes/<name>.md`，**slug = package 目录名**（如 `packages/dap` → `docs/notes/dap.md`） |
+| 线上 URL | `https://piex.dev/zh/blogs/<name>/`（英：`/en/blogs/<name>/`） |
+| frontmatter | 必填 `title` / `date` / `tags` |
+| README 回链 | 每个 package 的 `README.md` 须有「深度解读」小节，链到上述 URL（可附源稿相对路径） |
+
+**正文结构（四级标题，均为四字，顺序固定）：**
+
+1. **问题背景**：要解决什么痛点、对用户的影响  
+2. **技术原理**：核心概念与机制，通俗深入浅出  
+3. **实现方案**：本仓库当前实现、关键模块与取舍  
+4. **优化计划**：不足与下一步合并写（现状 → 影响 → 怎么补），避免「问题列表 + 路线图」两套重复  
+
+**版式约定：**
+
+- 文首 frontmatter 之后、第一个 `##` 之前：一段 **blockquote 导语**（一句话价值主张，结论先行）  
+- 可选 `## 附录：…` 放对比表、调研细节；正文四节保持干净  
+- 面向读者，少堆内部黑话；需要时用表格/小例子，不写成长 PRD  
+- 新增或实质改动 package 时：同步写/改博客 md；按文档站流程补中英 HTML 与导航（用户明确「只写 md」时可暂缓 HTML，但 README 链接与源稿不得缺）  
+- 机制类长文（如 `pi-extension-mechanism`）不占用 package slug，与 package 博客分开
+
+
 
 ## 代码约定
 
@@ -222,7 +249,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 - **无 CI 测试**：唯一工作流是 `.github/workflows/pages.yml`（push 触及 `docs/**` 时部署文档站）。没有自动化测试、lint、发布 CI。文档双语本地校验：`./scripts/check-docs-i18n.sh`（commit 触及 md 时 agent 必须跑 `--staged`）；CI 在 `pages.yml` deploy 前强制跑全量校验。
 - **仓库级 QA**：`eval/` Docker 评测框架，指标含 `resolve_rate`、`avg_tokens`、`avg_time`、`est_cost` 及归因指标（`edit_accuracy`、`debug_success`、`plan_follow_rate`）。
-- **新 package 要求**：带 `README.md`（安装说明、支持的 action、上游差异表）；发布前完成冒烟测试；主题包须含合法 `themes/*.json`（`name`、可选 `vars`、全部必需 color token）。
+- **新 package 要求**：带 `README.md`（安装说明、支持的 action、上游差异表、**深度解读**链到 `https://piex.dev/zh/blogs/<name>/`）；必有 `docs/notes/<name>.md` package 博客（结构见上文「Package 博客」）；发布前完成冒烟测试；主题包须含合法 `themes/*.json`（`name`、可选 `vars`、全部必需 color token）。
 
 ## 安全注意事项
 

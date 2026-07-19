@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hashline：用内容锚点，而不是脆弱行号，改代码 — PieX</title>
-  <meta name="description" content="行号不可靠。piex/hashline 用内容 tag 与 seen-lines 做安全编辑，并补 Phase 1 容错。" />
-  <link rel="canonical" href="https://piex.dev/zh/blogs/hashline/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/hashline/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/hashline/" />
-  <meta property="og:title" content="Hashline：用内容锚点，而不是脆弱行号，改代码 — PieX" />
-  <meta property="og:description" content="行号不可靠。piex/hashline 用内容 tag 与 seen-lines 做安全编辑，并补 Phase 1 容错。" />
-  <meta property="og:url" content="https://piex.dev/zh/blogs/hashline/" />
+  <title>DAP：让 Coding Agent 真正会调试 — PieX</title>
+  <meta name="description" content="把 Debug Adapter Protocol 接到 pi：断点、单步、变量，而不只是 print。" />
+  <link rel="canonical" href="https://piex.dev/zh/blogs/dap/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/dap/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/dap/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/dap/" />
+  <meta property="og:title" content="DAP：让 Coding Agent 真正会调试 — PieX" />
+  <meta property="og:description" content="把 Debug Adapter Protocol 接到 pi：断点、单步、变量，而不只是 print。" />
+  <meta property="og:url" content="https://piex.dev/zh/blogs/dap/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,8 +53,8 @@
     <aside class="docs-nav" aria-label="Blog">
       <p class="blog-toc-title">博客</p>
       <nav>
-        <a href="/zh/blogs/hashline/" class="is-active">Hashline：用内容锚点改代码</a>
-        <a href="/zh/blogs/dap/">DAP：让 Coding Agent 真正会调试</a>
+        <a href="/zh/blogs/hashline/">Hashline：用内容锚点改代码</a>
+        <a href="/zh/blogs/dap/" class="is-active">DAP：让 Coding Agent 真正会调试</a>
         <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
@@ -71,8 +71,8 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav docs-nav-mobile">
-        <a href="/zh/blogs/hashline/" class="is-active">Hashline：用内容锚点改代码</a>
-        <a href="/zh/blogs/dap/">DAP：让 Coding Agent 真正会调试</a>
+        <a href="/zh/blogs/hashline/">Hashline：用内容锚点改代码</a>
+        <a href="/zh/blogs/dap/" class="is-active">DAP：让 Coding Agent 真正会调试</a>
         <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
@@ -92,18 +92,17 @@
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
         <a href="#roadmap">优化计划</a>
-        <a href="#appendix">附录</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">Hashline</span>
-          <span class="blog-tag">Edit</span>
+          <span class="blog-tag">DAP</span>
+          <span class="blog-tag">Debug</span>
           <span class="blog-tag">Extension</span>
         </div>
-        <h1>Hashline：用内容锚点，而不是脆弱行号，改代码</h1>
-        <p class="blog-lede">默认编辑从「猜行号」变成「凭读过的版本改」：更少静默写错，代价是偶发 re-read。</p>
+        <h1>DAP：让 Coding Agent 真正会调试</h1>
+        <p class="blog-lede">agent 终于可以像人一样「跑起来看」。</p>
       </header>
 
       <div class="blog-prose">
@@ -111,54 +110,42 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">导语</p>
-            <p>装上 <code>@piex-dev/hashline</code> 后，默认编辑从「猜行号」变成「凭读过的版本改」：更少静默写错，代价是偶发 re-read。这是值得付的税。</p>
+            <p>装上 <code>@piex-dev/dap</code> 之后，agent 可以像人一样「跑起来看」。它替代不了测试，但会把「猜变量」变成「读变量」。</p>
           </div>
         </div>
 
         <h2 id="bg">问题背景</h2>
         <p>
-          AI 编码助手的 <code>edit</code> 工具有一个根本矛盾：模型用<strong>行号</strong>描述改哪里，但行号在真实世界里极不稳定。用户随手改文件、上一轮 edit 插入删除、未读全文件却对「以为存在」的行号下手，都会造成静默写错。
+          多数 agent「修 bug」靠猜 + 改 + 再跑测试。运行时问题（调用栈、局部变量、条件断点）没有调试器就很脆。人用 IDE 开 DAP；agent 不该只会 <code>print</code>。
         </p>
         <p>
-          <code>@piex-dev/hashline</code> 用内容锚点覆盖 pi 内置 edit：读时打 tag、改时校验，拒绝未见过的行。
+          <code>@piex-dev/dap</code> 注册 <code>debug</code> 工具，把 Debug Adapter Protocol 接到 pi：launch、断点、单步、看变量。
         </p>
         <h2 id="theory">技术原理</h2>
         <p>
-          读文件时注入 <code>[path#TAG]</code> 并记录 seen-lines；编辑必须携带同一 tag。全文件 4-hex tag 像乐观锁：任意外部改动即失效，强制 re-read。相对逐行哈希更严，但换来 tree-sitter 块操作与 boundary repair。
+          三层：Agent 决策 → DAP 客户端翻译 → debugpy/dlv/lldb 等 adapter 控进程。会话状态机 running / stopped / terminated；stdio 帧传 JSON-RPC。
         </p>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>hashline</span></div>
-          <pre><code>[src/main.ts#A3F2]
-SWAP 2.=2:
-+const x = 2;</code></pre>
-        </div>
         <p>
-          Phase 1 容错：连续 3 次 byte-identical noop → <code>[E_NOOP_LOOP]</code>；成功后同 payload 且文件未变 → <code>[E_DUPLICATE_EDIT]</code>；CRLF / 代码块围栏等方言归一化。
+          <code>defaults.json</code> 按后缀与 root marker 自动选 adapter（共 14 个）。Node 移植只做 stdio，不做 TCP 远程 attach。
         </p>
         <h2 id="impl">实现方案</h2>
         <p>
-          封装 <code>@oh-my-pi/hashline</code>：<code>hashline.ts</code> 覆盖 edit 并 hook read；<code>PiexNodeFilesystem</code> 直连 node:fs + realpath；<code>EditGuard</code> 管 noop/duplicate；Bun polyfill 只补 <code>xxHash32</code>。
+          <code>client.ts</code> 管帧；<code>session.ts</code> 管会话、断点队列、输出缓冲与空闲清理；工具面覆盖 launch/attach、断点、步进、栈/变量/evaluate、内存与 disassemble。
         </p>
         <div class="blog-table-wrap">
           <table>
-            <thead><tr><th>能力</th><th>状态</th></tr></thead>
+            <thead><tr><th>要点</th><th>做法</th></tr></thead>
             <tbody>
-                            <tr><td>tree-sitter block / REM·MV</td><td>✅ 继承引擎</td></tr>
-              <tr><td>Noop / Duplicate / 归一化</td><td>✅ Phase 1</td></tr>
-              <tr><td>Stale 自动恢复 / 多版本快照</td><td>❌ 待 Phase 2</td></tr>
+                            <tr><td>断点变更</td><td>串行队列，避免覆盖</td></tr>
+              <tr><td>输出</td><td>约 128KB 上限，防撑爆上下文</td></tr>
+              <tr><td>超时</td><td>5–300s 夹紧</td></tr>
+              <tr><td>非交互</td><td>注入 PAGER=cat 等，防 pager 挂死</td></tr>
             </tbody>
           </table>
         </div>
         <h2 id="roadmap">优化计划</h2>
         <p>
-          冲突策略偏拒绝（安全但贵）→ 接 3-way merge / Recovery；快照偏薄 → 多版本 LRU + 锚点 Grep；duplicate 按 section 细化；封装层单测与可选 LSP 联动。
-        </p>
-        <p>
-          Phase 1 已完成；Phase 2 可靠性；Phase 3 体验（Undo / Auto-Read / 测试网）。
-        </p>
-        <h2 id="appendix">附录：实现对比</h2>
-        <p>
-          行业三条路线：oh-my-pi 全文件 tag、pi-hashline-edit 上下文逐行哈希、pi-hashline-edit-pro stable mapping。piex 选前者做引擎，容错借鉴后者。完整对照见源稿。
+          补数据/异常断点暴露；stop 后默认附栈顶+局部变量；读 <code>launch.json</code>；可选 TCP；eval 挂钩 <code>debug_success</code>。
         </p>
       </div>
 
@@ -167,15 +154,15 @@ SWAP 2.=2:
           <span class="blog-nav-label">← 全部文章</span>
           <span class="blog-nav-title">回到 Blog 列表</span>
         </a>
-        <a class="blog-nav-card is-next" href="/zh/blogs/dap/">
+        <a class="blog-nav-card is-next" href="/zh/blogs/lsp/">
           <span class="blog-nav-label">下一篇 →</span>
-          <span class="blog-nav-title">DAP：让 Coding Agent 真正会调试</span>
+          <span class="blog-nav-title">LSP：语言服务器的眼睛</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         源稿 Markdown：
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/hashline.md" target="_blank" rel="noopener">docs/notes/hashline.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/dap.md" target="_blank" rel="noopener">docs/notes/dap.md</a>
       </p>
     </article>
 
@@ -186,7 +173,6 @@ SWAP 2.=2:
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
         <a href="#roadmap">优化计划</a>
-        <a href="#appendix">附录</a>
       </nav>
     </aside>
   </div>

@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hashline: Content Anchors, Not Fragile Line Numbers — PieX</title>
-  <meta name="description" content="Line numbers drift. piex/hashline tags reads, verifies edits, and adds Phase 1 model guards." />
-  <link rel="canonical" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/hashline/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/hashline/" />
-  <meta property="og:title" content="Hashline: Content Anchors, Not Fragile Line Numbers — PieX" />
-  <meta property="og:description" content="Line numbers drift. piex/hashline tags reads, verifies edits, and adds Phase 1 model guards." />
-  <meta property="og:url" content="https://piex.dev/en/blogs/hashline/" />
+  <title>Plan Mode: Think Before You Edit — PieX</title>
+  <meta name="description" content="Read-only exploration, numbered plans, gated execution, progress tracking." />
+  <link rel="canonical" href="https://piex.dev/en/blogs/plan/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/plan/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/plan/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/plan/" />
+  <meta property="og:title" content="Plan Mode: Think Before You Edit — PieX" />
+  <meta property="og:description" content="Read-only exploration, numbered plans, gated execution, progress tracking." />
+  <meta property="og:url" content="https://piex.dev/en/blogs/plan/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,10 +53,10 @@
     <aside class="docs-nav" aria-label="Blog">
       <p class="blog-toc-title">Blog</p>
       <nav>
-        <a href="/en/blogs/hashline/" class="is-active">Hashline: Content-Anchored Edits</a>
+        <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
         <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
-        <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
+        <a href="/en/blogs/plan/" class="is-active">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
@@ -71,10 +71,10 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav docs-nav-mobile">
-        <a href="/en/blogs/hashline/" class="is-active">Hashline: Content-Anchored Edits</a>
+        <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
         <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
-        <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
+        <a href="/en/blogs/plan/" class="is-active">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
@@ -92,18 +92,17 @@
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
         <a href="#roadmap">Roadmap</a>
-        <a href="#appendix">Appendix</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">Hashline</span>
-          <span class="blog-tag">Edit</span>
+          <span class="blog-tag">Plan</span>
+          <span class="blog-tag">Workflow</span>
           <span class="blog-tag">Extension</span>
         </div>
-        <h1>Hashline: Content Anchors, Not Fragile Line Numbers</h1>
-        <p class="blog-lede">Default edits shift from guessing lines to editing the version you actually read.</p>
+        <h1>Plan Mode: Think Before You Edit</h1>
+        <p class="blog-lede">Institutionalize research-before-edits.</p>
       </header>
 
       <div class="blog-prose">
@@ -111,51 +110,28 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">In short</p>
-            <p>With <code>@piex-dev/hashline</code>, edits are version-checked: fewer silent wrong writes, occasional re-reads. A tax worth paying.</p>
+            <p><code>/plan</code> isn’t another command—it’s a regime: write tools locked, plans reviewable, progress visible.</p>
           </div>
         </div>
 
         <h2 id="bg">Background</h2>
         <p>
-          Agent <code>edit</code> tools trust <strong>line numbers</strong>, but lines drift: users edit mid-thought, prior patches shift offsets, models invent lines they never read. Silent wrong writes are worse than hard failures.
+          Agents fail by editing too early, scope creep, invisible progress, and lost plans after compaction. Plan Mode is workflow, not another generator.
         </p>
         <p>
-          <code>@piex-dev/hashline</code> replaces pi’s built-in edit with content-anchored patches: tag on read, verify on write, refuse unseen lines.
+          <code>@piex-dev/plan</code> toggles read-only planning, tracks todos, and shows footer progress.
         </p>
         <h2 id="theory">How it works</h2>
         <p>
-          Reads inject <code>[path#TAG]</code> and record seen-lines. Edits must carry the same whole-file 4-hex tag (optimistic lock). Stricter than per-line hashes, but unlocks tree-sitter block ops and boundary repair from oh-my-pi.
-        </p>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>hashline</span></div>
-          <pre><code>[src/main.ts#A3F2]
-SWAP 2.=2:
-+const x = 2;</code></pre>
-        </div>
-        <p>
-          Phase 1 guards: three identical no-ops → <code>[E_NOOP_LOOP]</code>; resending a successful payload on an unchanged file → <code>[E_DUPLICATE_EDIT]</code>; normalize CRLF / fenced DSL.
+          Strip write tools for real, gate destructive bash, parse numbered plans, advance via <code>[DONE:n]</code>, persist with appendEntry + PLAN.md.
         </p>
         <h2 id="impl">Implementation</h2>
         <p>
-          Thin wrapper over <code>@oh-my-pi/hashline</code>: override <code>edit</code>, hook <code>read</code>, Node FS + realpath keys, <code>EditGuard</code>, and a Bun <code>xxHash32</code> polyfill.
+          One extension file exercising the full Extension API surface. Lighter than omp’s overlay, intentionally.
         </p>
-        <div class="blog-table-wrap">
-          <table>
-            <thead><tr><th>Capability</th><th>Status</th></tr></thead>
-            <tbody>
-                            <tr><td>tree-sitter blocks / REM·MV</td><td>✅ from engine</td></tr>
-              <tr><td>Noop / Duplicate / normalize</td><td>✅ Phase 1</td></tr>
-              <tr><td>Stale recovery / multi-version snaps</td><td>❌ Phase 2</td></tr>
-            </tbody>
-          </table>
-        </div>
         <h2 id="roadmap">Roadmap</h2>
         <p>
-          Prefer merge over pure reject when safe; multi-version snapshots + anchored grep; finer duplicate keys; wrapper tests and optional LSP refresh.
-        </p>
-        <h2 id="appendix">Appendix</h2>
-        <p>
-          Three community lines: whole-file tags, context per-line hashes, stable mapping. piex keeps the first as engine and borrows tolerance ideas. Full matrix in the source note.
+          Sturdier plan IR, weak DONE checks, review handoff, PLAN.md frontmatter, configurable allowlists. Not a sandbox.
         </p>
       </div>
 
@@ -164,15 +140,15 @@ SWAP 2.=2:
           <span class="blog-nav-label">← All posts</span>
           <span class="blog-nav-title">Blog list</span>
         </a>
-        <a class="blog-nav-card is-next" href="/en/blogs/dap/">
+        <a class="blog-nav-card is-next" href="/en/blogs/review/">
           <span class="blog-nav-label">Next →</span>
-          <span class="blog-nav-title">DAP: Real Debugging for Coding Agents</span>
+          <span class="blog-nav-title">Review: First-Class Code Review</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         Source Markdown:
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/hashline.md" target="_blank" rel="noopener">docs/notes/hashline.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/plan.md" target="_blank" rel="noopener">docs/notes/plan.md</a>
       </p>
     </article>
 
@@ -183,7 +159,6 @@ SWAP 2.=2:
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
         <a href="#roadmap">Roadmap</a>
-        <a href="#appendix">Appendix</a>
       </nav>
     </aside>
   </div>

@@ -2,6 +2,11 @@
 
 基于 `@oh-my-pi/hashline` 的 hashline 编辑语言扩展，覆盖 pi 内置 `edit` 工具。
 
+## 深度解读
+
+- 博客：https://piex.dev/zh/blogs/hashline/
+- 源稿：[`docs/notes/hashline.md`](../../docs/notes/hashline.md)
+
 ## 功能
 
 - **覆盖 edit 工具**: 内置 `edit` 替换为 hashline 语法解析 + 应用

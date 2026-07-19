@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hashline: Content Anchors, Not Fragile Line Numbers — PieX</title>
-  <meta name="description" content="Line numbers drift. piex/hashline tags reads, verifies edits, and adds Phase 1 model guards." />
-  <link rel="canonical" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/hashline/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/hashline/" />
-  <meta property="og:title" content="Hashline: Content Anchors, Not Fragile Line Numbers — PieX" />
-  <meta property="og:description" content="Line numbers drift. piex/hashline tags reads, verifies edits, and adds Phase 1 model guards." />
-  <meta property="og:url" content="https://piex.dev/en/blogs/hashline/" />
+  <title>DAP: Real Debugging for Coding Agents — PieX</title>
+  <meta name="description" content="Wire the Debug Adapter Protocol into pi: breakpoints, stepping, variables." />
+  <link rel="canonical" href="https://piex.dev/en/blogs/dap/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/dap/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/dap/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/dap/" />
+  <meta property="og:title" content="DAP: Real Debugging for Coding Agents — PieX" />
+  <meta property="og:description" content="Wire the Debug Adapter Protocol into pi: breakpoints, stepping, variables." />
+  <meta property="og:url" content="https://piex.dev/en/blogs/dap/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,8 +53,8 @@
     <aside class="docs-nav" aria-label="Blog">
       <p class="blog-toc-title">Blog</p>
       <nav>
-        <a href="/en/blogs/hashline/" class="is-active">Hashline: Content-Anchored Edits</a>
-        <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
+        <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
+        <a href="/en/blogs/dap/" class="is-active">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
@@ -71,8 +71,8 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav docs-nav-mobile">
-        <a href="/en/blogs/hashline/" class="is-active">Hashline: Content-Anchored Edits</a>
-        <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
+        <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
+        <a href="/en/blogs/dap/" class="is-active">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
@@ -92,18 +92,17 @@
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
         <a href="#roadmap">Roadmap</a>
-        <a href="#appendix">Appendix</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">Hashline</span>
-          <span class="blog-tag">Edit</span>
+          <span class="blog-tag">DAP</span>
+          <span class="blog-tag">Debug</span>
           <span class="blog-tag">Extension</span>
         </div>
-        <h1>Hashline: Content Anchors, Not Fragile Line Numbers</h1>
-        <p class="blog-lede">Default edits shift from guessing lines to editing the version you actually read.</p>
+        <h1>DAP: Real Debugging for Coding Agents</h1>
+        <p class="blog-lede">Stop print-debugging. Launch, stop, and inspect.</p>
       </header>
 
       <div class="blog-prose">
@@ -111,51 +110,28 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">In short</p>
-            <p>With <code>@piex-dev/hashline</code>, edits are version-checked: fewer silent wrong writes, occasional re-reads. A tax worth paying.</p>
+            <p>With <code>@piex-dev/dap</code>, agents can run and inspect instead of only guessing. Not a test suite—but variables become readable facts.</p>
           </div>
         </div>
 
         <h2 id="bg">Background</h2>
         <p>
-          Agent <code>edit</code> tools trust <strong>line numbers</strong>, but lines drift: users edit mid-thought, prior patches shift offsets, models invent lines they never read. Silent wrong writes are worse than hard failures.
+          Guess–edit–rerun is brittle for runtime bugs. Humans use debuggers; agents shouldn’t be stuck with print-debugging.
         </p>
         <p>
-          <code>@piex-dev/hashline</code> replaces pi’s built-in edit with content-anchored patches: tag on read, verify on write, refuse unseen lines.
+          <code>@piex-dev/dap</code> exposes a <code>debug</code> tool over the Debug Adapter Protocol: launch, breakpoints, stepping, variables.
         </p>
         <h2 id="theory">How it works</h2>
         <p>
-          Reads inject <code>[path#TAG]</code> and record seen-lines. Edits must carry the same whole-file 4-hex tag (optimistic lock). Stricter than per-line hashes, but unlocks tree-sitter block ops and boundary repair from oh-my-pi.
-        </p>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>hashline</span></div>
-          <pre><code>[src/main.ts#A3F2]
-SWAP 2.=2:
-+const x = 2;</code></pre>
-        </div>
-        <p>
-          Phase 1 guards: three identical no-ops → <code>[E_NOOP_LOOP]</code>; resending a successful payload on an unchanged file → <code>[E_DUPLICATE_EDIT]</code>; normalize CRLF / fenced DSL.
+          Agent intent → DAP client → adapters (debugpy, dlv, lldb, …). Session states running/stopped/terminated over stdio JSON-RPC. Fourteen adapters selected via file type and root markers. TCP remote attach is intentionally out of scope for now.
         </p>
         <h2 id="impl">Implementation</h2>
         <p>
-          Thin wrapper over <code>@oh-my-pi/hashline</code>: override <code>edit</code>, hook <code>read</code>, Node FS + realpath keys, <code>EditGuard</code>, and a Bun <code>xxHash32</code> polyfill.
+          Framed client, session manager with breakpoint queues, output caps, idle cleanup, capability checks, and non-interactive env defaults.
         </p>
-        <div class="blog-table-wrap">
-          <table>
-            <thead><tr><th>Capability</th><th>Status</th></tr></thead>
-            <tbody>
-                            <tr><td>tree-sitter blocks / REM·MV</td><td>✅ from engine</td></tr>
-              <tr><td>Noop / Duplicate / normalize</td><td>✅ Phase 1</td></tr>
-              <tr><td>Stale recovery / multi-version snaps</td><td>❌ Phase 2</td></tr>
-            </tbody>
-          </table>
-        </div>
         <h2 id="roadmap">Roadmap</h2>
         <p>
-          Prefer merge over pure reject when safe; multi-version snapshots + anchored grep; finer duplicate keys; wrapper tests and optional LSP refresh.
-        </p>
-        <h2 id="appendix">Appendix</h2>
-        <p>
-          Three community lines: whole-file tags, context per-line hashes, stable mapping. piex keeps the first as engine and borrows tolerance ideas. Full matrix in the source note.
+          Richer breakpoints, stop-default context packs, project launch configs, optional TCP, and eval metrics for real debug success.
         </p>
       </div>
 
@@ -164,15 +140,15 @@ SWAP 2.=2:
           <span class="blog-nav-label">← All posts</span>
           <span class="blog-nav-title">Blog list</span>
         </a>
-        <a class="blog-nav-card is-next" href="/en/blogs/dap/">
+        <a class="blog-nav-card is-next" href="/en/blogs/lsp/">
           <span class="blog-nav-label">Next →</span>
-          <span class="blog-nav-title">DAP: Real Debugging for Coding Agents</span>
+          <span class="blog-nav-title">LSP: Language-Server Eyes for Agents</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         Source Markdown:
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/hashline.md" target="_blank" rel="noopener">docs/notes/hashline.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/dap.md" target="_blank" rel="noopener">docs/notes/dap.md</a>
       </p>
     </article>
 
@@ -183,7 +159,6 @@ SWAP 2.=2:
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
         <a href="#roadmap">Roadmap</a>
-        <a href="#appendix">Appendix</a>
       </nav>
     </aside>
   </div>

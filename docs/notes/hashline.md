@@ -1,433 +1,274 @@
 ---
-title: Hashline 方案的原理及借鉴
-date: 2026-07-16
+title: Hashline：用内容锚点，而不是脆弱行号，改代码
+date: 2026-07-19
 tags: [Hashline, Edit, Extension]
 ---
 
-## 为什么需要锚定编辑
+> 装上 `@piex-dev/hashline` 后，默认编辑从「猜行号」变成「凭读过的版本改」：更少静默写错，代价是偶发 re-read。这是值得付的税。
 
-AI 编码助手的 edit 工具面临一个根本问题：**模型用行号描述编辑位置，但行号是脆弱的**。用户可能在模型思考期间修改文件，模型自己前一轮的编辑也会让后续行号全部偏移。如果直接信任行号，edit 会在错误位置修改代码，造成难以察觉的 bug。
+## 问题背景
 
-锚定编辑（Hashline）解决这个问题的思路是：**用内容哈希代替行号作为编辑的坐标系统**。模型读取文件时看到每行旁边的哈希值，编辑时用这些哈希值告诉工具"替换从这个哈希到那个哈希之间的内容"，而不是"替换第 12 到 15 行"。
+AI 编码助手的 `edit` 工具有一个根本矛盾：
 
-[piex/hashline](https://github.com/piex-dev/piex/tree/main/packages/hashline) 在设计上从三个优秀的 hashline 实现中汲取灵感。本文深入对比这三个实现，分析它们各自的设计决策、优势与取舍，说明 piex/hashline 的选择逻辑。
+> 模型用**行号**描述「改哪里」，但行号在真实世界里极不稳定。
+
+典型翻车场景：
+
+1. 用户在模型思考时随手改了文件  
+2. 模型上一轮 edit 已经插入/删除若干行，后面行号全漂  
+3. 模型没读全文件，却对「以为存在」的行号下手  
+4. 同一 payload 因不确定是否生效被重发，append 类操作直接内容重复  
+
+若工具盲目信任行号，错误会写进仓库，而且常常**静默成功**：exit code 是 0，代码已经错了。
+
+**Hashline（锚定编辑）** 的回答是：把编辑坐标系从「第 N 行」升级为「我读到的那个版本 + 我见过的那些行」。  
+`@piex-dev/hashline` 用它**覆盖** pi 内置 `edit`，让 agent 默认走更稳的补丁语言。
+
+```bash
+pi install npm:@piex-dev/hashline
+```
+
+包路径：[`packages/hashline`](https://github.com/piex-dev/piex/tree/main/packages/hashline)。
 
 ---
 
-## 一、三个参考实现
+## 技术原理
 
-| 实现 | 作者 | 哈希粒度 | 代码规模 | 测试 |
-|------|------|---------|---------|------|
-| **[oh-my-pi/hashline](https://github.com/can1357/oh-my-pi)** | can1357 | 全文件 → 4-hex tag | ~3500 行 | 12 个 |
-| **[pi-hashline-edit](https://github.com/RimuruW/pi-hashline-edit)** | RimuruW | 逐行上下文感知 → 2/3/4 char | ~4000 行 | 30+ 个 |
-| **[pi-hashline-edit-pro](https://github.com/YuGiMob/pi-hashline-edit-pro)** | YuGiMob | 逐行内容 → 3 char | ~3500 行 | 50+ 个 |
+### 1. 一句话原理
 
-关键事实：后两者与 oh-my-pi **没有任何共享代码**。pi-hashline-edit 注释写的是 "Vendored & adapted from oh-my-pi"，但其核心算法（上下文感知哈希、textHint 交叉校验、3-way merge 恢复）全部是原创设计。
+1. **读的时候**：给文件打一个内容指纹 tag，并记住模型实际看到了哪些行  
+2. **改的时候**：补丁必须带上同一个 tag；对不上就拒绝，要求 re-read  
+3. **写的时候**：用 DSL 描述替换/删除/插入/整块语法操作，而不是模糊的「把这段改成那样」
+
+模型看到的读结果大致是：
+
+```text
+[src/main.ts#A3F2]
+1:import { foo } from "./foo";
+2:const x = 1;
+```
+
+它发出的编辑大致是：
+
+```text
+[src/main.ts#A3F2]
+SWAP 2.=2:
++const x = 2;
+```
+
+工具会：重算当前文件哈希 → 与 `#A3F2` 比对 → 通过才 apply → 返回新 tag。
+
+### 2. 整体哈希 vs 逐行哈希（行业分歧）
+
+Hashline 不是只有一种做法。社区里至少三条路线：
+
+| 路线 | 代表 | 失效范围 | 直觉 |
+|------|------|----------|------|
+| 全文件 tag | oh-my-pi / **piex** | 文件任意改动 → 整文件 tag 失效 | 简单、严格，像乐观锁版本号 |
+| 逐行 + 上下文哈希 | pi-hashline-edit | 编辑点 ±1 行 | 远处锚点仍可用，少 re-read |
+| 逐行内容 + stable mapping | pi-hashline-edit-pro | 尽量只失效真正变了的行 | 编辑后尽量不 re-read |
+
+```text
+整体哈希 (oh-my-pi / piex):
+  任意改动 → ████████ 全部失效
+
+上下文感知逐行:
+  编辑第5行 → ___███__ ±1 行
+
+纯内容 + stable mapping:
+  编辑第5行 → ____█___ 尽量局部
+```
+
+piex 选择 **封装 `@oh-my-pi/hashline`（整体 tag）**，换取两样很难自研的能力：
+
+- **tree-sitter 块操作**（`SWAP.BLK` / `DEL.BLK` …）：按语法块改，而不是人肉数行号  
+- **boundary repair 引擎**：自动收拾模型常犯的边界错误（多贴一行、括号不配平等）
+
+封装层本身只有数百行，复杂算法留在上游引擎。
+
+### 3. 只改「见过的行」
+
+光有文件 tag 还不够：模型可能只 read 了文件前 80 行，却对第 200 行下手。  
+oh-my-pi / piex 会从 read 输出的行号前缀解析 **seen-lines**，Patcher 拒绝编辑从未展示过的行（折叠摘要行 `12-40:` 只算边界，不算中间省略区）。
+
+这是「防幻觉编辑」的硬闸，不是提示词劝导。
+
+### 4. 模型行为容错（Phase 1）
+
+即使坐标系对了，模型仍会：
+
+- 对 noop 结果连打同一补丁（极端会话可上百次）  
+- 成功后又重发，导致重复插入  
+- 把 DSL 包进 markdown 代码块、混入 CRLF、乱加空行  
+
+piex 在引擎外包了一层 `EditGuard` + `normalizeInput`（详见下一节）。
+
+更完整的三方实现对比、ADR 链接与路线图表，仍保留在文末「附录：与其它 hashline 实现的对比」。
 
 ---
 
-## 二、原理：整体哈希 vs 逐行哈希
+## 实现方案
 
-这是最根本的设计分歧。
+### 模块结构
 
-### 2.1 整体哈希（oh-my-pi）
-
-```
-读取时：
-  全文件内容 → xxHash32 → 截取前 16 bit → 4-hex tag "A3F2"
-  输出：[src/main.ts#A3F2]
-          1:A3F2:import { foo } from "./foo";
-          2:B7E1:const x = 1;
-
-编辑时：
-  [src/main.ts#A3F2]        ← 用 tag 证明"我看到的是这个版本"
-  SWAP 2.=2:                ← 行号 + tag 双重定位
-  +const x = 2;
+```text
+hashline.ts         # 扩展入口：覆盖 edit + hook read
+filesystem.ts       # PiexNodeFilesystem：node:fs + realpath 规范路径
+bun-polyfill.ts     # 为 @oh-my-pi/hashline 提供 Bun.hash.xxHash32
+patches.ts          # EditGuard：noop loop + duplicate edit
+@oh-my-pi/hashline  # Patch 解析、Patcher 应用、快照、prompt.md
 ```
 
-**校验流程**：
+这是 piex 里**唯一带运行时 npm 依赖**的包（`@oh-my-pi/hashline`），本地开发需先 `npm install`。
 
-1. 重读文件 → 计算哈希 → 得到 `actualTag`
-2. 对比 header 中的 `expectedTag`
-3. 匹配 → 行号索引的是 tag 所指版本，安全执行
-4. 不匹配 → `MismatchError`，提示 re-read
+### 工作流（端到端）
 
-**优点**：概念简单，一个 tag 覆盖整个文件。seenLines 机制可以跟踪模型实际看到的行号，阻止模型编辑从未读取的行。
-
-**缺点**：文件任何一处改动 → 全局 tag 失效。并发修改极其敏感。模型必须先读完整文件才能编辑任意位置。
-
-### 2.2 逐行哈希（pi-hashline-edit、pi-hashline-edit-pro）
-
-```
-读取时：
-  对每一行独立计算哈希
-  输出：1#MQ:import { foo } from "./foo";
-        2#VR:const x = 1;
-
-编辑时：
-  { "op": "replace", "pos": "2#VR", "lines": ["const x = 2;"] }
-  ← 锚定在行 2 的哈希 VR 上
+```text
+1. 模型 read src/a.ts
+2. tool_result hook：
+   - 规范化内容，canonicalSnapshotKey（解析符号链接）
+   - store.record(path, text, seenLines)
+   - 正文前插入 [src/a.ts#A3F2]
+   - EditGuard.resetPath：主动 re-read 清空该路径 guard
+3. 模型 edit，input 为 hashline DSL
+4. normalizeInput → Patch.parse → EditGuard 查 duplicate
+5. Patcher.apply（tag + seen-lines + boundary repair）
+6. 成功：写回、record 新快照、recordApplied
+7. 全 section noop：recordNoop，≥3 次同 payload → [E_NOOP_LOOP]
+8. tag 不匹配 → MismatchError 文案，要求 re-read
 ```
 
-**校验流程**：
+### 覆盖内置 edit
 
-1. 对锚点指定的行号，计算当前文件中该行的哈希
-2. 对比锚点中的 expectedHash
-3. 匹配 → 该行内容未变，安全编辑
-4. 不匹配 → `E_STALE_ANCHOR`
-
-**优点**：局部失效。只改第 5 行，第 50 行的锚点仍然有效。读完需要的范围就可以编辑，减少不必要的 re-read round-trip。
-
-**缺点**：哈希碰撞更突出（每行独立哈希，同内容行碰撞需要额外策略）。
-
-### 2.3 上下文感知哈希（pi-hashline-edit 独有）
-
-pi-hashline-edit 的哈希函数不只是对行内容做摘要：
-
-```
-computeHashFromContext(prev, curr, next) =
-  xxHash32(prev + "\0" + curr + "\0" + next)
+```typescript
+pi.registerTool({ name: "edit", ... })  // 同名覆盖
+pi.on("tool_result", ...)               // 只处理 read
 ```
 
-**第 N 行的哈希值依赖 N-1、N、N+1 三行内容**。这意味着编辑的影响半径精确限定在 ±1 行：
+参数从「旧文本/新文本」类 schema 换成单一 `input` 字符串（DSL）。  
+工具 description 直接读上游 `prompt.md`，保证语法说明与引擎一致。
 
-```
-编辑第 5 行 →
-  第 4 行锚点失效（next 变了）
-  第 5 行锚点失效（自身变了）
-  第 6 行锚点失效（prev 变了）
-  第 3、7、8... 行锚点保持有效 ← 远处不受影响
-```
+### Phase 1 容错层（已落地）
 
-比整体哈希（全局失效）宽松，比纯内容哈希（只失效编辑行）更安全：紧邻编辑区的锚点确实应该被标记为不可信。
+实现文件：`extensions/patches.ts` + `hashline.ts` 内 `normalizeInput`。
 
-### 2.4 Stable Hash Mapping（pi-hashline-edit-pro 独有）
+| 机制 | 行为 |
+|------|------|
+| Noop Loop Guard | 同一 `(path, payloadKey)` 连续 noop ≥ 3 → `[E_NOOP_LOOP]` |
+| Duplicate Edit | 成功后同 payload 且文件哈希未变 → `[E_DUPLICATE_EDIT]` |
+| 方言归一化 | trim、CRLF→LF、剥 markdown 围栏、压缩多余空行 |
+| re-read 重置 | 模型再次 read 该路径 → guard 状态清空（允许有意重做） |
 
-pi-hashline-edit-pro 采用纯内容哈希，但在编辑后执行 **stable hash mapping**：通过逐行内容匹配将旧哈希映射到新文件中相同内容的行，让未变化的行保留旧哈希。
+payloadKey / fileHash 均用 xxHash32 的紧凑 hex，避免存整份 DSL。
 
-```
-编辑前：lines = ["import x", "const a = 1", "const b = 2", "export y"]
-         hashes = ["F4T",       "MQX",         "ZPM",         "VRW"]
-编辑后：lines = ["import x", "const b = 2", "export y"]
-            ↓ 内容匹配        ↓ 匹配到旧行 3  ↓ 匹配到旧行 4
-         hashes = ["F4T",       "ZPM",         "VRW"]
-                                               ↑ 锚点存活！
-```
+已知局限（代码里已注释）：payload 指纹针对**整次 input**；多文件大补丁若事后只重发其中一节，指纹不同，duplicate 可能覆盖不到。
 
-这意味着模型在一次编辑后，**不需要 re-read 就能继续编辑同一文件**。
+### Node 适配要点
 
-### 2.5 三种方案失效范围对比
+- **polyfill 必须先于依赖**：`import "./bun-polyfill.js"` 在前，再 `await import("@oh-my-pi/hashline")`，躲开 ESM 提升顺序问题  
+- **I/O 不走 Bun FS**：`PiexNodeFilesystem` 直连 `node:fs`  
+- **路径键一致**：macOS 上 `/tmp` → `/private/tmp` 等 symlink 用 realpath，避免 read/edit 快照 key 对不上  
 
-```
-整体哈希 (oh-my-pi):
-  文件任意改动 → ████████████████████ 全部失效
+### 与 omp 原版的差异（务实表）
 
-上下文感知哈希 (pi-hashline-edit):
-  编辑第5行       → ___███______________  ±1行失效
+| 能力 | omp | piex hashline |
+|------|-----|----------------|
+| 引擎 | 内建 | 依赖 `@oh-my-pi/hashline` |
+| FS | Bun + 可选 LSP writethrough | node:fs + realpath |
+| seen-lines | ✅ | ✅ |
+| Phase 1 容错 | 部分在其它实现更强 | ✅ noop/dup/normalize |
+| Stale anchor 自动恢复 | Recovery 模块 | ❌ 目前要求 re-read |
+| 多版本快照 LRU | 视版本 | ❌ 单版本内存 store |
 
-纯内容哈希 + stable mapping (pi-hashline-edit-pro):
-  编辑第5行       → ____█_______________  仅编辑行本身，stable mapping 让其余存活
+README 若仍写「noop 未实现」，以源码 Phase 1 注释与 `patches.ts` 为准（文档滞后时以代码为准）。
+
+---
+
+## 优化计划
+
+选择整体文件 tag，换来的是严格与简单，也带来固定税：
+
+1. **冲突策略偏「拒绝」**  
+   外部或并行改动一次，未完成编辑整批作废，强制 re-read；安全，但 token 与轮次贵。  
+   → Phase 2 优先接 Stale Anchor 恢复（3-way merge 或 omp Recovery），在安全前提下少一轮往返。
+
+2. **快照偏薄**  
+   内存单版本，没有多版本 LRU，难在「读过的旧视图」上重放补丁。  
+   → 多版本快照 + 带锚点的 Grep（搜索结果可直接 edit）。
+
+3. **duplicate 粒度偏粗**  
+   指纹打在整次 input 上，多文件补丁的 partial resend 可能漏检。  
+   → 按 section/path 细化 payload 键。
+
+4. **封装层测试与生态联动不足**  
+   强依赖上游测试与手工冒烟；编辑成功后也不会自动刷新 LSP。  
+   → 封装层单测与对抗性 payload fixture；与 `lsp` diagnostics 可选联动。
+
+路线可以压成三期（Phase 1 已完成）：
+
+```text
+Phase 1 ✅  Noop Loop / Duplicate Edit / 方言归一化
+Phase 2    Stale 恢复 · 多版本快照 · 锚点 Grep
+Phase 3    Undo · Auto/Raw Read · LSP 联动 · 更密的封装层测试
 ```
 
 ---
 
-## 三、容错机制对比
+## 附录：与其它 hashline 实现的对比
 
-### 3.1 Stale Anchor 恢复
+> 供实现者深入阅读；一般读者看「问题背景 / 技术原理 / 实现方案 / 优化计划」四节即可。
 
-**oh-my-pi — Recovery 模块（anchor remapping）**
 
-```
-1. diffArrays(旧文件, 新文件) → 构建行号映射 Map<oldLine, newLine>
-2. 验证每个锚点上下文的非锚点邻行在映射后仍然连续
-3. 所有锚点必须按同一 offset 移动
-4. 通过 → 重映射锚点，在新文件上直接 apply
-5. 失败 → MismatchError
-```
+### 三个参考实现
 
-严格但保守：所有锚点必须统一偏移。一个锚点对不上，全部拒绝。
+| 实现 | 哈希粒度 | 代码规模 |
+|------|---------|---------|
+| [oh-my-pi/hashline](https://github.com/can1357/oh-my-pi) | 全文件 → 4-hex tag | ~3500 行 |
+| [pi-hashline-edit](https://github.com/RimuruW/pi-hashline-edit) | 逐行上下文感知 | ~4000 行 |
+| [pi-hashline-edit-pro](https://github.com/YuGiMob/pi-hashline-edit-pro) | 逐行内容 → 3 char | ~3500 行 |
 
-**pi-hashline-edit — 3-way merge 恢复**
+后两者与 oh-my-pi **无共享核心算法代码**（即便注释写 vendored，上下文哈希、textHint、3-way merge 等为各自设计）。
 
-```
-1. 取模型最后一次 read 的快照（多版本 LRU，最多 4 版本 × 8 路径）
-2. 在快照上重放编辑 → baseEdited
-3. 生成 unified patch：structuredPatch(snapshot, baseEdited)
-4. 合并到 live 文件：applyPatch(liveContent, patch, {fuzzFactor: 0})
-5. 成功 → 返回合并结果 + warning
-6. 失败 → 尝试更早版本快照，全部失败则回退到 E_STALE_ANCHOR
-```
+### 容错机制对照
 
-**fuzzFactor=0 是关键约束**：如果外部修改和模型编辑有冲突（同一行被两边改了），合并必然失败，不会静默覆盖任何一方的修改。
+| 维度 | oh-my-pi | piex | pi-hashline-edit | pi-hashline-edit-pro |
+|------|----------|------|------------------|----------------------|
+| Stale 恢复 | Recovery | ❌ | 3-way merge | stable mapping 补偿 |
+| Noop Loop | ❌ | ✅ Phase1 | ✅ | ❌ |
+| Duplicate Edit | ❌ | ✅ Phase1 | ✅ | ❌ |
+| Boundary Repair | ✅ 重型 | ✅ 继承引擎 | 简化 | 简化+autoFix |
+| 方言归一化 | ❌ | ✅ Phase1 | ✅ | ❌ |
+| textHint | ❌ | ❌ | ✅ | ❌ |
+| Block (tree-sitter) | ✅ | ✅ 继承 | ❌ | ❌ |
+| REM/MV 文件操作 | ✅ | ✅ 继承 | ❌ | ❌ |
 
-**pi-hashline-edit-pro — 无恢复，依赖 stable hash mapping 降低失效概率。**
+### 语法风格速览
 
-### 3.2 Noop Loop Guard（pi-hashline-edit 独有）
+**oh-my-pi / piex DSL**
 
-模型经常忽略 soft hint，在 noop 结果上反复重试同一 payload。极端案例：一次会话中模型连续发送了 205 次 byte-identical 的 noop edit。
-
-pi-hashline-edit 的方案：
-
-```
-同一 (canonicalPath, payloadKey) → noopCount++
-noopCount ≥ 3 → 抛 ToolError "[E_NOOP_LOOP]"
-模型切换 payload → 计数器重置
-```
-
-简单但有效。oh-my-pi 和 pi-hashline-edit-pro 均无此保护。
-
-### 3.3 Duplicate Edit 检测（pi-hashline-edit 独有）
-
-与 noop loop guard 正交：模型在一次**成功**的 edit 后误以为失败，重发相同 payload（如 append 一行后不确定是否生效，又发一次，导致内容重复）。
-
-```
-lastAppliedPayload[path] = payloadKey
-
-新请求到达：
-  payloadKey 匹配 && read snapshot == live content → [E_DUPLICATE_EDIT]
-  模型主动 re-read → 清除 lastAppliedPayload
-```
-
-### 3.4 Boundary Repair
-
-**oh-my-pi 的修复引擎**（~1200 行）是三个实现中最完善的。它在 apply 阶段自动检测并修复：
-
-| 错误类型 | 检测方式 | 处理 |
-|---------|---------|------|
-| Boundary echo | 替换内容首/尾行与范围外行完全相同 | 自动裁剪重复行 |
-| Delimiter imbalance | 括号/花括号/方括号在替换前后不匹配 | 保留/移除范围边界外的结构闭合行 |
-| JSX closer mismatch | JSX 闭合标签丢失或重复 | 识别组件名匹配，自动修复 |
-| After-insert landing | body 缩进深度与锚点位置不匹配 | 根据缩进深度自动调整插入位置 |
-
-两个逐行哈希实现只有简化版：
-- pi-hashline-edit：比较首尾行与范围外邻行（trim 后），发 warning
-- pi-hashline-edit-pro：同样检测，但**自动修复**（autoFix 裁剪重复行）
-
-### 3.5 方言归一化（pi-hashline-edit 独有）
-
-模型可能用不符合 schema 的格式调用 edit tool，例如用 pi 原生的 `oldText/newText`、把 edits 序列化成 JSON 字符串、用 `file_path` 代替 `path`。
-
-pi-hashline-edit 的 `prepareArguments` hook 在验证前自动吸收这些变异：
-
-```
-prepareArguments → normalizeEditRequest:
-  file_path → path
-  "edits": "[...]" → JSON.parse → array
-  { oldText, newText } → { op: "replace_text", oldText, newText }
-  缺少 op 的 edit item → backfillEditOp 推断
-```
-
-一个非标准格式被归一化后继续执行，不消耗模型额外的 turn。这是 oh-my-pi 和 pi-hashline-edit-pro 都没有的。
-
-### 3.6 textHint 交叉校验（pi-hashline-edit 独有）
-
-pi-hashline-edit 的锚点格式 `LINE#HASH:content` 中 `:content` 后缀是可选的 textHint：
-
-- **哈希匹配但 textHint 不匹配** → 锚点过期（防 1/256 哈希碰撞）
-- **哈希不匹配但 textHint 匹配且模糊等价** → 接受锚点（容错空白符变化）
-
-textHint 的来源是 read 输出中本就存在的内容，对模型零额外 token 开销。oh-my-pi 和 pi-hashline-edit-pro 都没有这个保护。
-
----
-
-## 四、编辑操作模型
-
-### 4.1 三种语法风格
-
-**oh-my-pi — 自定义 DSL**
-
-```
-[src/main.ts#A3F2]      ← 文件级 header + tag
-SWAP 12.=12:             ← 替换行 12
+```text
+[src/main.ts#A3F2]
+SWAP 12.=12:
 +const x = 1;
-
-DEL 5                    ← 删除行 5
-
-INS.PRE 8:               ← 在第 8 行之前插入
+DEL 5
+INS.PRE 8:
 +import { foo } from "./foo";
-
-SWAP.BLK 20:             ← 替换第 20 行开始的整个语法块（tree-sitter）
+SWAP.BLK 20:
 +function greet(name) {
 +  return `Hello, ${name}`;
 +}
-
-REM                      ← 删除整个文件
-MV lib/greet.ts          ← 移动/重命名文件
 ```
 
-**pi-hashline-edit — JSON + 多样化操作**
+**pi-hashline-edit JSON**：`replace` / `append` / `prepend` / `replace_text`，锚点 `LINE#HASH[:hint]`。  
+**pi-hashline-edit-pro JSON**：单一 replace + `hash_range_inclusive`。
 
-```json
-{
-  "path": "src/main.ts",
-  "edits": [
-    { "op": "replace", "pos": "12#MQ", "lines": ["const x = 1;"] },
-    { "op": "replace", "pos": "5#VR", "end": "8#QV", "lines": ["..."] },
-    { "op": "append", "pos": "8#VR", "lines": ["import { foo }..."] },
-    { "op": "prepend", "lines": ["// Header comment"] },
-    { "op": "replace_text", "oldText": "var x = 1", "newText": "const x = 1" }
-  ]
-}
-```
-
-**pi-hashline-edit-pro — JSON + 单一操作**
-
-```json
-{
-  "path": "src/main.ts",
-  "changes": [
-    { "content_lines": ["const x = 1;"], "hash_range_inclusive": ["MQX", "MQX"] },
-    { "content_lines": [], "hash_range_inclusive": ["F4T", "ZPM"] }
-  ]
-}
-```
-
-### 4.2 Block 操作：oh-my-pi 的独特优势
-
-oh-my-pi 的 `SWAP.BLK N:` 通过 tree-sitter 将第 N 行所在的**完整语法块**解析出来，模型不需要计算精确的起止行号。无论目标函数是 3 行还是 30 行，tree-sitter 精确解析从 `function` 到 `}` 的完整范围。
-
-**这是三个实现中唯一具备语法感知能力的设计**。两个逐行哈希实现全是纯行级编辑，无语法感知。
-
-### 4.3 操作多样性：pi-hashline-edit 的优势
-
-pi-hashline-edit 提供五种操作类型：
-
-| 操作 | 说明 |
-|------|------|
-| `replace` + pos | 替换单行 |
-| `replace` + pos + end | 替换范围 |
-| `append` + (pos?) | 在某行后（或 EOF）插入 |
-| `prepend` + (pos?) | 在某行前（或 BOF）插入 |
-| `replace_text` | 精确字符串匹配替换 |
-
-相比之下，oh-my-pi 的 DSL 语法虽然表达能力更强（含 block 和文件操作），但模型学习成本更高。pi-hashline-edit-pro 只有一种 replace 操作，append/prepend 需要通过变通方式实现。
-
----
-
-## 五、功能全景对比
-
-### 5.1 核心机制
-
-| 维度 | oh-my-pi | pi-hashline-edit | pi-hashline-edit-pro |
-|---|---|---|---|
-| 哈希粒度 | 全文件 → 4-hex | 逐行上下文感知 → 2/3/4 char | 逐行内容 → 3 char |
-| 碰撞空间 | 16-bit | 上下文 + textHint 双重防护 | 18-bit + 退避 |
-| 锚点格式 | `[path#TAG]` header | `LINE#HASH[:textHint]` | `HASH`（无行号） |
-| 失效范围 | 全局 | ±1 行 | 编辑行 |
-| 恢复策略 | Recovery（anchor remapping） | 3-way merge（多版本快照） | stable hash mapping |
-
-### 5.2 编辑操作
-
-| 维度 | oh-my-pi | pi-hashline-edit | pi-hashline-edit-pro |
-|---|---|---|---|
-| 行级操作 | SWAP/DEL/INS | replace/append/prepend/replace_text | replace |
-| 块级操作（tree-sitter） | ✅ | ❌ | ❌ |
-| 文件操作 | REM / MV | ❌ | ❌ |
-
-### 5.3 容错机制
-
-| 维度 | oh-my-pi | pi-hashline-edit | pi-hashline-edit-pro |
-|---|---|---|---|
-| Stale Anchor 恢复 | ✅ anchor remapping | ✅ 3-way merge | ❌（stable hash 补偿） |
-| Noop Loop Guard | ❌ | ✅ ≥3 次抛错 | ❌ |
-| Duplicate Edit 检测 | ❌ | ✅ | ❌ |
-| Boundary Repair | ✅ ~1200 行引擎 | ⚠️ 简化版 | ⚠️ 简化版 + autoFix |
-| 方言归一化 | ❌ | ✅ | ❌ |
-| textHint 校验 | ❌ | ✅ | ❌ |
-
-### 5.4 用户体验
-
-| 维度 | oh-my-pi | pi-hashline-edit | pi-hashline-edit-pro |
-|---|---|---|---|
-| Undo | ❌ | ❌ | ✅ |
-| Grep（带锚点） | ❌ | ✅ | ❌ |
-| Auto-Read | ❌ | ❌ | ✅ |
-| Raw Read（省 token） | ❌ | ✅ | ❌ |
-| Flat Mode | ❌ | ❌ | ✅ |
-| Diff 预览 | ✅ | ✅ | ✅ |
----
-
-## 六、piex/hashline 的选择
-
-### 6.1 当前架构：以 oh-my-pi 为引擎
-
-[piex/hashline](https://github.com/piex-dev/piex/tree/main/packages/hashline) 选择 **oh-my-pi 作为核心引擎**，在此基础上做 Node.js 适配。这个选择保留了 oh-my-pi 最独特的两个能力：
-
-- **tree-sitter block 操作**（`SWAP.BLK`/`DEL.BLK`/`INS.BLK.POST`）：四个实现中唯一具备语法感知的编辑方式
-- **boundary repair 引擎**（~1200 行）：自动修复模型编辑时的边界错误（boundary echo、delimiter imbalance、JSX closer 等）
-
-### 6.2 四库功能对比
-
-将 [piex/hashline](https://github.com/piex-dev/piex/tree/main/packages/hashline) 放入对比，可以直观看到它从 oh-my-pi 继承了什么，又从另两个实现中可以借鉴什么：
-
-| 维度 | oh-my-pi | **piex/hashline** | pi-hashline-edit | pi-hashline-edit-pro |
-|---|---|---|---|---|
-| **引擎来源** | 自身 | **封装 oh-my-pi** | 独立重写 | 从零实现 |
-| **代码规模** | ~3500 行 | **~200 行（封装层）** | ~4000 行 | ~3500 行 |
-| **哈希粒度** | 全文件 → 4-hex | **同 oh-my-pi** | 逐行上下文感知 | 逐行内容 |
-| **锚点格式** | `[path#TAG]` | **同 oh-my-pi** | `LINE#HASH:textHint` | `HASH`（无行号） |
-| **Block 操作（tree-sitter）** | ✅ | **✅ 继承** | ❌ | ❌ |
-| **文件操作（REM/MV）** | ✅ | **✅ 继承** | ❌ | ❌ |
-| **Boundary Repair** | ✅ ~1200行引擎 | **✅ 继承** | ⚠️ 简化版 | ⚠️ + autoFix |
-| **Stale Anchor 恢复** | ✅ Recovery | **❌** | ✅ 3-way merge | ❌ |
-| **Noop Loop Guard** | ❌ | **✅ Phase 1** | ✅ ≥3次抛错 | ❌ |
-| **Duplicate Edit 检测** | ❌ | **✅ Phase 1** | ✅ | ❌ |
-| **方言归一化** | ❌ | **✅ Phase 1** | ✅ | ❌ |
-| **textHint 校验** | ❌ | **❌** | ✅ | ❌ |
-| **多版本快照** | ❌ | **❌** | ✅ LRU | ❌ |
-| **append/prepend ops** | ✅（INS语法） | **✅ 继承** | ✅ 原生 JSON | ❌ |
-| **replace_text** | ❌ | **❌** | ✅ 可配置 | ❌ |
-| **Undo** | ❌ | **❌** | ❌ | ✅ |
-| **Auto-Read** | ❌ | **❌** | ❌ | ✅ |
-| **Grep（带锚点）** | ❌ | **❌** | ✅ | ❌ |
-| **Raw Read** | ❌ | **❌** | ✅ | ❌ |
-| **Flat Mode** | ❌ | **❌** | ❌ | ✅ |
-| **Diff 预览** | ✅ | **✅ 继承** | ✅ | ✅ |
-
-结论：**继承层全 ✅，Phase 1 容错层已完成 ✅**。piex/hashline 在保留 oh-my-pi 核心编辑能力（block 操作 + boundary repair）的基础上，已补齐 Noop Loop Guard、Duplicate Edit 检测、方言归一化三项基础容错机制。
-
-### 6.3 当前缺口：Phase 2 容错层空白
-
-Phase 1 已实现 Noop Loop Guard、Duplicate Edit 检测、方言归一化（`extensions/patches.ts` + `normalizeInput()`）。剩余缺口：
-
-| 缺失的容错能力 | 最佳参考来源 |
-|--------------|------------|
-| Stale Anchor 恢复 | pi-hashline-edit（3-way merge）或 oh-my-pi（Recovery） |
-| 多版本快照 | pi-hashline-edit |
-
-### 6.4 路线图
-
-按投入产出比排序：
-
-```
-Phase 1 ✅ 已完成 — 低投入高产出（~180 行）：
-  ├── Noop Loop Guard         (~50行)  pi-hashline-edit 方案：计数器抛错
-  ├── Duplicate Edit 检测      (~30行)  pi-hashline-edit 方案：payloadKey 记录
-  └── 方言归一化              (~100行) pi-hashline-edit 方案：normalizeInput
-
-Phase 2 — 中等投入，显著提升可靠性（总计约 550 行）：
-  ├── Stale Anchor 恢复        (~150行) pi-hashline-edit 方案：3-way merge
-  ├── 多版本快照存储           (~100行) pi-hashline-edit 方案：LRU 替代单版本
-  └── Grep 工具（带锚点）      (~300行) pi-hashline-edit 方案
-
-Phase 3 — 锦上添花：
-  ├── Undo 工具               pi-hashline-edit-pro 方案
-  ├── Auto-Read               pi-hashline-edit-pro 方案
-  ├── Raw Read 模式            pi-hashline-edit 方案
-  └── Stable Hash Mapping     pi-hashline-edit-pro 方案
-```
-
-Phase 1 实现文件：[`extensions/patches.ts`](https://github.com/piex-dev/piex/tree/main/packages/hashline/extensions/patches.ts)（`EditGuard`，统一实现 Noop Loop Guard 与 Duplicate Edit 检测），`normalizeInput()` 函数位于 `extensions/hashline.ts`。
-
----
-
-## 七、参考资料
+### 参考链接
 
 - [oh-my-pi hashline](https://github.com/can1357/oh-my-pi/tree/main/packages/hashline)
-- [pi-hashline-edit](https://github.com/RimuruW/pi-hashline-edit)：含 7 个 ADR 文档
+- [pi-hashline-edit](https://github.com/RimuruW/pi-hashline-edit)（含 ADR）
 - [pi-hashline-edit-pro](https://github.com/YuGiMob/pi-hashline-edit-pro)
-- pi-hashline-edit 关键 ADR：
-  - [0001: Keep Two-Character Hashlines](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0001-keep-two-character-hashlines.md)
-  - [0003: Context-Based Line Hashing](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0003-context-based-line-hashing.md)
-  - [0004: Snapshot-Merge Recovery](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0004-snapshot-merge-recovery.md)
-  - [0005: Multi-Version Snapshot History](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0005-multi-version-snapshot-history.md)
+- 关键 ADR：  
+  - [0001 Two-Character Hashlines](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0001-keep-two-character-hashlines.md)  
+  - [0003 Context-Based Line Hashing](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0003-context-based-line-hashing.md)  
+  - [0004 Snapshot-Merge Recovery](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0004-snapshot-merge-recovery.md)  
+  - [0005 Multi-Version Snapshot History](https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0005-multi-version-snapshot-history.md)
