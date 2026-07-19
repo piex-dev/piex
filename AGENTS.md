@@ -188,7 +188,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 4. **提交前校验**（触及文档/博客 md 时必须跑）：
    ```bash
    ./scripts/check-docs-i18n.sh           # 全量
-   ./scripts/check-docs-i18n.sh --staged  # commit 前：staged md 必须连带 staged 中英 HTML
+   ./scripts/check-docs-i18n.sh --staged  # commit 前：staged md 必须连带 staged 中英 HTML（HTML 新于 md 视为已同步，豁免）
    ```
    校验：无 en md、每篇 zh md 有中英 HTML、语言启发式（zh 中文为主 / en 英文为主）、h2 结构大致对齐、源稿链接指向 `docs/zh/`。
 5. 本地验收：`cd docs && python3 -m http.server 8080`，检查 `/zh/...` 与 `/en/...`、顶栏切换跳转。

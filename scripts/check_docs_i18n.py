@@ -10,6 +10,7 @@ Rules (docs/site.md + AGENTS.md):
   2. No docs/en/**/*.md or docs/zh/**/*.md source files
   3. Every Chinese md has matching zh + en HTML
   4. --staged: when md is staged, both HTML files must also be staged
+     (an unstaged HTML newer than the md is treated as verified in sync)
   5. Heuristic language consistency (zh Chinese-heavy, en English-heavy)
   6. Rough structure alignment (h2 counts close)
   7. Footer source links point at the Chinese md path
@@ -157,6 +158,11 @@ def source_link_ok(html_text: str, md_rel: str) -> bool:
     return True
 
 
+def is_stale(html: Path, md: Path) -> bool:
+    """HTML older than its Chinese md (5s tolerance) → may be stale."""
+    return html.stat().st_mtime + 5 < md.stat().st_mtime
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -205,17 +211,27 @@ def main() -> int:
             c.ok(f"en HTML: {en_rel}")
 
         if args.staged and md_rel in staged:
-            if zh_rel not in staged:
-                c.err(f"staged {md_rel} but missing staged {zh_rel} — regenerate Chinese HTML")
-            else:
+            if zh_rel in staged:
                 c.ok("staged zh HTML with md")
-            if en_rel not in staged:
+            elif zh.is_file() and not is_stale(zh, md):
+                c.warn(
+                    f"staged {md_rel} without {zh_rel}, but zh HTML is newer than md"
+                    " — treated as in sync"
+                )
+            else:
+                c.err(f"staged {md_rel} but missing staged {zh_rel} — regenerate Chinese HTML")
+            if en_rel in staged:
+                c.ok("staged en HTML with md")
+            elif en.is_file() and not is_stale(en, md):
+                c.warn(
+                    f"staged {md_rel} without {en_rel}, but en HTML is newer than md"
+                    " — treated as in sync"
+                )
+            else:
                 c.err(
                     f"staged {md_rel} but missing staged {en_rel} "
                     "— regenerate English HTML from Chinese md"
                 )
-            else:
-                c.ok("staged en HTML with md")
 
         if args.staged:
             if zh_rel in staged and en_rel not in staged:
@@ -227,10 +243,9 @@ def main() -> int:
         en_text = en.read_text(encoding="utf-8", errors="replace") if en.is_file() else ""
 
         if not args.staged and zh.is_file() and en.is_file():
-            md_m = md.stat().st_mtime
-            if zh.stat().st_mtime + 5 < md_m:
+            if is_stale(zh, md):
                 c.warn(f"{zh_rel} is older than {md_rel} — may be stale")
-            if en.stat().st_mtime + 5 < md_m:
+            if is_stale(en, md):
                 c.warn(f"{en_rel} is older than {md_rel} — may be stale")
 
         if zh.is_file():

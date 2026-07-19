@@ -156,7 +156,7 @@
 
 1. 每个中文 md（`docs/*.md` 除 `site.md`，及 `docs/notes/*.md`）都有对应 zh + en HTML  
 2. 不存在 `docs/zh/**/*.md`、`docs/en/**/*.md` 源稿  
-3. 改过的 md（staged）对应中英 HTML 已 staged  
+3. 改过的 md（staged）对应中英 HTML 已 staged；HTML 未 staged 但 mtime 新于 md 的，视为已核对同步（warning 不阻断）  
 4. zh HTML 正文以中文为主、en HTML 正文以英文为主（启发式）  
 5. 中英 HTML 的 h2 数量接近（结构对齐启发式）  
 6. 页脚源稿链接指向 `docs/` 或 `docs/notes/`（非 `docs/zh/`）  
