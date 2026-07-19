@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>xAI OAuth：用订阅登录 Grok，而不是绑死 API Key — PieX</title>
-  <meta name="description" content="设备码 OAuth、模型发现，与内置 xai Key 通道并存。" />
-  <link rel="canonical" href="https://piex.dev/zh/blogs/xai-oauth/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/xai-oauth/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/xai-oauth/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/xai-oauth/" />
-  <meta property="og:title" content="xAI OAuth：用订阅登录 Grok，而不是绑死 API Key — PieX" />
-  <meta property="og:description" content="设备码 OAuth、模型发现，与内置 xai Key 通道并存。" />
-  <meta property="og:url" content="https://piex.dev/zh/blogs/xai-oauth/" />
+  <title>Init：一键写出项目的 AGENTS.md — PieX</title>
+  <meta name="description" content="引导式 /init prompt：扫描仓库并创建或改进 AGENTS.md。" />
+  <link rel="canonical" href="https://piex.dev/zh/blogs/init/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/init/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/init/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/init/" />
+  <meta property="og:title" content="Init：一键写出项目的 AGENTS.md — PieX" />
+  <meta property="og:description" content="引导式 /init prompt：扫描仓库并创建或改进 AGENTS.md。" />
+  <meta property="og:url" content="https://piex.dev/zh/blogs/init/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -58,8 +58,8 @@
         <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
-        <a href="/zh/blogs/init/">Init：一键写出 AGENTS.md</a>
-        <a href="/zh/blogs/xai-oauth/" class="is-active">xAI OAuth：订阅登录 Grok</a>
+        <a href="/zh/blogs/init/" class="is-active">Init：一键写出 AGENTS.md</a>
+        <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
         <a href="/zh/blogs/pi-extension-mechanism/">Pi Extension 机制及工作原理</a>
       </nav>
@@ -77,8 +77,8 @@
         <a href="/zh/blogs/lsp/">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
-        <a href="/zh/blogs/init/">Init：一键写出 AGENTS.md</a>
-        <a href="/zh/blogs/xai-oauth/" class="is-active">xAI OAuth：订阅登录 Grok</a>
+        <a href="/zh/blogs/init/" class="is-active">Init：一键写出 AGENTS.md</a>
+        <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
         <a href="/zh/blogs/pi-extension-mechanism/">Pi Extension 机制及工作原理</a>
         </nav>
@@ -93,18 +93,19 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
         <a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">xAI</span>
-          <span class="blog-tag">OAuth</span>
-          <span class="blog-tag">Provider</span>
+          <span class="blog-tag">Init</span>
+          <span class="blog-tag">AGENTS.md</span>
+          <span class="blog-tag">Prompt</span>
         </div>
-        <h1>xAI OAuth：用订阅登录 Grok，而不是绑死 API Key</h1>
-        <p class="blog-lede">订阅配额干活；Key 留给自动化。</p>
+        <h1>Init：一键写出项目的 AGENTS.md</h1>
+        <p class="blog-lede">新项目第一步：把规则写进仓库，而不是每次口头重讲。</p>
       </header>
 
       <div class="blog-prose">
@@ -112,45 +113,59 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">导语</p>
-            <p>若你已为 Grok 订阅付费，<code>@piex-dev/xai-oauth</code> 让 pi 走同一套配额；API Key 通道仍留给自动化与按量场景。</p>
+            <p><code>/init</code> 不发明新协议：把「扫仓库 → 写规则」收成一条可重复的 prompt，让每个新项目第一步就能建好 agent 约定。</p>
           </div>
         </div>
 
         <h2 id="bg">问题背景</h2>
         <p>
-          pi 内置 xai 走 API Key 按量计费。许多用户已有 SuperGrok / X Premium+ 订阅，却还要再开 Key。订阅模型目录会变，写死列表只能等发版。
+          没有 <code>AGENTS.md</code>，agent 只能猜 scripts 与包边界；规则过时或散落在 CLAUDE/Cursor 文件里，迁移成本高。质量靠口头「帮我写个 AGENTS」会漂移。
         </p>
         <p>
-          <code>@piex-dev/xai-oauth</code> 用设备码 OAuth 登录，发现模型，与内置 xai 并存。
+          <code>@piex-dev/init</code>：<code>pi install</code> 一次，之后 <code>/init</code> 即可创建或就地改进项目根规则。
         </p>
+
         <h2 id="theory">技术原理</h2>
         <p>
-          RFC 8628 Device Flow：device_code → 浏览器确认 → 轮询 token → refresh。公开 API 与订阅代理双通道发现 <code>/v1/models</code>，<code>/reload</code> 即可用新模型。
+          pi 只<strong>加载</strong> <code>AGENTS.md</code>/<code>CLAUDE.md</code>，内置 slash 没有生成命令。package 的 <code>pi.prompts</code> 把 <code>prompts/init.md</code> 变成 <code>/init</code>：展开为完整 user message，由当前模型调研并写文件。
         </p>
+        <p>
+          价值在调查清单：可执行源优先，只留高信号事实，已存在则 in-place 改进。
+        </p>
+
         <h2 id="impl">实现方案</h2>
         <p>
-          <code>xai-oauth.ts</code> + <code>models.ts</code>；错误体截断、端点校验、token skew；<code>PI_XAI_OAUTH_MODELS</code> 过滤。piex 少数带单测的包。
+          纯 prompt 包，无 extension、无 peer 依赖。写完提示 <code>/reload</code> 使当前会话生效。不碰全局 <code>~/.pi/agent/AGENTS.md</code>，不做交互菜单。
         </p>
+
+        <h2 id="design">设计参考</h2>
+        <p>
+          <strong>OpenCode</strong> 内置 <code>/init</code> + <code>initialize.txt</code>：采纳调查清单、写作规则、<code>$ARGUMENTS</code>、就地改进；不采纳内核内置与 opencode 专用配置，改为 pi prompt 包。
+        </p>
+        <p>
+          <strong>oh-my-pi</strong> 强化多格式 context <em>加载</em>、无生成侧：加载层交给 pi 原生 walk-up，piex 只补「写出规则」。
+        </p>
+
         <h2 id="roadmap">优化计划</h2>
         <p>
-          发现来源可观察；错误分类动作化；与 Key provider 区分更醒目；契约测试跟 xAI 变更。
+          可选 thin extension 注入路径与存在性提示；生成后 checklist；<code>/init global</code>；与会话规则学习衔接 merge。
         </p>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Post navigation">
-        <a class="blog-nav-card" href="/#blog">
-          <span class="blog-nav-label">← 全部文章</span>
-          <span class="blog-nav-title">回到 Blog 列表</span>
+        <a class="blog-nav-card" href="/zh/blogs/review/">
+          <span class="blog-nav-label">← 上一篇</span>
+          <span class="blog-nav-title">Review：Code Review 一等公民</span>
         </a>
-        <a class="blog-nav-card is-next" href="/zh/blogs/theme-dark-terminal/">
+        <a class="blog-nav-card is-next" href="/zh/blogs/xai-oauth/">
           <span class="blog-nav-label">下一篇 →</span>
-          <span class="blog-nav-title">Dark Terminal 主题</span>
+          <span class="blog-nav-title">xAI OAuth：订阅登录 Grok</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         源稿 Markdown：
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/xai-oauth.md" target="_blank" rel="noopener">docs/notes/xai-oauth.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/init.md" target="_blank" rel="noopener">docs/notes/init.md</a>
       </p>
     </article>
 
@@ -160,6 +175,7 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
         <a href="#roadmap">优化计划</a>
       </nav>
     </aside>

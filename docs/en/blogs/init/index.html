@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hashline: Content Anchors, Not Fragile Line Numbers — PieX</title>
-  <meta name="description" content="Line numbers drift. piex/hashline tags reads, verifies edits, and adds Phase 1 model guards." />
-  <link rel="canonical" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/hashline/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/hashline/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/hashline/" />
-  <meta property="og:title" content="Hashline: Content Anchors, Not Fragile Line Numbers — PieX" />
-  <meta property="og:description" content="Line numbers drift. piex/hashline tags reads, verifies edits, and adds Phase 1 model guards." />
-  <meta property="og:url" content="https://piex.dev/en/blogs/hashline/" />
+  <title>Init: One-Shot AGENTS.md for the Project — PieX</title>
+  <meta name="description" content="Guided /init prompt: scan the repo and create or improve AGENTS.md." />
+  <link rel="canonical" href="https://piex.dev/en/blogs/init/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/init/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/init/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/init/" />
+  <meta property="og:title" content="Init: One-Shot AGENTS.md for the Project — PieX" />
+  <meta property="og:description" content="Guided /init prompt: scan the repo and create or improve AGENTS.md." />
+  <meta property="og:url" content="https://piex.dev/en/blogs/init/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,12 +53,12 @@
     <aside class="docs-nav" aria-label="Blog">
       <p class="blog-toc-title">Blog</p>
       <nav>
-        <a href="/en/blogs/hashline/" class="is-active">Hashline: Content-Anchored Edits</a>
+        <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
         <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
-        <a href="/en/blogs/init/">Init: One-Shot AGENTS.md</a>
+        <a href="/en/blogs/init/" class="is-active">Init: One-Shot AGENTS.md</a>
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
         <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism &amp; Internals</a>
@@ -72,12 +72,12 @@
           <span class="chev" aria-hidden="true">▾</span>
         </button>
         <nav class="blog-toc-mobile-nav docs-nav-mobile">
-        <a href="/en/blogs/hashline/" class="is-active">Hashline: Content-Anchored Edits</a>
+        <a href="/en/blogs/hashline/">Hashline: Content-Anchored Edits</a>
         <a href="/en/blogs/dap/">DAP: Real Debugging for Coding Agents</a>
         <a href="/en/blogs/lsp/">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
-        <a href="/en/blogs/init/">Init: One-Shot AGENTS.md</a>
+        <a href="/en/blogs/init/" class="is-active">Init: One-Shot AGENTS.md</a>
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
         <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism &amp; Internals</a>
@@ -93,19 +93,19 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
         <a href="#roadmap">Roadmap</a>
-        <a href="#appendix">Appendix</a>
         </nav>
       </div>
 <header class="blog-header">
         <div class="blog-meta-row">
           <span class="blog-date">2026-07-19</span>
-          <span class="blog-tag">Hashline</span>
-          <span class="blog-tag">Edit</span>
-          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Init</span>
+          <span class="blog-tag">AGENTS.md</span>
+          <span class="blog-tag">Prompt</span>
         </div>
-        <h1>Hashline: Content Anchors, Not Fragile Line Numbers</h1>
-        <p class="blog-lede">Default edits shift from guessing lines to editing the version you actually read.</p>
+        <h1>Init: One-Shot AGENTS.md for the Project</h1>
+        <p class="blog-lede">First step on a new repo: write the rules down, stop re-explaining them.</p>
       </header>
 
       <div class="blog-prose">
@@ -113,68 +113,59 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">In short</p>
-            <p>With <code>@piex-dev/hashline</code>, edits are version-checked: fewer silent wrong writes, occasional re-reads. A tax worth paying.</p>
+            <p><code>/init</code> is not a new protocol: it packages “scan repo → write rules” as a repeatable prompt so every project can start with solid agent conventions.</p>
           </div>
         </div>
 
         <h2 id="bg">Background</h2>
         <p>
-          Agent <code>edit</code> tools trust <strong>line numbers</strong>, but lines drift: users edit mid-thought, prior patches shift offsets, models invent lines they never read. Silent wrong writes are worse than hard failures.
+          Without <code>AGENTS.md</code>, agents guess scripts and package boundaries. Stale or scattered CLAUDE/Cursor rules raise migration cost; ad-hoc “write me an AGENTS” drifts in quality.
         </p>
         <p>
-          <code>@piex-dev/hashline</code> replaces pi’s built-in edit with content-anchored patches: tag on read, verify on write, refuse unseen lines.
+          <code>@piex-dev/init</code>: install once, then <code>/init</code> creates or improves project-root rules in place.
         </p>
+
         <h2 id="theory">How it works</h2>
         <p>
-          Reads inject <code>[path#TAG]</code> and record seen-lines. Edits must carry the same whole-file 4-hex tag (optimistic lock). Stricter than per-line hashes, but unlocks tree-sitter block ops and boundary repair from oh-my-pi.
+          Pi only <strong>loads</strong> <code>AGENTS.md</code>/<code>CLAUDE.md</code>; builtins never generate them. A package <code>pi.prompts</code> entry turns <code>prompts/init.md</code> into <code>/init</code>: expand to a full user message, let the model investigate and write.
         </p>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>hashline</span></div>
-          <pre><code>[src/main.ts#A3F2]
-SWAP 2.=2:
-+const x = 2;</code></pre>
-        </div>
         <p>
-          Phase 1 guards: three identical no-ops → <code>[E_NOOP_LOOP]</code>; resending a successful payload on an unchanged file → <code>[E_DUPLICATE_EDIT]</code>; normalize CRLF / fenced DSL.
+          Value is the investigation checklist: prefer executable sources, keep high-signal facts, improve existing files instead of blind rewrites.
         </p>
+
         <h2 id="impl">Implementation</h2>
         <p>
-          Thin wrapper over <code>@oh-my-pi/hashline</code>: override <code>edit</code>, hook <code>read</code>, Node FS + realpath keys, <code>EditGuard</code>, and a Bun <code>xxHash32</code> polyfill.
+          Prompt-only package: no extension, no peer deps. After write, remind <code>/reload</code> so the session picks up context. No global <code>~/.pi/agent/AGENTS.md</code> writes, no interactive menu.
         </p>
-        <div class="blog-table-wrap">
-          <table>
-            <thead><tr><th>Capability</th><th>Status</th></tr></thead>
-            <tbody>
-                            <tr><td>tree-sitter blocks / REM·MV</td><td>✅ from engine</td></tr>
-              <tr><td>Noop / Duplicate / normalize</td><td>✅ Phase 1</td></tr>
-              <tr><td>Stale recovery / multi-version snaps</td><td>❌ Phase 2</td></tr>
-            </tbody>
-          </table>
-        </div>
+
+        <h2 id="design">Design notes</h2>
+        <p>
+          <strong>OpenCode</strong> ships built-in <code>/init</code> + <code>initialize.txt</code>: we keep the checklist, writing rules, <code>$ARGUMENTS</code>, and in-place improve; we drop kernel embedding and opencode-specific config refs, shipping a pi prompt package instead.
+        </p>
+        <p>
+          <strong>oh-my-pi</strong> focuses on multi-format context <em>loading</em>, not generation: leave loading to pi’s walk-up; piex fills the “write the rules” gap.
+        </p>
+
         <h2 id="roadmap">Roadmap</h2>
         <p>
-          Prefer merge over pure reject when safe; multi-version snapshots + anchored grep; finer duplicate keys; wrapper tests and optional LSP refresh.
-        </p>
-        <h2 id="appendix">Appendix</h2>
-        <p>
-          Three community lines: whole-file tags, context per-line hashes, stable mapping. piex keeps the first as engine and borrows tolerance ideas. Full matrix in the source note.
+          Optional thin extension for path injection and exists-hints; post-write checklist; <code>/init global</code>; merge with session rule-learning later.
         </p>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Post navigation">
-        <a class="blog-nav-card" href="/#blog">
-          <span class="blog-nav-label">← All posts</span>
-          <span class="blog-nav-title">Blog list</span>
+        <a class="blog-nav-card" href="/en/blogs/review/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">Review: First-Class Code Review</span>
         </a>
-        <a class="blog-nav-card is-next" href="/en/blogs/dap/">
+        <a class="blog-nav-card is-next" href="/en/blogs/xai-oauth/">
           <span class="blog-nav-label">Next →</span>
-          <span class="blog-nav-title">DAP: Real Debugging for Coding Agents</span>
+          <span class="blog-nav-title">xAI OAuth: Subscription Login for Grok</span>
         </a>
       </nav>
 
       <p class="blog-source-link">
         Source Markdown:
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/hashline.md" target="_blank" rel="noopener">docs/notes/hashline.md</a>
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/init.md" target="_blank" rel="noopener">docs/notes/init.md</a>
       </p>
     </article>
 
@@ -184,8 +175,8 @@ SWAP 2.=2:
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
         <a href="#roadmap">Roadmap</a>
-        <a href="#appendix">Appendix</a>
       </nav>
     </aside>
   </div>
