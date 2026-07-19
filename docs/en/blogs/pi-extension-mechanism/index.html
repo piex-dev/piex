@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pi Extension Mechanism & Internals — PieX</title>
+  <meta name="description" content="Deep dive into Pi Extension API philosophy, tool registration, hooks, and the full extension loading pipeline." />
+  <link rel="canonical" href="https://piex.dev/en/blogs/pi-extension-mechanism/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/pi-extension-mechanism/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/pi-extension-mechanism/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/pi-extension-mechanism/" />
+  <meta property="og:title" content="Pi Extension Mechanism &amp; Internals — PieX" />
+  <meta property="og:description" content="A deep dive into Pi’s Extension API: loader, runner, wrapper, and three event-dispatch modes." />
+  <meta property="og:url" content="https://piex.dev/en/blogs/pi-extension-mechanism/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260719i18n" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260719i18n" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Blog">
+      <p class="blog-toc-title">Blog</p>
+      <nav>
+        <a href="/en/blogs/hashline/">Hashline — Principles & Lessons</a>
+        <a href="/en/blogs/pi-extension-mechanism/" class="is-active">Pi Extension Mechanism & Internals</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Blog nav</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/en/blogs/hashline/">Hashline — Principles & Lessons</a>
+        <a href="/en/blogs/pi-extension-mechanism/" class="is-active">Pi Extension Mechanism & Internals</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#design-philosophy-why-extensions-not-built-ins">Design philosophy: why extensions, not built-ins?</a>
+        <a href="#three-layer-architecture">Three-layer architecture</a>
+        <a href="#1-loader-loader-ts">1. Loader (loader.ts)</a>
+        <a href="#1-1-runtime-module-resolution" class="depth-3">1.1 Runtime module resolution</a>
+        <a href="#1-2-discovery" class="depth-3">1.2 Discovery</a>
+        <a href="#1-3-extension-object-model" class="depth-3">1.3 Extension object model</a>
+        <a href="#1-4-extensionapi-two-path-delegation" class="depth-3">1.4 ExtensionAPI two-path delegation</a>
+        <a href="#1-5-extensionruntime-delayed-binding" class="depth-3">1.5 ExtensionRuntime: delayed binding</a>
+        <a href="#1-6-factory-cache" class="depth-3">1.6 Factory cache</a>
+        <a href="#2-runner-runner-ts">2. Runner (runner.ts)</a>
+        <a href="#2-1-extensionrunner" class="depth-3">2.1 ExtensionRunner</a>
+        <a href="#2-2-bindcore" class="depth-3">2.2 bindCore</a>
+        <a href="#2-3-createcontext-lazy-getters" class="depth-3">2.3 createContext: lazy getters</a>
+        <a href="#2-4-three-dispatch-modes" class="depth-3">2.4 Three dispatch modes</a>
+        <a href="#2-5-shortcut-conflicts" class="depth-3">2.5 Shortcut conflicts</a>
+        <a href="#2-6-stale-context" class="depth-3">2.6 Stale context</a>
+        <a href="#3-wrapper-wrapper-ts">3. Wrapper (wrapper.ts)</a>
+        <a href="#3-1-registered-tools-agenttool" class="depth-3">3.1 Registered tools → AgentTool</a>
+        <a href="#3-2-overriding-built-ins" class="depth-3">3.2 Overriding built-ins</a>
+        <a href="#4-full-lifecycle">4. Full lifecycle</a>
+        <a href="#5-design-takeaways">5. Design takeaways</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-date">2026-07-14</span>
+          <span class="blog-tag">Pi Extension</span>
+        </div>
+        <h1>Pi Extension Mechanism & Internals</h1>
+        <p class="blog-lede">Pi’s Extension API design philosophy, tool registration, the hook system, and the full load → bind → dispatch pipeline.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">30-second takeaway</p>
+            <p>Pi is a pluginized event-driven kernel: load (jiti) → bind (real session) → dispatch (fire-and-forget / cancel / chain). Extensions own behavior; the core stays minimal.</p>
+          </div>
+        </div>
+
+<h2 id="design-philosophy-why-extensions-not-built-ins">Design philosophy: why extensions, not built-ins?</h2>
+<p>Pi’s core idea is <strong>extreme extensibility, minimal core</strong>. Features other AI coding assistants ship built-in—Plan Mode, Sub-agents, MCP, permission popups, todos, background shell—Pi deliberately omits. Instead it offers an Extension mechanism so users build what they need.</p>
+<blockquote><p>Pi is aggressively extensible so it doesn't have to dictate your workflow.</p></blockquote>
+<p>The kernel does the minimum: four base tools (<code>read</code>, <code>write</code>, <code>edit</code>, <code>bash</code>) plus a basic TUI. Advanced behavior lives in extensions without invading core code.</p>
+<hr />
+<h2 id="three-layer-architecture">Three-layer architecture</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>  ExtensionFactory (user default export)
+              │
+              ▼
+┌──────────────────────────────────────────┐
+│  loader.ts  —  load &amp; discover &amp; API     │
+│  1. discover paths (global/project/cfg)  │
+│  2. jiti loads TypeScript at runtime     │
+│  3. run factory → fill Extension object  │
+│  4. create shared ExtensionRuntime       │
+└──────────────┬───────────────────────────┘
+               │ Extensions[] + Runtime
+               ▼
+┌──────────────────────────────────────────┐
+│  runner.ts —  orchestrate &amp; dispatch     │
+│  1. bindCore() injects real impls        │
+│  2. createContext() builds ctx           │
+│  3. dispatch events in load order        │
+│  4. isolate errors                       │
+└──────────────┬───────────────────────────┘
+               │ AgentTools
+               ▼
+┌──────────────────────────────────────────┐
+│  wrapper.ts — tool wrapping              │
+│  ToolDefinition → AgentTool              │
+└──────────────────────────────────────────┘</code></pre></div>
+<hr />
+<h2 id="1-loader-loader-ts">1. Loader (loader.ts)</h2>
+<h3 id="1-1-runtime-module-resolution">1.1 Runtime module resolution</h3>
+<p>Extensions are TypeScript files loaded by <strong><a href="https://github.com/unjs/jiti" target="_blank" rel="noopener">jiti</a></strong> at runtime—no compile step. Module aliases matter:</p>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Mode</th><th>Resolution</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Bun binary</td><td><code>virtualModules</code></td><td>inject pi packages into jiti cache</td></tr>
+<tr><td>Node.js / dev</td><td><code>alias</code></td><td>map to local workspace paths</td></tr>
+</tbody></table></div>
+<p><code>import { ExtensionAPI } from &quot;@earendil-works/pi-coding-agent&quot;</code> is redirected to Pi’s bundled instance for version consistency.</p>
+<h3 id="1-2-discovery">1.2 Discovery</h3>
+<p><code>discoverAndLoadExtensions()</code> scans three places by priority:</p>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Priority</th><th>Location</th><th>Scope</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>{cwd}/.pi/extensions/</code></td><td>project (if trusted)</td></tr>
+<tr><td>2</td><td><code>~/.pi/agent/extensions/</code></td><td>global</td></tr>
+<tr><td>3</td><td><code>settings.json</code> <code>extensions</code> field</td><td>explicit</td></tr>
+</tbody></table></div>
+<p>One level only (no deep recursion): single files, package subdirs with <code>pi.extensions</code> or <code>index.ts</code>, optional <code>node_modules</code>.</p>
+<h3 id="1-3-extension-object-model">1.3 Extension object model</h3>
+<p>Each load produces an <code>Extension</code> with Maps for handlers, tools, commands, flags, shortcuts, renderers. <strong>Ownership is clear</strong>: each extension owns its data; nothing is shared across extensions at the registration layer.</p>
+<h3 id="1-4-extensionapi-two-path-delegation">1.4 ExtensionAPI two-path delegation</h3>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi.registerTool()    →  extension.tools.set()     (owned by Extension)
+pi.on(&quot;event&quot;, fn)   →  extension.handlers…
+pi.registerCommand() →  extension.commands.set()
+
+pi.sendMessage()     →  runtime.sendMessage()     (shared Runtime)
+pi.setActiveTools()  →  runtime.setActiveTools()
+pi.exec()            →  runtime</code></pre></div>
+<p>Registration mutates extension-local data. Action methods need the session system—hence a shared backend.</p>
+<h3 id="1-5-extensionruntime-delayed-binding">1.5 ExtensionRuntime: delayed binding</h3>
+<p>All action methods start as <strong>throwing stubs</strong>. Loading is a pure declaration phase—no side effects. <code>bindCore()</code> replaces stubs with real AgentSession implementations.</p>
+<p>Provider registration is queued into <code>pendingProviderRegistrations</code> and flushed at <code>bindCore()</code> so ModelRegistry need not be ready yet.</p>
+<h3 id="1-6-factory-cache">1.6 Factory cache</h3>
+<p><code>extensionCache</code> keyed by <code>cwd + generation</code>. Project switch clears it; <code>/reload</code> bumps generation. Same project restarts avoid recompilation.</p>
+<hr />
+<h2 id="2-runner-runner-ts">2. Runner (runner.ts)</h2>
+<h3 id="2-1-extensionrunner">2.1 ExtensionRunner</h3>
+<p>Holds <code>extensions[]</code>, shared <code>runtime</code>, mode-specific <code>uiContext</code>, <code>sessionManager</code>, <code>modelRegistry</code>.</p>
+<h3 id="2-2-bindcore">2.2 bindCore</h3>
+<div class="blog-code" data-lang="typescript"><div class="blog-code-bar"><span>typescript</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>runner.bindCore(
+  actions,         // sendMessage, appendEntry, …
+  contextActions,  // getModel, isIdle, abort, compact, …
+  providerActions, // optional register/unregister
+);</code></pre></div>
+<p>After bind: stubs → real functions; provider queue flushes; later provider calls apply immediately.</p>
+<h3 id="2-3-createcontext-lazy-getters">2.3 createContext: lazy getters</h3>
+<div class="blog-code" data-lang="typescript"><div class="blog-code-bar"><span>typescript</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>return {
+  get ui() { return runner.uiContext; },
+  get cwd() { return runner.cwd; },
+  get model() { return getModel(); },
+  get signal() { return runner.getSignalFn(); },
+  …
+};</code></pre></div>
+<p>Getters (not closure snapshots) keep ctx fresh across session switch / reload.</p>
+<h3 id="2-4-three-dispatch-modes">2.4 Three dispatch modes</h3>
+<p>Events run <strong>serially in load order</strong>. Errors are try/caught per handler and never propagate—one bad extension cannot crash Pi.</p>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Mode</th><th>Events</th><th>Behavior</th></tr></thead>
+<tbody>
+<tr><td><strong>Fire-and-forget</strong></td><td>session_start, turn_end, …</td><td>ignore return</td></tr>
+<tr><td><strong>First-cancel-wins</strong></td><td>session_before_switch/fork/compact/tree</td><td>first <code>{ cancel: true }</code> stops chain</td></tr>
+<tr><td><strong>Chain</strong></td><td>tool_result, context, before_agent_start, …</td><td>each handler mutates; next sees previous result</td></tr>
+</tbody></table></div>
+<p><code>before_agent_start</code> specially rebinds <code>ctx.getSystemPrompt()</code> so chained system-prompt edits compose.</p>
+<h3 id="2-5-shortcut-conflicts">2.5 Shortcut conflicts</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Level</th><th>Handling</th></tr></thead>
+<tbody>
+<tr><td><code>restrictOverride: true</code></td><td>hard ban (e.g. Ctrl+C); warn + skip</td></tr>
+<tr><td><code>restrictOverride: false</code></td><td>allow override with info warning</td></tr>
+<tr><td>inter-extension</td><td>later wins + warning</td></tr>
+</tbody></table></div>
+<h3 id="2-6-stale-context">2.6 Stale context</h3>
+<p>After session switch / fork / reload, <code>invalidate()</code> marks old <code>pi</code>/<code>ctx</code> stale; further use throws—prevents the classic “used after replace” bug class.</p>
+<hr />
+<h2 id="3-wrapper-wrapper-ts">3. Wrapper (wrapper.ts)</h2>
+<h3 id="3-1-registered-tools-agenttool">3.1 Registered tools → AgentTool</h3>
+<p><code>wrapRegisteredTool</code> creates a fresh context on each execute. If the tool dynamically <code>registerTool</code>s during execute, <code>addedToolNames</code> notifies the system to refresh the tool set for the next LLM turn.</p>
+<h3 id="3-2-overriding-built-ins">3.2 Overriding built-ins</h3>
+<p>Same-name registration overrides built-ins (<code>read</code> / <code>bash</code> / <code>edit</code>). Omitted render slots inherit built-in <code>renderCall</code>/<code>renderResult</code>—log/permission wrappers only need <code>execute</code>.</p>
+<hr />
+<h2 id="4-full-lifecycle">4. Full lifecycle</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>1. start → discoverAndLoadExtensions()
+2. AgentSession init → ExtensionRunner + bindCore + UI
+3. project_trust (user/global extensions only)
+4. session_start
+5. resources_discover
+   ═══ user input loop ═══
+6. input pipeline (commands / emitInput / skills)
+7. before_agent_start
+8. Agent loop per turn:
+   emitContext → provider hooks → LLM
+   per tool: emitToolCall → execute → emitToolResult → emitMessageEnd
+   turn_end
+9. agent_end → agent_settled
+10. exit / reload / session switch:
+    session_shutdown → invalidate → rebuild runner</code></pre></div>
+<hr />
+<h2 id="5-design-takeaways">5. Design takeaways</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Design</th><th>Implementation</th><th>Goal</th></tr></thead>
+<tbody>
+<tr><td>Clear ownership</td><td>register → Extension; actions → Runtime</td><td>isolation</td></tr>
+<tr><td>Delayed binding</td><td>throwing stubs until bindCore</td><td>pure load phase</td></tr>
+<tr><td>Lazy context</td><td>getters</td><td>no stale snapshots</td></tr>
+<tr><td>Serial dispatch</td><td>load order</td><td>predictable</td></tr>
+<tr><td>Errors never propagate</td><td>try/catch + emitError</td><td>resilience</td></tr>
+<tr><td>Three dispatch modes</td><td>FAF / Cancel / Chain</td><td>match event semantics</td></tr>
+<tr><td>Stale protection</td><td>invalidate()</td><td>safe session replace</td></tr>
+<tr><td>Provider queue</td><td>flush at bindCore</td><td>ordering</td></tr>
+</tbody></table></div>
+<p>Pi’s Extension system is a <strong>pluginized event-driven architecture</strong>—kernel does the minimum (four tools + TUI), and extensions own behavior. That lets Pi fit any workflow without imposing one.</p>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Post navigation">
+        <a class="blog-nav-card" href="/en/blogs/hashline/">
+          <span class="blog-nav-label">Previous</span>
+          <span class="blog-nav-title">Hashline — Principles & Lessons</span>
+        </a>
+      </nav>
+      <p class="blog-source">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/pi-extension-mechanism.md" target="_blank" rel="noopener">docs/notes/pi-extension-mechanism.md</a>
+      </p>
+
+
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#design-philosophy-why-extensions-not-built-ins">Design philosophy: why extensions, not built-ins?</a>
+        <a href="#three-layer-architecture">Three-layer architecture</a>
+        <a href="#1-loader-loader-ts">1. Loader (loader.ts)</a>
+        <a href="#1-1-runtime-module-resolution" class="depth-3">1.1 Runtime module resolution</a>
+        <a href="#1-2-discovery" class="depth-3">1.2 Discovery</a>
+        <a href="#1-3-extension-object-model" class="depth-3">1.3 Extension object model</a>
+        <a href="#1-4-extensionapi-two-path-delegation" class="depth-3">1.4 ExtensionAPI two-path delegation</a>
+        <a href="#1-5-extensionruntime-delayed-binding" class="depth-3">1.5 ExtensionRuntime: delayed binding</a>
+        <a href="#1-6-factory-cache" class="depth-3">1.6 Factory cache</a>
+        <a href="#2-runner-runner-ts">2. Runner (runner.ts)</a>
+        <a href="#2-1-extensionrunner" class="depth-3">2.1 ExtensionRunner</a>
+        <a href="#2-2-bindcore" class="depth-3">2.2 bindCore</a>
+        <a href="#2-3-createcontext-lazy-getters" class="depth-3">2.3 createContext: lazy getters</a>
+        <a href="#2-4-three-dispatch-modes" class="depth-3">2.4 Three dispatch modes</a>
+        <a href="#2-5-shortcut-conflicts" class="depth-3">2.5 Shortcut conflicts</a>
+        <a href="#2-6-stale-context" class="depth-3">2.6 Stale context</a>
+        <a href="#3-wrapper-wrapper-ts">3. Wrapper (wrapper.ts)</a>
+        <a href="#3-1-registered-tools-agenttool" class="depth-3">3.1 Registered tools → AgentTool</a>
+        <a href="#3-2-overriding-built-ins" class="depth-3">3.2 Overriding built-ins</a>
+        <a href="#4-full-lifecycle">4. Full lifecycle</a>
+        <a href="#5-design-takeaways">5. Design takeaways</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260719i18n"></script>
+  <script src="../../../assets/main.js?v=20260719i18n"></script>
+</body>
+</html>

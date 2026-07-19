@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Design Philosophy — PieX</title>
+  <meta name="description" content="Why piex: extend Pi without forking, on demand, understood, measured. Four core principles and package patterns." />
+  <link rel="canonical" href="https://piex.dev/en/docs/design/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/docs/design/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/docs/design/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/docs/design/" />
+  <meta property="og:title" content="Design Philosophy — PieX" />
+  <meta property="og:description" content="Why piex: extend Pi without forking, on demand, understood, measured. Four core principles and package patterns." />
+  <meta property="og:url" content="https://piex.dev/en/docs/design/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260719i18n" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260719i18n" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Documentation">
+      <p class="blog-toc-title">Docs</p>
+      <nav>
+        <a href="/en/docs/design/" class="is-active">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Docs nav</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/en/docs/design/" class="is-active">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#background-motivation">Background &amp; Motivation</a>
+        <a href="#why-an-open-source-agent" class="depth-3">Why an open-source agent</a>
+        <a href="#why-pi" class="depth-3">Why Pi</a>
+        <a href="#why-not-just-use-oh-my-pi" class="depth-3">Why not just use oh-my-pi</a>
+        <a href="#why-piex" class="depth-3">Why PieX</a>
+        <a href="#core-design-principles">Core Design Principles</a>
+        <a href="#1-extend-pi-fully-never-fork" class="depth-3">1. Extend Pi fully—never fork</a>
+        <a href="#2-on-demand-switch-freely" class="depth-3">2. On demand, switch freely</a>
+        <a href="#3-know-how-it-works-ownership" class="depth-3">3. Know how it works—ownership</a>
+        <a href="#4-eval-first" class="depth-3">4. Eval first</a>
+        <a href="#goals">Goals</a>
+        <a href="#architecture-patterns">Architecture Patterns</a>
+        <a href="#extension-package-pattern" class="depth-3">Extension package pattern</a>
+        <a href="#extension-load-flow" class="depth-3">Extension load flow</a>
+        <a href="#extension-entry-signature" class="depth-3">Extension entry signature</a>
+        <a href="#theme-package-pattern" class="depth-3">Theme package pattern</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Docs</span>
+          <span class="blog-tag">Principles</span>
+        </div>
+        <h1>Design Philosophy</h1>
+        <p class="blog-lede">Why piex: extend without forking, switch on demand, know how it works, eval first—four principles and extension/theme package patterns.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">Core principles</p>
+            <p><strong>Extend Pi, never fork · On demand · Know how it works · Eval first (no measurement, no adoption)</strong>. Open source and security matter when choosing a platform, but they are not the primary reason PieX exists.</p>
+          </div>
+        </div>
+
+        <div class="blog-callout warn">
+          <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">July 2026 — two public disclosures</p>
+            <p><strong>Claude Code</strong> was flagged by China’s NVDB for built-in monitoring that could exfiltrate locale and identity without consent (versions 2.1.91–2.1.196); Alibaba listed it as high-risk and banned it company-wide.</p>
+            <p><strong>Grok Build CLI</strong> uploaded entire git repos (including unredacted <code>.env</code> secrets) without clear disclosure; the opt-out covered retention, not transmission.</p>
+          </div>
+        </div>
+
+<p>PieX is a collection of feature extensions for <a href="https://pi.dev" target="_blank" rel="noopener">Pi</a>. It extracts core capabilities from strong coding agents (oh-my-pi, Claude Code, OpenCode, and others) and ships them as independent piex packages. This page starts with motivation—why this path—then the core design principles and package patterns.</p>
+<h2 id="background-motivation">Background & Motivation</h2>
+<h3 id="why-an-open-source-agent">Why an open-source agent</h3>
+<p><strong>Security & auditability.</strong> Closed-source coding agents hold repositories, credentials, and context, yet their behavior is a black box. In July 2026 alone, two incidents were publicly disclosed: Claude Code was flagged by China’s NVDB for built-in monitoring that could exfiltrate locale and identity signals without consent (affected versions 2.1.91–2.1.196); Alibaba subsequently listed it as high-risk and banned it company-wide (<a href="http://finance.people.com.cn/BIG5/n1/2026/0708/c1004-40756179.html" target="_blank" rel="noopener">People’s Daily</a>, <a href="https://new.qq.com/rain/a/20260708A099RH00" target="_blank" rel="noopener">Southern Metropolis Daily</a>). Separately, security researcher cereblab showed that xAI’s Grok Build CLI uploaded entire git repos—including unredacted <code>.env</code> secrets and full history—without clear disclosure; the opt-out only covered retention, not transmission (<a href="https://github.com/cereblab/grok-build-exfil-repro" target="_blank" rel="noopener">repro</a>, <a href="https://gist.github.com/cereblab/dc9a40bc26120f4540e4e09b75ffb547" target="_blank" rel="noopener">packet analysis</a>). With an open-source agent, every line of code and every network call is auditable—transparency is the security control.</p>
+<p><strong>Know-how.</strong> Coding agents churn quickly. Hopping tools keeps you at the “how do I click this” layer. Deep use of one open-source agent—reading how it works, contributing, iterating—turns “using tools” into “understanding tools.”</p>
+<h3 id="why-pi">Why Pi</h3>
+<p><strong>Restraint.</strong> Agents keep getting heavier, but most features go unused—wasted tokens and cognitive load, with no real control over what enters context. Pi’s author wrote this restraint into the design (<a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a>): system prompt + tool definitions under ~1000 tokens, four default tools (<code>read</code> / <code>write</code> / <code>edit</code> / <code>bash</code>). The official README lists what Pi does <em>not</em> do—No MCP, No sub-agents, No plan mode, No built-in to-dos, No permission popups, No background bash—and every item has the same exit: <em>build it with extensions, or install a package</em>.</p>
+<p><strong>Extensibility.</strong> Pi positions itself as “a minimal terminal coding harness,” and is <em>“aggressively extensible so it doesn't have to dictate your workflow.”</em> Tools, commands, event hooks, UI, providers, and themes are all open to extensions, with an explicit promise of <em>“without having to fork and modify pi internals.”</em> For an individual developer, a small readable core plus a nearly unbounded Extension API is the best starting point for owning your toolchain.</p>
+<h3 id="why-not-just-use-oh-my-pi">Why not just use oh-my-pi</h3>
+<p><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a> (omp) ships many excellent tools on top of Pi, is batteries-included, and is piex’s primary feature source. It chose a different path:</p>
+<ul>
+<li><strong>Fork, not extension.</strong> omp is a fork of pi (<em>“fork of pi-mono, batteries included”</em>). It maintains a dedicated <a href="https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md" target="_blank" rel="noopener">porting playbook</a> to backport upstream, plus ~55k lines of Rust core and a Bun-only runtime. Following a fork means surrendering upgrade cadence and architectural decisions.</li>
+<li><strong>Everything bundled.</strong> omp ships 32 tools and a large surface by default—many unused day-to-day—which reintroduces “heavy”: token cost and loss of control over context.</li>
+</ul>
+<h3 id="why-piex">Why PieX</h3>
+<p>Given the above, PieX takes a third path: <strong>do not fork Pi; use only the official Extension API to turn proven agent capabilities into independent, optional, measurable packages.</strong> Use them deeply in daily work, iterate continuously, and shape a toolchain that fits.</p>
+<h2 id="core-design-principles">Core Design Principles</h2>
+<p>PieX rests on four principles.</p>
+<h3 id="1-extend-pi-fully-never-fork">1. Extend Pi fully—never fork</h3>
+<p>100% Extension API. No fork of Pi, no edits to Pi internals. Capabilities use the standard surfaces:</p>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Capability</th><th>How</th></tr></thead>
+<tbody>
+<tr><td>Override built-in tools</td><td><code>pi.registerTool({ name: &quot;edit&quot;, ... })</code></td></tr>
+<tr><td>Register new tools</td><td><code>pi.registerTool({ name: &quot;debug&quot;, ... })</code></td></tr>
+<tr><td>Hook tool calls</td><td><code>pi.on(&quot;tool_call&quot;, ...)</code></td></tr>
+<tr><td>Hook tool results</td><td><code>pi.on(&quot;tool_result&quot;, ...)</code></td></tr>
+<tr><td>Register commands</td><td><code>pi.registerCommand(&quot;review&quot;, ...)</code></td></tr>
+<tr><td>Inject context</td><td><code>pi.on(&quot;before_agent_start&quot;, ...)</code></td></tr>
+<tr><td>Session cleanup</td><td><code>pi.on(&quot;session_shutdown&quot;, ...)</code></td></tr>
+<tr><td>Persist state</td><td><code>pi.appendEntry(&quot;state-key&quot;, ...)</code></td></tr>
+<tr><td>Footer / Widget</td><td><code>ctx.ui.setStatus(...)</code>, <code>ctx.ui.setWidget(...)</code></td></tr>
+<tr><td>Interactive UI</td><td><code>ctx.ui.select(...)</code>, <code>ctx.ui.editor(...)</code></td></tr>
+<tr><td>Shortcuts</td><td><code>pi.registerShortcut(Key.shift(&quot;p&quot;), ...)</code></td></tr>
+</tbody></table></div>
+<p>This is the philosophical gap vs omp: omp forks and batteries-includes—shipping every “good” feature into its own kernel and choosing for the user. piex owns no kernel; it only extends, and leaves trade-offs to the user. Consequently piex needs no upstream backport and tracks official Pi evolution.</p>
+<p>Each piex package is a standalone npm package, not embedded in Pi. Pi upgrades do not break piex (extension API is backward-compatible); piex upgrades independently via <code>pi update</code> with its own versioning—upgrade with Pi, not against it.</p>
+<h3 id="2-on-demand-switch-freely">2. On demand, switch freely</h3>
+<p>Packages are independent and dependency-free across each other—install, remove, and compose at will. Pay tokens only for what you use:</p>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install npm:@piex-dev/hashline   # hashline edit
+pi install npm:@piex-dev/dap        # DAP debug
+pi install npm:@piex-dev/plan       # plan mode
+pi remove npm:@piex-dev/plan        # uninstall anytime</code></pre></div>
+<h3 id="3-know-how-it-works-ownership">3. Know how it works—ownership</h3>
+<p>Borrow proven designs from oh-my-pi, Claude Code, OpenCode, and peers; understand the underlying mechanics; reintroduce them as Pi extensions on demand. Every feature is chosen, understood, and owned—turning “using tools” into “understanding tools.” Each package documents provenance:</p>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Package</th><th>Origin</th><th>Implementation</th></tr></thead>
+<tbody>
+<tr><td>hashline</td><td>oh-my-pi hashline</td><td><code>@oh-my-pi/hashline</code> + Pi adapter + Node.js polyfill</td></tr>
+<tr><td>dap</td><td>oh-my-pi DAP</td><td>Ported from omp (Bun → Node.js)</td></tr>
+<tr><td>lsp</td><td>oh-my-pi LSP</td><td>Slim port from omp</td></tr>
+<tr><td>plan</td><td>Pi official example</td><td>Enhanced from plan-mode example</td></tr>
+<tr><td>review</td><td>oh-my-pi /review</td><td>Slim port from omp</td></tr>
+<tr><td>theme-dark-terminal</td><td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td><td>Static theme JSON via <code>pi.themes</code></td></tr>
+</tbody></table></div>
+<h3 id="4-eval-first">4. Eval first</h3>
+<p>If an extension’s effect cannot be measured, do not adopt it. For behavior-changing packages (hashline, dap, lsp, plan, review): the repo ships a Dockerized eval framework (<code>eval/</code>) comparing pi (bare) / pi + piex / omp on Aider Polyglot and SWE-bench Lite, with metrics including <code>resolve_rate</code>, <code>avg_tokens</code>, <code>avg_time</code>, <code>est_cost</code>, and attribution metrics (<code>edit_accuracy</code>, <code>debug_success</code>, <code>plan_follow_rate</code>). Results will be published continuously. Themes and login providers that do not change agent behavior are out of scope for this rule. See <a href="/en/docs/evaluation/">Evaluation Plan</a>.</p>
+<h2 id="goals">Goals</h2>
+<ul>
+<li>Build a coding-agent toolchain on Pi that fits <em>you</em>—every feature chosen, understood, and owned.</li>
+<li>Understand the implementation of each capability, and raise product taste through continuous iteration.</li>
+</ul>
+<h2 id="architecture-patterns">Architecture Patterns</h2>
+<h3 id="extension-package-pattern">Extension package pattern</h3>
+<p>Every package follows the same shape:</p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
+├── package.json          # npm package with &quot;pi&quot; manifest
+├── README.md             # package docs
+└── extensions/
+    └── &lt;name&gt;.ts         # pi extension entry: export default function(pi)
+    └── ...helpers.ts</code></pre></div>
+<p><code>&quot;pi&quot;: { &quot;extensions&quot;: [&quot;./extensions&quot;] }</code> in <code>package.json</code> tells Pi where to discover extension files.</p>
+<h3 id="extension-load-flow">Extension load flow</h3>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi starts
+  ├── resolve settings.json → discover piex packages
+  ├── read package.json → find extensions/
+  ├── jiti loads .ts files
+  └── call export default function(pi)
+      ├── pi.registerTool(...)
+      ├── pi.registerCommand(...)
+      └── pi.on(&quot;event&quot;, ...)</code></pre></div>
+<h3 id="extension-entry-signature">Extension entry signature</h3>
+<div class="blog-code" data-lang="typescript"><div class="blog-code-bar"><span>typescript</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>// sync (typical)
+export default function myExtension(pi: ExtensionAPI) { ... }
+
+// async (e.g. fetch remote config on init)
+export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre></div>
+<h3 id="theme-package-pattern">Theme package pattern</h3>
+<p>Theme packages have no TypeScript extension code; they ship static JSON. Pi accepts a <code>themes/</code> convention directory or an explicit <code>pi.themes</code> file list. Prefer the convention for <code>/settings</code> preview and runtime load:</p>
+<div class="blog-code" data-lang="json"><div class="blog-code-bar"><span>json</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>{
+  &quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }
+}</code></pre></div>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
+├── package.json          # &quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }
+├── README.md
+└── themes/
+    └── &lt;name&gt;.json       # pi theme JSON (51 color tokens)</code></pre></div>
+<p><strong>Install path notes:</strong></p>
+<ul>
+<li><strong>Global settings</strong> (<code>~/.pi/agent/settings.json</code>): local package paths must be absolute, or <code>/reload</code> resolves relative paths against the settings file location and the theme disappears. Example:</li>
+</ul>
+<p>``<code>bash pi install /abspath-to-piex/packages/theme-dark-terminal </code>``</p>
+<ul>
+<li><strong>Project settings</strong> (<code>.pi/settings.json</code>): relative paths are fine and team-shareable:</li>
+</ul>
+<p>``<code>bash pi install -l ./packages/theme-dark-terminal </code>``</p>
+<p>Theme JSON includes <code>name</code> (unique), optional <code>vars</code>, and <code>colors</code> (51 required tokens). Pi loads themes at startup; switch via <code>/settings</code>.</p>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Doc navigation">
+        <a class="blog-nav-card" href="/">
+          <span class="blog-nav-label">Home</span>
+          <span class="blog-nav-title">PieX</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/docs/architecture/">
+          <span class="blog-nav-label">Next</span>
+          <span class="blog-nav-title">Architecture</span>
+        </a>
+      </nav>
+      <p class="blog-source">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/design.md" target="_blank" rel="noopener">docs/design.md</a>
+      </p>
+
+
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#background-motivation">Background &amp; Motivation</a>
+        <a href="#why-an-open-source-agent" class="depth-3">Why an open-source agent</a>
+        <a href="#why-pi" class="depth-3">Why Pi</a>
+        <a href="#why-not-just-use-oh-my-pi" class="depth-3">Why not just use oh-my-pi</a>
+        <a href="#why-piex" class="depth-3">Why PieX</a>
+        <a href="#core-design-principles">Core Design Principles</a>
+        <a href="#1-extend-pi-fully-never-fork" class="depth-3">1. Extend Pi fully—never fork</a>
+        <a href="#2-on-demand-switch-freely" class="depth-3">2. On demand, switch freely</a>
+        <a href="#3-know-how-it-works-ownership" class="depth-3">3. Know how it works—ownership</a>
+        <a href="#4-eval-first" class="depth-3">4. Eval first</a>
+        <a href="#goals">Goals</a>
+        <a href="#architecture-patterns">Architecture Patterns</a>
+        <a href="#extension-package-pattern" class="depth-3">Extension package pattern</a>
+        <a href="#extension-load-flow" class="depth-3">Extension load flow</a>
+        <a href="#extension-entry-signature" class="depth-3">Extension entry signature</a>
+        <a href="#theme-package-pattern" class="depth-3">Theme package pattern</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260719i18n"></script>
+  <script src="../../../assets/main.js?v=20260719i18n"></script>
+</body>
+</html>

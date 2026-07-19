@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roadmap — PieX</title>
+  <meta name="description" content="Feature comparison of oh-my-pi vs piex, migration tiers, priorities, and done-vs-upstream deltas." />
+  <link rel="canonical" href="https://piex.dev/en/docs/roadmap/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/docs/roadmap/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/docs/roadmap/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/docs/roadmap/" />
+  <meta property="og:title" content="Roadmap — PieX" />
+  <meta property="og:description" content="Feature comparison of oh-my-pi vs piex, migration tiers, priorities, and done-vs-upstream deltas." />
+  <meta property="og:url" content="https://piex.dev/en/docs/roadmap/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260719i18n" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260719i18n" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Documentation">
+      <p class="blog-toc-title">Docs</p>
+      <nav>
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/" class="is-active">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Docs nav</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/" class="is-active">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#label-legend">Label legend</a>
+        <a href="#progress-overview">Progress overview</a>
+        <a href="#p0-done" class="depth-3">P0 — done</a>
+        <a href="#distribution" class="depth-3">Distribution</a>
+        <a href="#omp-migration-analysis">OMP migration analysis</a>
+        <a href="#tier-1-high-feasibility-native-extension-api-high-independence" class="depth-3">Tier 1 — high feasibility (native Extension API, high independence)</a>
+        <a href="#tier-2-medium-more-adapt-work-or-partial-pi-surface" class="depth-3">Tier 2 — medium (more adapt work, or partial Pi surface)</a>
+        <a href="#tier-3-high-complexity-deep-omp-coupling" class="depth-3">Tier 3 — high complexity (deep omp coupling)</a>
+        <a href="#priority-recommendations">Priority recommendations</a>
+        <a href="#p0-do-now-high-value-low-complexity" class="depth-3">P0 — do now (high value, low complexity)</a>
+        <a href="#p1-near-term-standalone-tools-controllable-deps" class="depth-3">P1 — near term (standalone tools, controllable deps)</a>
+        <a href="#p2-medium-long-term" class="depth-3">P2 — medium / long term</a>
+        <a href="#unprioritized-pi-already-has-a-base-marginal-value-tbd" class="depth-3">Unprioritized (Pi already has a base; marginal value TBD)</a>
+        <a href="#done-vs-upstream-deltas">Done vs upstream deltas</a>
+        <a href="#hashline" class="depth-3">hashline</a>
+        <a href="#dap" class="depth-3">dap</a>
+        <a href="#lsp" class="depth-3">lsp</a>
+        <a href="#plan" class="depth-3">plan</a>
+        <a href="#review" class="depth-3">review</a>
+        <a href="#architecture-comparison">Architecture comparison</a>
+        <a href="#methodology">Methodology</a>
+        <a href="#when-is-pi-equivalent" class="depth-3">When is Pi “equivalent”?</a>
+        <a href="#next">Next</a>
+        <a href="#still-to-migrate-from-oh-my-pi" class="depth-3">Still to migrate (from oh-my-pi)</a>
+        <a href="#to-explore-other-agents" class="depth-3">To explore (other agents)</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Docs</span>
+          <span class="blog-tag">Roadmap</span>
+        </div>
+        <h1>Roadmap</h1>
+        <p class="blog-lede">Full omp vs piex feature comparison on the Pi Extension API—extractable candidates and migration priorities.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">Status</p>
+            <p>Six packages shipped (~4.2k LOC core). Priority is high-value, low-coupling features that fit the Extension API cleanly.</p>
+          </div>
+        </div>
+
+<blockquote><p>Full feature comparison of <a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi (omp)</a> vs <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">piex</a>, grounded in the <a href="https://pi.dev" target="_blank" rel="noopener">pi</a> Extension API—identify extractable candidates and set priorities.</p></blockquote>
+<h2 id="label-legend">Label legend</h2>
+<p>Each feature is tagged on two axes:</p>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Axis</th><th>Tag</th><th>Meaning</th><th>Exclusive</th></tr></thead>
+<tbody>
+<tr><td>L1</td><td>🆕 <strong>New capability</strong></td><td>Pi lacks it; piex introduces it</td><td>✅</td></tr>
+<tr><td>L1</td><td>➕ <strong>Enhancement</strong></td><td>Pi has a base; piex significantly upgrades/replaces</td><td>✅</td></tr>
+<tr><td>L1</td><td>🔧 <strong>Platform adapt</strong></td><td>Pure engineering bridge; semantics unchanged</td><td>✅</td></tr>
+<tr><td>L2</td><td>📈 <strong>Metric-driven</strong></td><td>Value is measurable (accuracy, tokens, latency, success)</td><td>❌</td></tr>
+<tr><td>L2</td><td>✨ <strong>UX-driven</strong></td><td>Interaction / presentation (errors, progress, layout)</td><td>❌</td></tr>
+</tbody></table></div>
+<blockquote><p>L1 tags are exclusive (exactly one). L2 tags are optional and stack with L1.</p></blockquote>
+<hr />
+<h2 id="progress-overview">Progress overview</h2>
+<h3 id="p0-done">P0 — done</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>#</th><th>Package</th><th>L1</th><th>L2</th><th>Feature</th><th>Source</th><th>LOC</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>hashline</strong></td><td>➕ Enhancement</td><td>📈 metrics (accuracy↑ tokens↓)</td><td>hashline edit (overrides <code>edit</code>)</td><td>omp</td><td>318</td></tr>
+<tr><td>2</td><td><strong>dap</strong></td><td>🆕 New</td><td>—</td><td>DAP debug — 14 adapters</td><td>omp</td><td>2154</td></tr>
+<tr><td>3</td><td><strong>lsp</strong></td><td>🆕 New</td><td>—</td><td>LSP — 11 servers</td><td>omp</td><td>1069</td></tr>
+<tr><td>4</td><td><strong>plan</strong></td><td>🆕 New</td><td>✨ UX (step approval, tool lock)</td><td>Plan Mode (<code>/plan</code> + workflow)</td><td>omp</td><td>348</td></tr>
+<tr><td>5</td><td><strong>review</strong></td><td>🆕 New</td><td>—</td><td>Code review (<code>/review</code> + tool, light)</td><td>omp</td><td>330</td></tr>
+<tr><td>6</td><td><strong>theme-dark-terminal</strong></td><td>🆕 New</td><td>✨ UX</td><td>Dark high-contrast terminal theme</td><td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td><td>—</td></tr>
+</tbody></table></div>
+<p><strong>6 packages migrated, ~4219 LOC of core.</strong> Multi-agent review is TBD (needs subagent).</p>
+<h3 id="distribution">Distribution</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>L1</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th><th>Done</th><th>Total</th></tr></thead>
+<tbody>
+<tr><td>🆕 New</td><td>10</td><td>11</td><td>9</td><td>4</td><td><strong>34</strong></td></tr>
+<tr><td>➕ Enhancement</td><td>7</td><td>5</td><td>1</td><td>1</td><td><strong>14</strong></td></tr>
+<tr><td>🔧 Platform</td><td>0</td><td>0</td><td>0</td><td>1</td><td><strong>1</strong></td></tr>
+<tr><td><strong>Total</strong></td><td><strong>17</strong></td><td><strong>16</strong></td><td><strong>10</strong></td><td><strong>6</strong></td><td><strong>49</strong></td></tr>
+</tbody></table></div>
+<hr />
+<h2 id="omp-migration-analysis">OMP migration analysis</h2>
+<h3 id="tier-1-high-feasibility-native-extension-api-high-independence">Tier 1 — high feasibility (native Extension API, high independence)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>#</th><th>Candidate</th><th>Feature</th><th>L1</th><th>L2</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>6</td><td><strong>todo</strong></td><td>Todo tool + <code>/todo</code></td><td>🆕</td><td>✨ structured tasks</td><td>Agent-callable todos: CRUD, phases, done/drop</td></tr>
+<tr><td>7</td><td><strong>conflict</strong></td><td>Conflict resolution</td><td>🆕</td><td>📈 fewer merge errors</td><td><code>conflict://N</code> scheme, <code>@ours/@theirs/@base</code> markers</td></tr>
+<tr><td>8</td><td><strong>ast-grep</strong></td><td>AST structural search</td><td>🆕</td><td>📈 more precise than regex</td><td>50+ tree-sitter grammars via ast-grep-core</td></tr>
+<tr><td>9</td><td><strong>ast-edit</strong></td><td>AST structural edit</td><td>🆕</td><td>📈 precise edit, fewer tokens</td><td>rewrite → preview → accept</td></tr>
+<tr><td>10</td><td><strong>glob</strong></td><td>File find</td><td>➕</td><td>—</td><td>Glob path search, gitignore-aware (Pi has <code>find</code>)</td></tr>
+<tr><td>11</td><td><strong>ask</strong></td><td>Structured questions</td><td>🆕</td><td>✨ structured picks</td><td>Option picker via interactive UI</td></tr>
+<tr><td>12</td><td><strong>eval</strong></td><td>Eval runtime</td><td>🆕</td><td>📈 persistent env</td><td>Shared Python/JS prelude environment</td></tr>
+<tr><td>13</td><td><strong>web-search</strong></td><td>Web search</td><td>🆕</td><td>✨ structured + cites</td><td>Multi-provider (25 backends)</td></tr>
+<tr><td>14</td><td><strong>export</strong></td><td>Session export</td><td>➕</td><td>—</td><td>HTML export with tool cards (Pi has base <code>/export</code>)</td></tr>
+<tr><td>15</td><td><strong>share</strong></td><td>Encrypted share</td><td>➕</td><td>—</td><td>Encrypted share server (Pi has <code>/share</code> Gist)</td></tr>
+<tr><td>16</td><td><strong>dump</strong></td><td>Session transcript</td><td>🆕</td><td>—</td><td>Plaintext transcript + LLM request JSON</td></tr>
+<tr><td>17</td><td><strong>context</strong></td><td>Context usage report</td><td>➕</td><td>—</td><td>Context distribution (Pi: <code>/session</code> + <code>ctx.getContextUsage()</code>)</td></tr>
+<tr><td>18</td><td><strong>tools</strong></td><td>Tool visibility</td><td>➕</td><td>—</td><td>List visible/available tools (Pi: <code>getActiveTools()</code>)</td></tr>
+<tr><td>19</td><td><strong>usage</strong></td><td>Usage stats</td><td>➕</td><td>—</td><td>Per-provider tokens/limits/reset (Pi tracks tokens)</td></tr>
+<tr><td>20</td><td><strong>learning</strong></td><td>Rule learning</td><td>🆕</td><td>📈 auto rules</td><td>Extract patterns → project rules</td></tr>
+<tr><td>21</td><td><strong>resolution</strong></td><td>resolve/apply</td><td>🆕</td><td>—</td><td>Pair with ast-edit: proposed → accept/discard</td></tr>
+<tr><td>22</td><td><strong>changelog</strong></td><td>Changelog viewer</td><td>➕</td><td>—</td><td>omp/piex changelog (Pi has <code>/changelog</code>)</td></tr>
+</tbody></table></div>
+<h3 id="tier-2-medium-more-adapt-work-or-partial-pi-surface">Tier 2 — medium (more adapt work, or partial Pi surface)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>#</th><th>Candidate</th><th>Feature</th><th>L1</th><th>L2</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>23</td><td><strong>browser</strong></td><td>Browser control</td><td>🆕</td><td>—</td><td>Puppeteer Chromium + stealth</td></tr>
+<tr><td>24</td><td><strong>gh</strong></td><td>GitHub integration</td><td>🆕</td><td>—</td><td>gh CLI wrap: repo, PR, issues, code search</td></tr>
+<tr><td>25</td><td><strong>ssh</strong></td><td>Remote SSH</td><td>🆕</td><td>—</td><td>One-shot remote commands</td></tr>
+<tr><td>26</td><td><strong>commit</strong></td><td>Atomic commit split</td><td>🆕</td><td>📈 fewer bad commits</td><td>Working tree → split → dependency order</td></tr>
+<tr><td>27</td><td><strong>checkpoint</strong></td><td>Checkpoint / rewind</td><td>🆕</td><td>✨ safer exploration</td><td>Checkpoint + rewind with summary</td></tr>
+<tr><td>28</td><td><strong>compact</strong></td><td>Context compact</td><td>➕</td><td>—</td><td>Manual compact (summary/chunk/manual); Pi has <code>/compact</code></td></tr>
+<tr><td>29</td><td><strong>shake</strong></td><td>Content trim</td><td>🆕</td><td>—</td><td>Drop tool results / large blobs from context</td></tr>
+<tr><td>30</td><td><strong>memory</strong></td><td>Hindsight memory</td><td>🆕</td><td>📈 cross-session</td><td>retain/recall/reflect + <code>/memory</code>; SQLite/embedding</td></tr>
+<tr><td>31</td><td><strong>image-gen</strong></td><td>Image generation</td><td>🆕</td><td>—</td><td>Gemini/GPT/xAI image models</td></tr>
+<tr><td>32</td><td><strong>inspect-image</strong></td><td>Image analysis</td><td>🆕</td><td>—</td><td>Vision model on local images</td></tr>
+<tr><td>33</td><td><strong>tts</strong></td><td>Text-to-speech</td><td>🆕</td><td>—</td><td>xAI Grok Voice TTS</td></tr>
+<tr><td>34</td><td><strong>btw</strong></td><td>Side questions</td><td>🆕</td><td>—</td><td>Ephemeral Q&A with current context, not written to session</td></tr>
+<tr><td>35</td><td><strong>settings</strong></td><td>Settings UI</td><td>➕</td><td>—</td><td>Open settings picker; Pi has <code>/settings</code></td></tr>
+<tr><td>36</td><td><strong>branch</strong></td><td>Branch picker</td><td>➕</td><td>—</td><td>Session tree, branch, fork; Pi has <code>/fork</code>/<code>/clone</code>/<code>/tree</code></td></tr>
+<tr><td>37</td><td><strong>model</strong></td><td>Model switch</td><td>➕</td><td>—</td><td>Runtime model / fast mode; Pi has <code>/model</code>/<code>/scoped-models</code></td></tr>
+<tr><td>38</td><td><strong>ext-dashboard</strong></td><td>Extension control</td><td>🆕</td><td>—</td><td>Extension/agent panel; Pi has install/list/remove CLI only</td></tr>
+</tbody></table></div>
+<h3 id="tier-3-high-complexity-deep-omp-coupling">Tier 3 — high complexity (deep omp coupling)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>#</th><th>Candidate</th><th>Feature</th><th>L1</th><th>Why hard</th></tr></thead>
+<tbody>
+<tr><td>39</td><td><strong>subagent</strong></td><td>Parallel sub-agents</td><td>➕</td><td>Needs omp task orchestrator, worktree isolation, output-manager. Pi has basic <code>createAgentSession()</code> only</td></tr>
+<tr><td>40</td><td><strong>advisor</strong></td><td>Dual-model advisor</td><td>🆕</td><td>Parallel model sessions + turn injection; no multi-model Extension API</td></tr>
+<tr><td>41</td><td><strong>collab</strong></td><td>Real-time collab</td><td>🆕</td><td>Relay protocol, WebSocket, participant sync</td></tr>
+<tr><td>42</td><td><strong>marketplace</strong></td><td>Plugin marketplace</td><td>🆕</td><td>Marketplace manager + catalog</td></tr>
+<tr><td>43</td><td><strong>goal</strong></td><td>Goal mode</td><td>🆕</td><td>Persistent autonomous goals + token budget</td></tr>
+<tr><td>44</td><td><strong>vibe</strong></td><td>Vibe mode</td><td>🆕</td><td>Continuous fast/good worker sessions</td></tr>
+<tr><td>45</td><td><strong>loop</strong></td><td>Loop mode</td><td>🆕</td><td>Auto re-submit prompt each yield</td></tr>
+<tr><td>46</td><td><strong>internal-schemes</strong></td><td>Internal URL schemes</td><td>🆕</td><td>pr://, issue://, skill://, … need deep tool integration</td></tr>
+<tr><td>47</td><td><strong>config-inheritance</strong></td><td>Config auto-inherit</td><td>🆕</td><td>Read from .cursor/.claude/.gemini etc.</td></tr>
+<tr><td>48</td><td><strong>force</strong></td><td>Force tool choice</td><td>🆕</td><td><code>/force:&lt;tool-name&gt;</code> for next turn</td></tr>
+</tbody></table></div>
+<hr />
+<h2 id="priority-recommendations">Priority recommendations</h2>
+<h3 id="p0-do-now-high-value-low-complexity">P0 — do now (high value, low complexity)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Priority</th><th>Package</th><th>L1</th><th>L2</th><th>Rationale</th></tr></thead>
+<tbody>
+<tr><td><strong>P0-1</strong></td><td>todo</td><td>🆕</td><td>✨</td><td>Everyday task management; pure tool registration; ~1 day</td></tr>
+<tr><td><strong>P0-2</strong></td><td>conflict</td><td>🆕</td><td>📈</td><td>Frequent git pain; clean scheme registration</td></tr>
+<tr><td><strong>P0-3</strong></td><td>ask</td><td>🆕</td><td>✨</td><td>Structured picks beat free-form questions; Pi has <code>ctx.ui.select/confirm</code></td></tr>
+</tbody></table></div>
+<h3 id="p1-near-term-standalone-tools-controllable-deps">P1 — near term (standalone tools, controllable deps)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Priority</th><th>Package</th><th>L1</th><th>L2</th><th>Rationale</th></tr></thead>
+<tbody>
+<tr><td><strong>P1-1</strong></td><td>ast-grep</td><td>🆕</td><td>📈</td><td>AST search > regex; needs CLI or native binding</td></tr>
+<tr><td><strong>P1-2</strong></td><td>ast-edit</td><td>🆕</td><td>📈</td><td>Pairs with ast-grep</td></tr>
+<tr><td><strong>P1-3</strong></td><td>web-search</td><td>🆕</td><td>✨</td><td>Multi-backend; can start with 1–2 free backends</td></tr>
+<tr><td><strong>P1-4</strong></td><td>gh</td><td>🆕</td><td>—</td><td>GitHub via gh CLI or Octokit</td></tr>
+<tr><td><strong>P1-5</strong></td><td>eval</td><td>🆕</td><td>📈</td><td>Persistent Python/JS; security careful</td></tr>
+<tr><td><strong>P1-6</strong></td><td>memory</td><td>🆕</td><td>📈</td><td>Hindsight; SQLite/embedding</td></tr>
+</tbody></table></div>
+<h3 id="p2-medium-long-term">P2 — medium / long term</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Priority</th><th>Package</th><th>L1</th><th>L2</th><th>Rationale</th></tr></thead>
+<tbody>
+<tr><td><strong>P2-1</strong></td><td>browser</td><td>🆕</td><td>—</td><td>Puppeteer + stealth; heavy but independent</td></tr>
+<tr><td><strong>P2-2</strong></td><td>commit</td><td>🆕</td><td>📈</td><td>Atomic commit analysis needs deep diff understanding</td></tr>
+<tr><td><strong>P2-3</strong></td><td>checkpoint</td><td>🆕</td><td>✨</td><td>Needs session state management</td></tr>
+<tr><td><strong>P2-4</strong></td><td>ssh</td><td>🆕</td><td>—</td><td>Needs SSH client capability</td></tr>
+<tr><td><strong>P2-5</strong></td><td>subagent</td><td>➕</td><td>—</td><td>Wait for richer Pi Extension API</td></tr>
+</tbody></table></div>
+<h3 id="unprioritized-pi-already-has-a-base-marginal-value-tbd">Unprioritized (Pi already has a base; marginal value TBD)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Package</th><th>L1</th><th>Pi baseline</th><th>Extra value</th></tr></thead>
+<tbody>
+<tr><td>glob</td><td>➕</td><td><code>find</code></td><td>gitignore awareness</td></tr>
+<tr><td>export</td><td>➕</td><td><code>/export</code> (HTML/JSONL)</td><td>tool-card render, agent-callable</td></tr>
+<tr><td>share</td><td>➕</td><td><code>/share</code> (Gist)</td><td>encrypted share server</td></tr>
+<tr><td>dump</td><td>🆕</td><td>—</td><td>plaintext transcript to clipboard</td></tr>
+<tr><td>context</td><td>➕</td><td><code>/session</code></td><td>detailed distribution</td></tr>
+<tr><td>tools</td><td>➕</td><td><code>getActiveTools()</code></td><td>slash exposure</td></tr>
+<tr><td>usage</td><td>➕</td><td>token tracking</td><td>per-provider breakdown</td></tr>
+<tr><td>learning</td><td>🆕</td><td>—</td><td>auto rule learning</td></tr>
+<tr><td>resolution</td><td>🆕</td><td>—</td><td>pairs with ast-edit</td></tr>
+<tr><td>changelog</td><td>➕</td><td><code>/changelog</code></td><td>delta TBD</td></tr>
+<tr><td>compact</td><td>➕</td><td><code>/compact</code></td><td>alternate strategies</td></tr>
+<tr><td>shake</td><td>🆕</td><td>—</td><td>content trim</td></tr>
+<tr><td>btw</td><td>🆕</td><td>—</td><td>side questions</td></tr>
+<tr><td>settings</td><td>➕</td><td><code>/settings</code></td><td>differentiated UI</td></tr>
+<tr><td>branch</td><td>➕</td><td><code>/fork</code>/<code>/clone</code>/<code>/tree</code></td><td>better nav</td></tr>
+<tr><td>model</td><td>➕</td><td><code>/model</code>/<code>/scoped-models</code></td><td>better UX</td></tr>
+<tr><td>ext-dashboard</td><td>🆕</td><td>—</td><td>extension control panel</td></tr>
+</tbody></table></div>
+<hr />
+<h2 id="done-vs-upstream-deltas">Done vs upstream deltas</h2>
+<h3 id="hashline">hashline</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>omp</th><th>piex</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td>Built-in edit is hashline</td><td><code>pi.registerTool({ name: &quot;edit&quot;, ... })</code> override</td><td>✅ equivalent</td></tr>
+<tr><td>Node native fs</td><td>polyfill: <code>Bun.file()</code> → <code>readFileSync</code></td><td>⚠️ Node polyfill (127 LOC)</td></tr>
+</tbody></table></div>
+<h3 id="dap">dap</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>omp</th><th>piex</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td>14 adapters</td><td>14 adapters</td><td>✅</td></tr>
+<tr><td>Bun.spawn()</td><td>child_process.spawn()</td><td>⚠️ 3 sites</td></tr>
+<tr><td>Bun.sleep()</td><td>setTimeout promise</td><td>⚠️ 1 site</td></tr>
+</tbody></table></div>
+<h3 id="lsp">lsp</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>omp</th><th>piex</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td>11 servers</td><td>11 servers</td><td>✅</td></tr>
+<tr><td>multi-file layout</td><td>single-file slim (570 + 499 JSON)</td><td>⚠️ ~60% less code</td></tr>
+<tr><td>native highlight + TUI</td><td>pure JSON-RPC</td><td>⚠️ highlight omitted</td></tr>
+</tbody></table></div>
+<h3 id="plan">plan</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>omp</th><th>piex</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td>full-screen plan-review-overlay</td><td>select("Execute/Stay/Refine")</td><td>⚠️ simplified</td></tr>
+<tr><td>Plan TOC sidebar</td><td>none</td><td>⚠️ omitted</td></tr>
+<tr><td>sub-agent plan pass</td><td>none</td><td>⚠️ omitted</td></tr>
+</tbody></table></div>
+<h3 id="review">review</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>omp</th><th>piex</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td>multi-agent parallel review</td><td>single-agent direct review</td><td>⚠️ light strategy A</td></tr>
+<tr><td>TUI overlay findings</td><td>text output</td><td>⚠️ no TUI overlay</td></tr>
+<tr><td>4 review modes</td><td>4 modes</td><td>✅</td></tr>
+<tr><td>Diff parse + noise filter</td><td>full port</td><td>✅</td></tr>
+</tbody></table></div>
+<hr />
+<h2 id="architecture-comparison">Architecture comparison</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Dimension</th><th>omp</th><th>pi</th><th>piex</th></tr></thead>
+<tbody>
+<tr><td>Runtime</td><td>Bun (TS + Rust)</td><td>Node.js (TS)</td><td>Node.js (TS)</td></tr>
+<tr><td>Tool registration</td><td>built-in</td><td>built-in + Extension API</td><td>pure Extension API</td></tr>
+<tr><td>Slash commands</td><td>built-in + file discovery</td><td>22 built-ins + Extension API</td><td>pure Extension API</td></tr>
+<tr><td>TUI</td><td>own (pi-tui)</td><td>own TUI</td><td>inherits Pi TUI</td></tr>
+<tr><td>Models</td><td>ModelRegistry (40+ providers)</td><td>40+ built-in providers</td><td>inherits Pi models</td></tr>
+<tr><td>Session</td><td>SessionManager + persistence</td><td>JSONL + session tree</td><td>inherits Pi session</td></tr>
+<tr><td>Sub-agents</td><td>full task orchestrator</td><td>basic API</td><td>TBD</td></tr>
+<tr><td>Extensibility</td><td>Plugin + Skill + Rule</td><td>Extension + Package + Skill</td><td>pure Extension Package</td></tr>
+<tr><td>Internal schemes</td><td>12 URL schemes</td><td>none</td><td>none</td></tr>
+<tr><td>Rust native</td><td>4 crates ~55k LOC</td><td>via hashline indirectly</td><td>via Pi indirectly</td></tr>
+</tbody></table></div>
+<hr />
+<h2 id="methodology">Methodology</h2>
+<p>Priority rests on three factors:</p>
+<ol>
+<li><strong>Extension API fit</strong> — can it be done with registerTool / registerCommand / on event / ctx.ui?</li>
+<li><strong>Dependency isolation</strong> — does it need omp internals (SessionManager / ModelRegistry / own TUI)?</li>
+<li><strong>User value</strong> — real daily workflow lift</li>
+</ol>
+<p>Tier definitions:</p>
+<ul>
+<li><strong>Tier 1</strong>: API fit + low coupling → extract and ship</li>
+<li><strong>Tier 2</strong>: API fit + medium coupling → adapter needed, feasible</li>
+<li><strong>Tier 3</strong>: API gap or high coupling → wait for Pi, or drop</li>
+</ul>
+<h3 id="when-is-pi-equivalent">When is Pi “equivalent”?</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Pi surface</th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td>Same-named tool/command</td><td>compare capability; same name ≠ equivalent</td></tr>
+<tr><td>Same name, different impl</td><td>“Enhancement”; note Pi baseline</td></tr>
+<tr><td>API exposed but not toolized</td><td>“Enhancement” (data without UX)</td></tr>
+<tr><td>Fully missing</td><td>“New capability”</td></tr>
+</tbody></table></div>
+<hr />
+<h2 id="next">Next</h2>
+<h3 id="still-to-migrate-from-oh-my-pi">Still to migrate (from oh-my-pi)</h3>
+<ul>
+<li>Plan review overlay (full-screen TUI approval)</li>
+<li>Plan TOC sidebar</li>
+<li>Multi-agent review (parallel sub-agents)</li>
+</ul>
+<h3 id="to-explore-other-agents">To explore (other agents)</h3>
+<ul>
+<li>Claude Code interaction patterns</li>
+<li>OpenCode extension mechanisms</li>
+<li>Other strong agent features</li>
+</ul>
+<hr />
+<p>Per-package details live in each package’s <code>README.md</code>.</p>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Doc navigation">
+        <a class="blog-nav-card" href="/en/docs/architecture/">
+          <span class="blog-nav-label">Previous</span>
+          <span class="blog-nav-title">Architecture</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/docs/evaluation/">
+          <span class="blog-nav-label">Next</span>
+          <span class="blog-nav-title">Evaluation</span>
+        </a>
+      </nav>
+      <p class="blog-source">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/roadmap.md" target="_blank" rel="noopener">docs/roadmap.md</a>
+      </p>
+
+
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#label-legend">Label legend</a>
+        <a href="#progress-overview">Progress overview</a>
+        <a href="#p0-done" class="depth-3">P0 — done</a>
+        <a href="#distribution" class="depth-3">Distribution</a>
+        <a href="#omp-migration-analysis">OMP migration analysis</a>
+        <a href="#tier-1-high-feasibility-native-extension-api-high-independence" class="depth-3">Tier 1 — high feasibility (native Extension API, high independence)</a>
+        <a href="#tier-2-medium-more-adapt-work-or-partial-pi-surface" class="depth-3">Tier 2 — medium (more adapt work, or partial Pi surface)</a>
+        <a href="#tier-3-high-complexity-deep-omp-coupling" class="depth-3">Tier 3 — high complexity (deep omp coupling)</a>
+        <a href="#priority-recommendations">Priority recommendations</a>
+        <a href="#p0-do-now-high-value-low-complexity" class="depth-3">P0 — do now (high value, low complexity)</a>
+        <a href="#p1-near-term-standalone-tools-controllable-deps" class="depth-3">P1 — near term (standalone tools, controllable deps)</a>
+        <a href="#p2-medium-long-term" class="depth-3">P2 — medium / long term</a>
+        <a href="#unprioritized-pi-already-has-a-base-marginal-value-tbd" class="depth-3">Unprioritized (Pi already has a base; marginal value TBD)</a>
+        <a href="#done-vs-upstream-deltas">Done vs upstream deltas</a>
+        <a href="#hashline" class="depth-3">hashline</a>
+        <a href="#dap" class="depth-3">dap</a>
+        <a href="#lsp" class="depth-3">lsp</a>
+        <a href="#plan" class="depth-3">plan</a>
+        <a href="#review" class="depth-3">review</a>
+        <a href="#architecture-comparison">Architecture comparison</a>
+        <a href="#methodology">Methodology</a>
+        <a href="#when-is-pi-equivalent" class="depth-3">When is Pi “equivalent”?</a>
+        <a href="#next">Next</a>
+        <a href="#still-to-migrate-from-oh-my-pi" class="depth-3">Still to migrate (from oh-my-pi)</a>
+        <a href="#to-explore-other-agents" class="depth-3">To explore (other agents)</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260719i18n"></script>
+  <script src="../../../assets/main.js?v=20260719i18n"></script>
+</body>
+</html>

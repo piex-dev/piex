@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Evaluation Plan — PieX</title>
+  <meta name="description" content="How piex measures lift over bare Pi, with omp as reference: suites, metrics, Docker architecture, report format." />
+  <link rel="canonical" href="https://piex.dev/en/docs/evaluation/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/docs/evaluation/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/docs/evaluation/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/docs/evaluation/" />
+  <meta property="og:title" content="Evaluation Plan — PieX" />
+  <meta property="og:description" content="How piex measures lift over bare Pi, with omp as reference: suites, metrics, Docker architecture, report format." />
+  <meta property="og:url" content="https://piex.dev/en/docs/evaluation/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260719i18n" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260719i18n" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Documentation">
+      <p class="blog-toc-title">Docs</p>
+      <nav>
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/" class="is-active">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Docs nav</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/" class="is-active">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#goals">Goals</a>
+        <a href="#comparison-matrix">Comparison matrix</a>
+        <a href="#self-run-agents" class="depth-3">Self-run agents</a>
+        <a href="#public-competitors-cited" class="depth-3">Public competitors (cited)</a>
+        <a href="#piex-evaluation-scope">PieX evaluation scope</a>
+        <a href="#implemented-in-scope" class="depth-3">Implemented (in scope)</a>
+        <a href="#planned-reserved" class="depth-3">Planned (reserved)</a>
+        <a href="#suites">Suites</a>
+        <a href="#tier-1-core" class="depth-3">Tier 1 — core</a>
+        <a href="#tier-2-specialized" class="depth-3">Tier 2 — specialized</a>
+        <a href="#tier-3-later" class="depth-3">Tier 3 — later</a>
+        <a href="#metrics">Metrics</a>
+        <a href="#core-comparable-across-three-agents" class="depth-3">Core (comparable across three agents)</a>
+        <a href="#attribution-pi-family-only-credit-individual-packages" class="depth-3">Attribution (Pi family only—credit individual packages)</a>
+        <a href="#docker-architecture">Docker architecture</a>
+        <a href="#single-task-flow" class="depth-3">Single-task flow</a>
+        <a href="#images" class="depth-3">Images</a>
+        <a href="#directory-layout">Directory layout</a>
+        <a href="#report-format">Report format</a>
+        <a href="#implementation-path">Implementation path</a>
+        <a href="#phase-1-docker-infra-first-suite-1-week" class="depth-3">Phase 1 — Docker infra + first suite (~1 week)</a>
+        <a href="#phase-2-swe-bench-1-week" class="depth-3">Phase 2 — SWE-bench (~1 week)</a>
+        <a href="#phase-3-specialized-as-needed" class="depth-3">Phase 3 — specialized (as needed)</a>
+        <a href="#risks-mitigations">Risks &amp; mitigations</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Docs</span>
+          <span class="blog-tag">Evaluation</span>
+        </div>
+        <h1>Evaluation Plan</h1>
+        <p class="blog-lede">Quantify piex lift over bare Pi, with omp as peer reference—suites, metrics, Docker architecture, and rollout path.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">Goal</p>
+            <p>Quantify how much piex lifts bare Pi, with omp as a peer reference—same suites, same model, comparable metrics.</p>
+          </div>
+        </div>
+
+<p>Using Pi as the baseline, compare pi + piex and omp on the same suites. The goal is to quantify how much piex lifts Pi, with omp as a peer reference for industry-relative level.</p>
+<h2 id="goals">Goals</h2>
+<p>Core questions: <strong>How much does piex help Pi? How do metrics compare to omp?</strong></p>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Role</th><th>Agent</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><strong>Baseline</strong></td><td>pi (bare)</td><td>Stock Pi, no extensions—the starting point</td></tr>
+<tr><td><strong>Subject</strong></td><td>pi + piex</td><td>All implemented piex packages—measure lift</td></tr>
+<tr><td><strong>Reference</strong></td><td>omp</td><td>oh-my-pi, source of many piex capabilities—peer level</td></tr>
+</tbody></table></div>
+<p>Together they answer:</p>
+<ul>
+<li>How large is piex’s lift over bare Pi?</li>
+<li>How far is pi + piex from omp?</li>
+</ul>
+<h2 id="comparison-matrix">Comparison matrix</h2>
+<p>Same suite, same model for the three self-run agents. Competitor numbers are taken from public leaderboards—not re-run here.</p>
+<h3 id="self-run-agents">Self-run agents</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Role</th><th>Agent</th><th>Config</th></tr></thead>
+<tbody>
+<tr><td>Baseline</td><td>pi (bare)</td><td>Stock Pi, no extensions</td></tr>
+<tr><td>Subject</td><td>pi + piex</td><td>Pi + all implemented piex packages</td></tr>
+<tr><td>Reference</td><td>omp</td><td>oh-my-pi, full built-ins</td></tr>
+</tbody></table></div>
+<h3 id="public-competitors-cited">Public competitors (cited)</h3>
+<p>SWE-bench Leaderboard, official blogs, papers—Claude Code / Aider / OpenHands / Devin, etc.</p>
+<h2 id="piex-evaluation-scope">PieX evaluation scope</h2>
+<p>Each run loads all implemented piex packages; re-run after new packages land.</p>
+<h3 id="implemented-in-scope">Implemented (in scope)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Package</th><th>Capability</th><th>Eval link</th></tr></thead>
+<tbody>
+<tr><td><strong>hashline</strong></td><td>overrides <code>edit</code> (hashline syntax)</td><td>SWE-bench (edit accuracy, tokens), Can It Edit</td></tr>
+<tr><td><strong>dap</strong></td><td><code>debug</code> (14 adapters)</td><td>DebugBench, SWE-bench (debug path)</td></tr>
+<tr><td><strong>lsp</strong></td><td><code>lsp</code> (11 servers)</td><td>RepoBench, SWE-bench (code understanding)</td></tr>
+<tr><td><strong>plan</strong></td><td><code>/plan</code>, <code>/todos</code></td><td>SWE-bench (multi-step planning)</td></tr>
+<tr><td><strong>review</strong></td><td><code>/review</code>, <code>review</code> tool</td><td>CodeReviewer / c-CRAB</td></tr>
+</tbody></table></div>
+<h3 id="planned-reserved">Planned (reserved)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Package</th><th>Status</th><th>Eval link</th></tr></thead>
+<tbody>
+<tr><td>todo</td><td>📋 P0</td><td>SWE-bench (task management)</td></tr>
+<tr><td>conflict</td><td>📋 P0</td><td>custom merge-conflict suite</td></tr>
+<tr><td>ast-grep / ast-edit</td><td>📋 P1</td><td>SWE-bench (search/edit precision)</td></tr>
+<tr><td>web-search</td><td>📋 P1</td><td>external-knowledge tasks</td></tr>
+<tr><td>eval</td><td>📋 P1</td><td>data-analysis tasks</td></tr>
+<tr><td>memory</td><td>📋 P1</td><td>cross-session retention</td></tr>
+<tr><td>gh</td><td>📋 P1</td><td>PR/Issue operations</td></tr>
+<tr><td>browser</td><td>📋 P2</td><td>web interaction</td></tr>
+</tbody></table></div>
+<h2 id="suites">Suites</h2>
+<h3 id="tier-1-core">Tier 1 — core</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Suite</th><th>Scale</th><th>What it tests</th><th>piex link</th></tr></thead>
+<tbody>
+<tr><td><strong>SWE-bench Verified</strong></td><td>500 tasks, 12 Python repos</td><td>repo-level bugfix end-to-end</td><td>edit, search, debug, plan—almost all piex</td></tr>
+<tr><td><strong>Aider Polyglot</strong></td><td>225 tasks, multi-lang</td><td>NL → code edit</td><td>hashline</td></tr>
+<tr><td><strong>Can It Edit</strong></td><td>multi-lang edit instructions</td><td>fine-grained edits</td><td>hashline / ast-edit</td></tr>
+</tbody></table></div>
+<h3 id="tier-2-specialized">Tier 2 — specialized</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Suite</th><th>Scale</th><th>piex link</th></tr></thead>
+<tbody>
+<tr><td><strong>DebugBench</strong></td><td>4,253 bugs</td><td>dap: locate & fix</td></tr>
+<tr><td><strong>RepoBench</strong></td><td>cross-file completion</td><td>lsp + ast-grep</td></tr>
+<tr><td><strong>CodeReviewer / c-CRAB</strong></td><td>PR review</td><td>review quality</td></tr>
+</tbody></table></div>
+<h3 id="tier-3-later">Tier 3 — later</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Suite</th><th>piex link</th></tr></thead>
+<tbody>
+<tr><td>SWE-bench Multimodal</td><td>browser (image issues)</td></tr>
+</tbody></table></div>
+<h2 id="metrics">Metrics</h2>
+<h3 id="core-comparable-across-three-agents">Core (comparable across three agents)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Metric</th><th>Definition</th><th>Focus</th></tr></thead>
+<tbody>
+<tr><td><strong>resolve_rate</strong></td><td>pass / total</td><td>gap vs omp</td></tr>
+<tr><td><strong>avg_tokens</strong></td><td>mean tokens per task</td><td>efficiency</td></tr>
+<tr><td><strong>avg_time</strong></td><td>mean wall time</td><td>speed</td></tr>
+<tr><td><strong>est_cost</strong></td><td>mean API cost per task</td><td>cost</td></tr>
+</tbody></table></div>
+<h3 id="attribution-pi-family-only-credit-individual-packages">Attribution (Pi family only—credit individual packages)</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Metric</th><th>Definition</th><th>Package</th></tr></thead>
+<tbody>
+<tr><td><strong>edit_accuracy</strong></td><td>fraction of edit calls with valid hashline syntax</td><td>hashline</td></tr>
+<tr><td><strong>search_precision</strong></td><td>fraction of grep/glob/lsp hits that are relevant</td><td>lsp</td></tr>
+<tr><td><strong>first_try_rate</strong></td><td>fraction of first edits that are correct</td><td>hashline</td></tr>
+<tr><td><strong>debug_success</strong></td><td>fraction of dap uses that locate the bug</td><td>dap</td></tr>
+<tr><td><strong>plan_follow_rate</strong></td><td>fraction of runs that follow the plan</td><td>plan</td></tr>
+<tr><td><strong>review_quality</strong></td><td>fraction of reviews that surface real issues</td><td>review</td></tr>
+</tbody></table></div>
+<h2 id="docker-architecture">Docker architecture</h2>
+<p>Each task runs in one Docker environment with baseline (pi bare), subject (pi + piex), and reference (omp), judged by the standard harness.</p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>┌────────────────────────────────────────────────────────────┐
+│                        Eval Orchestrator                    │
+│  eval/runner.ts                                            │
+│                                                             │
+│  Task Loader ──→ Agent Runner ──→ Sandbox ──→ Judge       │
+│  (JSONL)        (pi/omp CLI)    (Docker)    (SWE-bench)    │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Metrics Collector                        │  │
+│  │  resolve_rate │ tokens │ wall time │ API cost        │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Report Generator                         │  │
+│  │  baseline → subject → reference + public leaderboard │  │
+│  └──────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────┘</code></pre></div>
+<h3 id="single-task-flow">Single-task flow</h3>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>1. Task Loader: read { repo_url, base_commit, issue_text, test_patch }
+
+2. Sandbox: docker run swebench-image-{repo}
+   → container already at base_commit with deps installed
+
+3. Agent Runner:
+   docker exec pi pi --model ${MODEL} \
+     -e /piex/packages/hashline/extensions/hashline.ts \
+     -e /piex/packages/dap/extensions/dap.ts \
+     -e /piex/packages/lsp/extensions/lsp.ts \
+     -e /piex/packages/plan/extensions/plan.ts \
+     -e /piex/packages/review/extensions/review.ts \
+     -p &quot;${ISSUE_TEXT}&quot; &gt; /workspace/result.json
+
+4. Collect: result.json → patch + tool_calls + token_usage
+
+5. Judge: apply patch → run test_patch → pass/fail
+
+6. Metrics: persist to SQLite / JSONL</code></pre></div>
+<h3 id="images">Images</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Image</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>pi.Dockerfile</code></td><td>Pi base (Node.js)—used for pi bare and pi+piex</td></tr>
+<tr><td><code>omp.Dockerfile</code></td><td>omp (Bun)</td></tr>
+<tr><td><code>swebench.Dockerfile</code></td><td>SWE-bench repo runtime</td></tr>
+</tbody></table></div>
+<p>pi bare and pi+piex share one image; <code>-e</code> controls which extensions load.</p>
+<h2 id="directory-layout">Directory layout</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>piex/eval/
+├── README.md
+├── package.json
+├── tsconfig.json
+│
+├── src/
+│   ├── runner.ts
+│   ├── orchestrator.ts
+│   ├── sandbox.ts
+│   ├── agents/
+│   │   ├── pi.ts
+│   │   └── omp.ts
+│   ├── benchmarks/
+│   │   ├── swebench.ts
+│   │   ├── aider-polyglot.ts
+│   │   ├── can-it-edit.ts
+│   │   ├── debugbench.ts
+│   │   └── repobench.ts
+│   ├── metrics.ts
+│   └── report.ts
+│
+├── docker/
+│   ├── pi.Dockerfile
+│   ├── omp.Dockerfile
+│   └── swebench.Dockerfile
+│
+├── results/                   # gitignored
+│   └── 2026-07-14/
+│       ├── swebench-pi-bare.json
+│       ├── swebench-pi-piex.json
+│       ├── swebench-omp.json
+│       └── report.md
+│
+└── fixtures/
+    └── merge-conflicts/</code></pre></div>
+<h2 id="report-format">Report format</h2>
+<p>Each run produces a Markdown report: piex lift over Pi first, then omp as reference:</p>
+<div class="blog-code" data-lang="markdown"><div class="blog-code-bar"><span>markdown</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>## SWE-bench Verified — piex report (2026-07-14)
+
+### Results
+
+| Role | Agent | Model | Resolve Rate | Avg Tokens | Avg Time | Est. Cost |
+|------|-------|-------|-------------|------------|----------|-----------|
+| Baseline | pi (bare) | deepseek-v3 | 12.4% | 85K | 3.2min | $0.18 |
+| **Subject** | **pi + piex** | deepseek-v3 | **18.8%** | 62K | 2.8min | $0.14 |
+| Reference | omp | deepseek-v3 | 19.2% | 60K | 2.6min | $0.13 |
+
+### pi + piex analysis
+
+| Metric | pi bare | pi + piex | omp | vs baseline | vs omp |
+|--------|---------|-----------|-----|-------------|--------|
+| resolve_rate | 12.4% | 18.8% | 19.2% | **+51.6%** | **-2.1%** |
+| avg_tokens | 85K | 62K | 60K | **-27.1%** | **+3.3%** |
+| edit_accuracy | 67% | 91% | 92% | **+35.8%** | **-1.1%** |
+| avg_tool_calls | 42 | 28 | 26 | **-33.3%** | **+7.7%** |
+
+### Public leaderboard (same suite)
+
+| Agent | Resolve Rate | Source |
+|-------|-------------|--------|
+| Claude 4 Opus + SWE-agent | 42.6% | anthropic.com/blog |
+| Devin | 35.8% | swebench.com |
+| GPT-5 + OpenHands | 38.2% | openhands.dev |
+
+### Takeaways
+
+- piex lift over Pi: resolve rate **+51.6%**, tokens **-27.1%**
+- vs omp: gap **&lt; 5%**, core edit capability in the same band
+- Pi Extension API can carry omp-level agent capability with a lighter architecture</code></pre></div>
+<h2 id="implementation-path">Implementation path</h2>
+<h3 id="phase-1-docker-infra-first-suite-1-week">Phase 1 — Docker infra + first suite (~1 week)</h3>
+<ul>
+<li>[ ] <code>docker/pi.Dockerfile</code></li>
+<li>[ ] <code>docker/omp.Dockerfile</code></li>
+<li>[ ] <code>docker/swebench.Dockerfile</code></li>
+<li>[ ] <code>src/sandbox.ts</code></li>
+<li>[ ] <code>src/agents/pi.ts</code> (bare + piex)</li>
+<li>[ ] <code>src/agents/omp.ts</code></li>
+<li>[ ] <code>src/benchmarks/aider-polyglot.ts</code> — first end-to-end suite</li>
+</ul>
+<h3 id="phase-2-swe-bench-1-week">Phase 2 — SWE-bench (~1 week)</h3>
+<ul>
+<li>[ ] <code>src/benchmarks/swebench.ts</code> — dataset + official harness</li>
+<li>[ ] first pi vs pi+piex vs omp report</li>
+</ul>
+<h3 id="phase-3-specialized-as-needed">Phase 3 — specialized (as needed)</h3>
+<ul>
+<li>[ ] <code>can-it-edit.ts</code> → hashline</li>
+<li>[ ] <code>debugbench.ts</code> → DAP</li>
+<li>[ ] <code>repobench.ts</code> → LSP</li>
+<li>[ ] <code>src/benchmarks/code-reviewer.ts</code> → review</li>
+</ul>
+<h2 id="risks-mitigations">Risks & mitigations</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+<tbody>
+<tr><td>SWE-bench contamination</td><td>focus on relative lift, not absolute; LiveCodeBench later</td></tr>
+<tr><td>ARM64 / x86 emulation cost</td><td>prefer SWE-bench Lite (300); Modal cloud if needed</td></tr>
+<tr><td>Pi non-interactive limits</td><td>validate <code>-p</code>; PTY if required</td></tr>
+<tr><td>Eval cost</td><td>Lite first, full Verified on demand</td></tr>
+</tbody></table></div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Doc navigation">
+        <a class="blog-nav-card" href="/en/docs/roadmap/">
+          <span class="blog-nav-label">Previous</span>
+          <span class="blog-nav-title">Roadmap</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/docs/testing/">
+          <span class="blog-nav-label">Next</span>
+          <span class="blog-nav-title">Testing</span>
+        </a>
+      </nav>
+      <p class="blog-source">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/evaluation.md" target="_blank" rel="noopener">docs/evaluation.md</a>
+      </p>
+
+
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#goals">Goals</a>
+        <a href="#comparison-matrix">Comparison matrix</a>
+        <a href="#self-run-agents" class="depth-3">Self-run agents</a>
+        <a href="#public-competitors-cited" class="depth-3">Public competitors (cited)</a>
+        <a href="#piex-evaluation-scope">PieX evaluation scope</a>
+        <a href="#implemented-in-scope" class="depth-3">Implemented (in scope)</a>
+        <a href="#planned-reserved" class="depth-3">Planned (reserved)</a>
+        <a href="#suites">Suites</a>
+        <a href="#tier-1-core" class="depth-3">Tier 1 — core</a>
+        <a href="#tier-2-specialized" class="depth-3">Tier 2 — specialized</a>
+        <a href="#tier-3-later" class="depth-3">Tier 3 — later</a>
+        <a href="#metrics">Metrics</a>
+        <a href="#core-comparable-across-three-agents" class="depth-3">Core (comparable across three agents)</a>
+        <a href="#attribution-pi-family-only-credit-individual-packages" class="depth-3">Attribution (Pi family only—credit individual packages)</a>
+        <a href="#docker-architecture">Docker architecture</a>
+        <a href="#single-task-flow" class="depth-3">Single-task flow</a>
+        <a href="#images" class="depth-3">Images</a>
+        <a href="#directory-layout">Directory layout</a>
+        <a href="#report-format">Report format</a>
+        <a href="#implementation-path">Implementation path</a>
+        <a href="#phase-1-docker-infra-first-suite-1-week" class="depth-3">Phase 1 — Docker infra + first suite (~1 week)</a>
+        <a href="#phase-2-swe-bench-1-week" class="depth-3">Phase 2 — SWE-bench (~1 week)</a>
+        <a href="#phase-3-specialized-as-needed" class="depth-3">Phase 3 — specialized (as needed)</a>
+        <a href="#risks-mitigations">Risks &amp; mitigations</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260719i18n"></script>
+  <script src="../../../assets/main.js?v=20260719i18n"></script>
+</body>
+</html>

@@ -1,13 +1,24 @@
 /**
  * piex.dev — shared client scripts
- * Language toggle (EN/ZH), scroll animations, copy-on-click, mobile nav.
+ * Language toggle (EN/ZH), content-page language routing, scroll animations,
+ * copy-on-click, mobile nav.
+ *
+ * URL convention (multi-lang ready):
+ *   /                         homepage (JS dictionary i18n)
+ *   /{lang}/docs/<slug>/      docs (static HTML per language)
+ *   /{lang}/blogs/<slug>/     blogs (static HTML per language)
+ * Supported langs today: en, zh. New langs = new path segment + static pages.
  */
 (function () {
-  /* ---- i18n ---- */
+  var SUPPORTED = { en: true, zh: true };
+  var DEFAULT_LANG = "en";
+
+  /* ---- i18n dictionary (homepage chrome) ---- */
 
   var LANG = (function () {
     var saved = localStorage.getItem("piex-lang");
-    return (saved === "zh" || saved === "en") ? saved : "en";
+    if (saved && SUPPORTED[saved]) return saved;
+    return DEFAULT_LANG;
   })();
 
   var T = {
@@ -27,6 +38,7 @@
       "nav.packages": "Packages",
       "nav.docs": "Docs",
       "nav.blog": "Blog",
+      "nav.principles": "Principles",
 
       "why.title": "Design Philosophy",
       "why.desc": "Extend Pi without forking — on demand, understood, and measured.",
@@ -44,6 +56,8 @@
       "blog.desc": "Deep dives into Pi extension mechanics, coding agent design, and tooling.",
       "blog.post1.title": "Pi Extension Mechanism & Internals",
       "blog.post1.excerpt": "A deep dive into Pi's Extension API design philosophy, tool registration, hook system, and full extension loading pipeline.",
+      "blog.post2.title": "Hashline: Principles & Lessons",
+      "blog.post2.excerpt": "Compare three anchored-edit designs — whole-file vs per-line hashing, recovery, and why piex/hashline builds on oh-my-pi.",
 
       "packages.title": "Packages",
       "packages.desc": "All packages are published as <code>@piex-dev/&lt;name&gt;</code>. See README in each package directory for details.",
@@ -100,6 +114,7 @@
       "nav.packages": "Packages",
       "nav.docs": "文档",
       "nav.blog": "博客",
+      "nav.principles": "原则",
 
       "why.title": "设计理念",
       "why.desc": "充分拓展 pi 而非 fork，按需自由切换，知其所以然，评测优先。",
@@ -116,6 +131,8 @@
       "blog.desc": "深入 Pi 扩展机制、coding agent 设计与工具链的技术文章。",
       "blog.post1.title": "Pi Extension 机制及工作原理",
       "blog.post1.excerpt": "深入剖析 Pi 的 Extension API 设计哲学、工具注册、Hook 系统和扩展加载全流程。",
+      "blog.post2.title": "Hashline 方案的原理及借鉴",
+      "blog.post2.excerpt": "深入对比 oh-my-pi、pi-hashline-edit、pi-hashline-edit-pro 三种锚定编辑实现，分析整体哈希 vs 逐行哈希、容错机制与 piex 的选择。",
 
       "packages.title": "Package 总览",
       "packages.desc": "npm 包名均为 <code>@piex-dev/&lt;name&gt;</code>，详情见仓库内各 package README。",
@@ -158,17 +175,74 @@
     }
   };
 
-  function applyLang(lang) {
-    var t = T[lang];
-    document.documentElement.lang = (lang === "zh") ? "zh-CN" : "en-US";
-    document.title = (lang === "zh") ? "PieX — Pi 功能拓展集合" : "PieX — Pi Extensions";
+  /* ---- language routing ---- */
 
-    // update data-i18n elements
+  /** Current path language segment, or null on homepage / non-localized pages. */
+  function pageLangFromPath() {
+    var m = location.pathname.match(/^\/(zh|en)(?:\/|$)/);
+    return m ? m[1] : null;
+  }
+
+  /**
+   * Swap /{lang}/... → /{target}/...
+   * Returns null when the current path is not language-prefixed (homepage).
+   */
+  function pathForLang(targetLang) {
+    var path = location.pathname;
+    if (/^\/(zh|en)(?:\/|$)/.test(path)) {
+      return path.replace(/^\/(zh|en)/, "/" + targetLang);
+    }
+    return null;
+  }
+
+  /**
+   * Rewrite absolute content links so they always carry the active language
+   * prefix. Matches:
+   *   /docs/...  /blogs/...
+   *   /zh/docs/...  /en/blogs/...
+   * Leaves external, hash, and non-content paths alone.
+   */
+  function localizeContentHrefs(lang) {
+    document.querySelectorAll("a[href]").forEach(function (a) {
+      var href = a.getAttribute("href");
+      if (!href) return;
+      // strip origin if absolute same-site
+      var path = href;
+      if (path.indexOf("https://piex.dev") === 0) {
+        path = path.slice("https://piex.dev".length) || "/";
+      }
+      var m = path.match(/^\/(?:zh|en)?\/?(docs|blogs)(\/[^#?]*)?([?#].*)?$/);
+      if (!m) return;
+      var kind = m[1];
+      var rest = m[2] || "/";
+      var suffix = m[3] || "";
+      if (rest.charAt(rest.length - 1) !== "/" && rest.indexOf(".") === -1) {
+        rest += "/";
+      }
+      var next = "/" + lang + "/" + kind + rest + suffix;
+      // preserve original host form
+      if (href.indexOf("https://piex.dev") === 0) {
+        a.setAttribute("href", "https://piex.dev" + next);
+      } else {
+        a.setAttribute("href", next);
+      }
+    });
+  }
+
+  function applyLang(lang) {
+    if (!SUPPORTED[lang]) lang = DEFAULT_LANG;
+    var t = T[lang];
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en-US";
+
+    // Homepage title only (content pages set their own <title>)
+    if (!pageLangFromPath()) {
+      document.title = lang === "zh" ? "PieX — Pi 功能拓展集合" : "PieX — Pi Extensions";
+    }
+
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
       var key = el.getAttribute("data-i18n");
       var val = t[key];
       if (val === undefined) return;
-      // html translation (has tags inside)
       if (el.hasAttribute("data-i18n-html")) {
         el.innerHTML = val;
       } else {
@@ -176,7 +250,6 @@
       }
     });
 
-    // update data-i18n-attr elements
     document.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
       var spec = el.getAttribute("data-i18n-attr");
       var parts = spec.split(":");
@@ -186,28 +259,54 @@
       if (val !== undefined) el.setAttribute(attr, val);
     });
 
-    // update lang switches
     document.querySelectorAll(".lang-switch button").forEach(function (btn) {
-      btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+      var active = btn.getAttribute("data-lang") === lang;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-checked", active ? "true" : "false");
     });
+
+    // Homepage (and any non-prefixed page): keep content links in sync with LANG
+    if (!pageLangFromPath()) {
+      localizeContentHrefs(lang);
+    }
 
     localStorage.setItem("piex-lang", lang);
     LANG = lang;
   }
 
-  // expose globally for other scripts
+  function switchLang(lang) {
+    if (!SUPPORTED[lang]) return;
+    localStorage.setItem("piex-lang", lang);
+
+    var target = pathForLang(lang);
+    if (target && target !== location.pathname) {
+      location.href = target + location.search + location.hash;
+      return;
+    }
+    applyLang(lang);
+  }
+
+  // expose for other scripts / debugging
   window.piexLang = function () { return LANG; };
-  window.piexT = function (key) { return T[LANG][key] || key; };
+  window.piexT = function (key) { return (T[LANG] && T[LANG][key]) || key; };
+  window.piexSwitchLang = switchLang;
 
   // bind lang buttons
   document.querySelectorAll(".lang-switch button").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      applyLang(this.getAttribute("data-lang"));
+      switchLang(this.getAttribute("data-lang"));
     });
   });
 
-  // initial apply
-  applyLang(LANG);
+  // initial apply:
+  // - content page: prefer path language (authoritative), sync storage
+  // - homepage: use saved/default LANG and rewrite content links
+  var pathLang = pageLangFromPath();
+  if (pathLang) {
+    applyLang(pathLang);
+  } else {
+    applyLang(LANG);
+  }
 
   /* ---- scroll animations ---- */
   var observer = new IntersectionObserver(function (entries) {
@@ -283,14 +382,12 @@
       });
     });
 
-    // click outside menu closes it
     document.addEventListener("click", function (e) {
       if (!nav.classList.contains("open")) return;
       if (nav.contains(e.target) || toggle.contains(e.target)) return;
       closeNav();
     });
 
-    // Escape key closes it
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeNav();
     });

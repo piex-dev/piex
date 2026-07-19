@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Architecture Overview — PieX</title>
+  <meta name="description" content="Project layout, package overview, tool/provider registration, and Pi Extension API mapping." />
+  <link rel="canonical" href="https://piex.dev/en/docs/architecture/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/docs/architecture/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/docs/architecture/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/docs/architecture/" />
+  <meta property="og:title" content="Architecture Overview — PieX" />
+  <meta property="og:description" content="Project layout, package overview, tool/provider registration, and Pi Extension API mapping." />
+  <meta property="og:url" content="https://piex.dev/en/docs/architecture/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260719i18n" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260719i18n" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Documentation">
+      <p class="blog-toc-title">Docs</p>
+      <nav>
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/" class="is-active">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Docs nav</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/" class="is-active">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/">Testing</a>
+        <a href="/en/docs/references/">References</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#project-layout">Project layout</a>
+        <a href="#package-overview">Package overview</a>
+        <a href="#tool-registration">Tool registration</a>
+        <a href="#provider-registration">Provider registration</a>
+        <a href="#pi-extension-api-mapping">Pi Extension API mapping</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Docs</span>
+          <span class="blog-tag">Architecture</span>
+        </div>
+        <h1>Architecture Overview</h1>
+        <p class="blog-lede">Monorepo layout, seven packages, tool and provider registration, and how piex maps onto the Pi Extension API.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">At a glance</p>
+            <p>Seven independent packages, pure Pi Extension API—tool overrides, new tools, providers, and themes without forking Pi.</p>
+          </div>
+        </div>
+
+<h2 id="project-layout">Project layout</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>piex/                                  # monorepo
+├── README.md                         # project entry
+├── docs/                             # 📚 docs + static site (piex.dev, Pages root)
+│   ├── index.html                    #   homepage
+│   ├── &lt;slug&gt;.md                     #   doc source (Chinese only)
+│   ├── notes/&lt;slug&gt;.md               #   blog source (Chinese only)
+│   ├── {lang}/docs/&lt;slug&gt;/index.html #   zh/en doc HTML → /{lang}/docs/&lt;slug&gt;/
+│   ├── {lang}/blogs/&lt;slug&gt;/index.html#   zh/en blog HTML → /{lang}/blogs/&lt;slug&gt;/
+│   ├── assets/                       #   style / main / blog static assets
+│   └── migration/                    #   internal migration notes
+└── packages/                         # 📦 7 independent piex packages
+    ├── hashline/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── hashline.ts
+    │       └── bun-polyfill.ts
+    ├── dap/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── dap.ts, client.ts, session.ts
+    │       ├── config.ts, types.ts, utils.ts
+    │       ├── defaults.json, non-interactive-env.ts
+    ├── lsp/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── lsp.ts, defaults.json
+    ├── plan/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       └── plan.ts
+    ├── review/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       └── review.ts
+    ├── xai-oauth/
+    │   ├── README.md
+    │   ├── package.json
+    │   └── extensions/
+    │       ├── xai-oauth.ts
+    │       └── models.ts
+    └── theme-dark-terminal/
+        ├── README.md
+        ├── package.json
+        └── themes/
+            └── dark-terminal.json</code></pre></div>
+<h2 id="package-overview">Package overview</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Package</th><th>Size</th><th>Tool(s)</th><th>External deps</th><th>Origin</th></tr></thead>
+<tbody>
+<tr><td>hashline</td><td>191 LOC + polyfill 127</td><td>overrides <code>edit</code></td><td><code>@oh-my-pi/hashline</code></td><td>oh-my-pi</td></tr>
+<tr><td>dap</td><td>1942 LOC + 212 JSON</td><td><code>debug</code></td><td>none</td><td>oh-my-pi</td></tr>
+<tr><td>lsp</td><td>570 LOC + 499 JSON</td><td><code>lsp</code></td><td>none</td><td>oh-my-pi</td></tr>
+<tr><td>plan</td><td>348 LOC</td><td><code>/plan</code>, <code>/todos</code></td><td>none</td><td>Pi example</td></tr>
+<tr><td>review</td><td>330 LOC</td><td><code>/review</code>, <code>review</code></td><td>none</td><td>oh-my-pi</td></tr>
+<tr><td>xai-oauth</td><td>530 LOC + 419 models</td><td><code>/login</code> xAI Grok OAuth (live model discovery)</td><td>none</td><td>oh-my-pi / pi-grok</td></tr>
+<tr><td>theme-dark-terminal</td><td>—</td><td>dark high-contrast terminal theme</td><td>none</td><td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td></tr>
+</tbody></table></div>
+<h2 id="tool-registration">Tool registration</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Tool</th><th>Source</th><th>Mode</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>read</code></td><td>Pi built-in</td><td>read</td><td>Read files</td></tr>
+<tr><td><code>bash</code></td><td>Pi built-in</td><td>r/w</td><td>Run commands</td></tr>
+<tr><td><code>write</code></td><td>Pi built-in</td><td>write</td><td>Write files</td></tr>
+<tr><td><code>grep</code></td><td>Pi built-in</td><td>read</td><td>Search content</td></tr>
+<tr><td><code>find</code></td><td>Pi built-in</td><td>read</td><td>Search files</td></tr>
+<tr><td><code>ls</code></td><td>Pi built-in</td><td>read</td><td>List directories</td></tr>
+<tr><td><strong><code>edit</code></strong></td><td><strong>hashline</strong></td><td>write</td><td>hashline edit (overrides built-in)</td></tr>
+<tr><td><strong><code>debug</code></strong></td><td><strong>dap</strong></td><td>r/w</td><td>DAP debug (launch/attach/step/evaluate)</td></tr>
+<tr><td><strong><code>lsp</code></strong></td><td><strong>lsp</strong></td><td>r/w</td><td>LSP (diagnostics/hover/references)</td></tr>
+<tr><td><strong><code>review</code></strong></td><td><strong>review</strong></td><td>read</td><td>Code review (diff/file/branch/commit)</td></tr>
+</tbody></table></div>
+<h2 id="provider-registration">Provider registration</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Provider</th><th>Source</th><th>Auth</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><strong><code>xai-oauth</code></strong></td><td><strong>xai-oauth</strong></td><td>OAuth subscription</td><td>SuperGrok / X Premium+ login; subscription models via cli-chat-proxy; background model discovery after login</td></tr>
+</tbody></table></div>
+<h2 id="pi-extension-api-mapping">Pi Extension API mapping</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Concept</th><th>Origin</th><th>piex impl</th><th>Pi API</th></tr></thead>
+<tbody>
+<tr><td>Override edit tool</td><td>omp</td><td>hashline.ts</td><td><code>pi.registerTool({ name: &quot;edit&quot; })</code></td></tr>
+<tr><td>Hook read, append header</td><td>omp</td><td>hashline.ts</td><td><code>pi.on(&quot;tool_result&quot;, ...)</code></td></tr>
+<tr><td>Register debug tool</td><td>omp</td><td>dap.ts</td><td><code>pi.registerTool({ name: &quot;debug&quot; })</code></td></tr>
+<tr><td>Cleanup DAP processes</td><td>omp</td><td>dap.ts</td><td><code>pi.on(&quot;session_shutdown&quot;, ...)</code></td></tr>
+<tr><td>Register lsp tool</td><td>omp</td><td>lsp.ts</td><td><code>pi.registerTool({ name: &quot;lsp&quot; })</code></td></tr>
+<tr><td>Plan mode /plan</td><td>Pi example</td><td>plan.ts</td><td><code>pi.registerCommand(&quot;plan&quot;, ...)</code></td></tr>
+<tr><td>Read-only tool set</td><td>Pi example</td><td>plan.ts</td><td><code>pi.setActiveTools([...])</code></td></tr>
+<tr><td>Block dangerous cmds</td><td>Pi example</td><td>plan.ts</td><td><code>pi.on(&quot;tool_call&quot;, ...)</code> → block</td></tr>
+<tr><td>Progress [DONE:n]</td><td>Pi example</td><td>plan.ts</td><td><code>pi.on(&quot;turn_end&quot;, ...)</code></td></tr>
+<tr><td>Interactive review menu</td><td>omp</td><td>review.ts</td><td><code>pi.registerCommand(&quot;review&quot;, ...)</code></td></tr>
+<tr><td>Register review tool</td><td>omp</td><td>review.ts</td><td><code>pi.registerTool({ name: &quot;review&quot; })</code></td></tr>
+<tr><td>Persist state</td><td>Pi</td><td>plan.ts</td><td><code>pi.appendEntry(&quot;plan-mode&quot;, ...)</code></td></tr>
+<tr><td>Footer / Widget</td><td>Pi</td><td>plan.ts</td><td><code>ctx.ui.setStatus/setWidget(...)</code></td></tr>
+<tr><td>Register xAI OAuth provider</td><td>omp</td><td>xai-oauth.ts</td><td><code>pi.registerProvider(&quot;xai-oauth&quot;, { oauth: {...} })</code></td></tr>
+</tbody></table></div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Doc navigation">
+        <a class="blog-nav-card" href="/en/docs/design/">
+          <span class="blog-nav-label">Previous</span>
+          <span class="blog-nav-title">Design Philosophy</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/docs/roadmap/">
+          <span class="blog-nav-label">Next</span>
+          <span class="blog-nav-title">Roadmap</span>
+        </a>
+      </nav>
+      <p class="blog-source">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/architecture.md" target="_blank" rel="noopener">docs/architecture.md</a>
+      </p>
+
+
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#project-layout">Project layout</a>
+        <a href="#package-overview">Package overview</a>
+        <a href="#tool-registration">Tool registration</a>
+        <a href="#provider-registration">Provider registration</a>
+        <a href="#pi-extension-api-mapping">Pi Extension API mapping</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260719i18n"></script>
+  <script src="../../../assets/main.js?v=20260719i18n"></script>
+</body>
+</html>

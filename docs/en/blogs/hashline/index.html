@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hashline — Principles & Lessons — PieX</title>
+  <meta name="description" content="Compare oh-my-pi, pi-hashline-edit, and pi-hashline-edit-pro: hashing models, recovery, and why piex/hashline builds on oh-my-pi." />
+  <link rel="canonical" href="https://piex.dev/en/blogs/hashline/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/blogs/hashline/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/blogs/hashline/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/blogs/hashline/" />
+  <meta property="og:title" content="Hashline — Principles &amp; Lessons — PieX" />
+  <meta property="og:description" content="Why anchored editing? How do three hashline designs trade off? What did piex choose—and what did it add?" />
+  <meta property="og:url" content="https://piex.dev/en/blogs/hashline/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260719i18n" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260719i18n" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Blog">
+      <p class="blog-toc-title">Blog</p>
+      <nav>
+        <a href="/en/blogs/hashline/" class="is-active">Hashline — Principles & Lessons</a>
+        <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism & Internals</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Blog nav</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/en/blogs/hashline/" class="is-active">Hashline — Principles & Lessons</a>
+        <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism & Internals</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#why-anchored-editing">Why anchored editing</a>
+        <a href="#1-three-reference-implementations">Three reference implementations</a>
+        <a href="#2-whole-file-hash-vs-per-line-hash">Whole-file vs per-line hash</a>
+        <a href="#fail-map">Invalidation ranges</a>
+        <a href="#3-tolerance-mechanisms">Tolerance mechanisms</a>
+        <a href="#4-edit-operation-models">Edit operation models</a>
+        <a href="#5-feature-matrix">Feature matrix</a>
+        <a href="#6-piex-hashline-s-choice">piex/hashline’s choice</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#7-references">References</a>
+      </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-date">2026-07-16</span>
+          <span class="blog-tag">Hashline</span>
+          <span class="blog-tag">Edit</span>
+          <span class="blog-tag">Extension</span>
+        </div>
+        <h1>Hashline — Principles & Lessons</h1>
+        <p class="blog-lede">Line numbers are fragile coordinates. Anchored editing replaces them with <strong>content hashes</strong> so agents can edit safely under concurrency. This post compares three designs and explains <strong>piex/hashline</strong>’s choices.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">30-second takeaway</p>
+            <p>
+              piex inherits oh-my-pi’s <strong>tree-sitter block ops</strong> and <strong>boundary repair</strong>,
+              then fills in <strong>Noop Loop / Duplicate Edit / dialect normalization</strong> from pi-hashline-edit.
+              Hash model stays whole-file 4-hex tags—simple and verifiable; Phase 2 adds stale recovery and multi-version snapshots.
+            </p>
+          </div>
+        </div>
+
+<h2 id="why-anchored-editing">Why anchored editing</h2>
+<p>AI coding assistants face a fundamental edit problem: <strong>models describe locations by line number, but line numbers are fragile</strong>. The user may edit the file while the model thinks; the model’s own previous edit shifts every later line. Trusting bare line numbers puts edits in the wrong place—bugs that are hard to notice.</p>
+<p>Anchored editing (Hashline) replaces line numbers with <strong>content hashes as the coordinate system</strong>. On read, each line is shown with a hash; on edit, the model points at hashes (“replace between this hash and that hash”) instead of “lines 12–15.”</p>
+<p><a href="https://github.com/piex-dev/piex/tree/main/packages/hashline" target="_blank" rel="noopener">piex/hashline</a> draws on three strong hashline designs. This post compares them—decisions, strengths, trade-offs—and explains piex/hashline’s choices.</p>
+<hr />
+<h2 id="1-three-reference-implementations">1. Three reference implementations</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Impl</th><th>Author</th><th>Hash grain</th><th>Size</th><th>Tests</th></tr></thead>
+<tbody>
+<tr><td><strong><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi/hashline</a></strong></td><td>can1357</td><td>whole file → 4-hex tag</td><td>~3500 LOC</td><td>12</td></tr>
+<tr><td><strong><a href="https://github.com/RimuruW/pi-hashline-edit" target="_blank" rel="noopener">pi-hashline-edit</a></strong></td><td>RimuruW</td><td>per-line context-aware → 2/3/4 char</td><td>~4000 LOC</td><td>30+</td></tr>
+<tr><td><strong><a href="https://github.com/YuGiMob/pi-hashline-edit-pro" target="_blank" rel="noopener">pi-hashline-edit-pro</a></strong></td><td>YuGiMob</td><td>per-line content → 3 char</td><td>~3500 LOC</td><td>50+</td></tr>
+</tbody></table></div>
+<p>Important: the latter two share <strong>no code</strong> with oh-my-pi. pi-hashline-edit’s comment says “Vendored & adapted from oh-my-pi,” but its core algorithms (context-aware hashing, textHint cross-check, 3-way merge recovery) are original.</p>
+<hr />
+<h2 id="2-whole-file-hash-vs-per-line-hash">2. Whole-file hash vs per-line hash</h2>
+<p>This is the fundamental design fork.</p>
+<h3 id="2-1-whole-file-hash-oh-my-pi">2.1 Whole-file hash (oh-my-pi)</h3>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>On read:
+  full file → xxHash32 → top 16 bits → 4-hex tag &quot;A3F2&quot;
+  output: [src/main.ts#A3F2]
+          1:A3F2:import { foo } from &quot;./foo&quot;;
+          2:B7E1:const x = 1;
+
+On edit:
+  [src/main.ts#A3F2]        ← tag proves &quot;I saw this version&quot;
+  SWAP 2.=2:                ← line + tag dual anchor
+  +const x = 2;</code></pre></div>
+<p><strong>Validation:</strong></p>
+<ol>
+<li>Re-read file → hash → <code>actualTag</code></li>
+<li>Compare to header <code>expectedTag</code></li>
+<li>Match → line indices refer to the tagged version; safe to apply</li>
+<li>Mismatch → <code>MismatchError</code>, re-read required</li>
+</ol>
+<p><strong>Pros:</strong> simple mental model; one tag covers the file; seenLines can block edits to unread lines.</p>
+<p><strong>Cons:</strong> any change invalidates the global tag; very sensitive to concurrent edits; model must re-read the whole file to edit anywhere.</p>
+<h3 id="2-2-per-line-hash-pi-hashline-edit-pi-hashline-edit-pro">2.2 Per-line hash (pi-hashline-edit, pi-hashline-edit-pro)</h3>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>On read:
+  hash each line independently
+  output: 1#MQ:import { foo } from &quot;./foo&quot;;
+          2#VR:const x = 1;
+
+On edit:
+  { &quot;op&quot;: &quot;replace&quot;, &quot;pos&quot;: &quot;2#VR&quot;, &quot;lines&quot;: [&quot;const x = 2;&quot;] }
+  ← anchored on line 2 hash VR</code></pre></div>
+<p><strong>Validation:</strong></p>
+<ol>
+<li>Hash the line at the anchor’s line number in the live file</li>
+<li>Compare to expectedHash</li>
+<li>Match → line unchanged; safe</li>
+<li>Mismatch → <code>E_STALE_ANCHOR</code></li>
+</ol>
+<p><strong>Pros:</strong> local invalidation—edit line 5, line 50 still holds; read only the needed range.</p>
+<p><strong>Cons:</strong> collisions matter more (same content lines need extra policy).</p>
+<h3 id="2-3-context-aware-hashing-pi-hashline-edit-only">2.3 Context-aware hashing (pi-hashline-edit only)</h3>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>computeHashFromContext(prev, curr, next) =
+  xxHash32(prev + &quot;\0&quot; + curr + &quot;\0&quot; + next)</code></pre></div>
+<p>Line N’s hash depends on N−1, N, N+1. Edit radius is exactly ±1:</p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>edit line 5 →
+  line 4 stale (next changed)
+  line 5 stale (self)
+  line 6 stale (prev changed)
+  lines 3, 7, 8… still valid</code></pre></div>
+<p>Looser than whole-file (global fail), safer than pure content hash (only the edited line)—neighbors of the edit should not be trusted.</p>
+<h3 id="2-4-stable-hash-mapping-pi-hashline-edit-pro-only">2.4 Stable hash mapping (pi-hashline-edit-pro only)</h3>
+<p>Pure content hashes, plus <strong>stable hash mapping</strong> after edits: match old hashes to same-content lines in the new file so unchanged lines keep old hashes. The model can keep editing the same file <strong>without re-read</strong> after a successful edit.</p>
+<h2 id="fail-map">Invalidation ranges</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>whole-file (oh-my-pi):
+  any change → ████████████████████ all stale
+
+context-aware (pi-hashline-edit):
+  edit line 5 → ___███______________  ±1
+
+content + stable mapping (pi-hashline-edit-pro):
+  edit line 5 → ____█_______________  only the edited line; rest survive</code></pre></div>
+<hr />
+<h2 id="3-tolerance-mechanisms">3. Tolerance mechanisms</h2>
+<h3 id="3-1-stale-anchor-recovery">3.1 Stale-anchor recovery</h3>
+<p><strong>oh-my-pi — Recovery (anchor remapping)</strong></p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>1. diffArrays(old, new) → Map&lt;oldLine, newLine&gt;
+2. verify non-anchor neighbor continuity after remap
+3. all anchors must share one offset
+4. pass → remap and apply on new file
+5. fail → MismatchError</code></pre></div>
+<p>Strict and conservative: one bad anchor rejects all.</p>
+<p><strong>pi-hashline-edit — 3-way merge</strong></p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>1. take last model read snapshot (LRU: up to 4 versions × 8 paths)
+2. replay edit on snapshot → baseEdited
+3. structuredPatch(snapshot, baseEdited)
+4. applyPatch(live, patch, {fuzzFactor: 0})
+5. success → merged result + warning
+6. fail → older snapshots; else E_STALE_ANCHOR</code></pre></div>
+<p><strong>fuzzFactor=0</strong> is the key: conflicting edits on the same line fail the merge—no silent overwrite.</p>
+<p><strong>pi-hashline-edit-pro</strong> — no recovery; relies on stable mapping to lower failure rate.</p>
+<h3 id="3-2-noop-loop-guard-pi-hashline-edit-only">3.2 Noop loop guard (pi-hashline-edit only)</h3>
+<p>Models often ignore soft hints and retry the same noop payload. Extreme case: 205 byte-identical noop edits in one session.</p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>same (canonicalPath, payloadKey) → noopCount++
+noopCount ≥ 3 → ToolError &quot;[E_NOOP_LOOP]&quot;
+new payload → reset counter</code></pre></div>
+<p>oh-my-pi and pi-hashline-edit-pro lack this.</p>
+<h3 id="3-3-duplicate-edit-detection-pi-hashline-edit-only">3.3 Duplicate-edit detection (pi-hashline-edit only)</h3>
+<p>Orthogonal to noop guard: after a <strong>successful</strong> edit the model may resend the same payload (e.g. append once, then again → duplicated content).</p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>lastAppliedPayload[path] = payloadKey
+new request matches &amp;&amp; read snapshot == live → [E_DUPLICATE_EDIT]
+model re-reads → clear lastAppliedPayload</code></pre></div>
+<h3 id="3-4-boundary-repair">3.4 Boundary repair</h3>
+<p>oh-my-pi’s repair engine (~1200 LOC) is the most complete: boundary echo, delimiter imbalance, JSX closer mismatch, after-insert landing by indent. The per-line designs only have simplified versions (warn or autoFix trim).</p>
+<h3 id="3-5-dialect-normalization-pi-hashline-edit-only">3.5 Dialect normalization (pi-hashline-edit only)</h3>
+<p>Models call edit with non-schema shapes—Pi native <code>oldText/newText</code>, stringified edits JSON, <code>file_path</code> instead of <code>path</code>. <code>prepareArguments</code> normalizes before validation so a bad shape still runs without an extra model turn.</p>
+<h3 id="3-6-texthint-cross-check-pi-hashline-edit-only">3.6 textHint cross-check (pi-hashline-edit only)</h3>
+<p>Anchor form <code>LINE#HASH:content</code> may carry optional textHint:</p>
+<ul>
+<li>hash matches but textHint does not → stale (guards 1/256 collision)</li>
+<li>hash misses but textHint matches fuzzily → accept (whitespace tolerance)</li>
+</ul>
+<p>textHint is free—already present in read output.</p>
+<hr />
+<h2 id="4-edit-operation-models">4. Edit operation models</h2>
+<h3 id="4-1-three-syntax-styles">4.1 Three syntax styles</h3>
+<p><strong>oh-my-pi — custom DSL</strong></p>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>[src/main.ts#A3F2]
+SWAP 12.=12:
++const x = 1;
+
+DEL 5
+INS.PRE 8:
++import { foo } from &quot;./foo&quot;;
+
+SWAP.BLK 20:             ← whole syntactic block via tree-sitter
++function greet(name) {
++  return `Hello, ${name}`;
++}
+
+REM
+MV lib/greet.ts</code></pre></div>
+<p><strong>pi-hashline-edit — JSON multi-op</strong></p>
+<div class="blog-code" data-lang="json"><div class="blog-code-bar"><span>json</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>{
+  &quot;path&quot;: &quot;src/main.ts&quot;,
+  &quot;edits&quot;: [
+    { &quot;op&quot;: &quot;replace&quot;, &quot;pos&quot;: &quot;12#MQ&quot;, &quot;lines&quot;: [&quot;const x = 1;&quot;] },
+    { &quot;op&quot;: &quot;append&quot;, &quot;pos&quot;: &quot;8#VR&quot;, &quot;lines&quot;: [&quot;import { foo }...&quot;] },
+    { &quot;op&quot;: &quot;replace_text&quot;, &quot;oldText&quot;: &quot;var x = 1&quot;, &quot;newText&quot;: &quot;const x = 1&quot; }
+  ]
+}</code></pre></div>
+<p><strong>pi-hashline-edit-pro — JSON single op</strong></p>
+<div class="blog-code" data-lang="json"><div class="blog-code-bar"><span>json</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>{
+  &quot;path&quot;: &quot;src/main.ts&quot;,
+  &quot;changes&quot;: [
+    { &quot;content_lines&quot;: [&quot;const x = 1;&quot;], &quot;hash_range_inclusive&quot;: [&quot;MQX&quot;, &quot;MQX&quot;] }
+  ]
+}</code></pre></div>
+<h3 id="4-2-block-ops-oh-my-pi-s-unique-edge">4.2 Block ops — oh-my-pi’s unique edge</h3>
+<p><code>SWAP.BLK N:</code> uses tree-sitter to resolve the full syntactic block starting at line N. Whether the function is 3 or 30 lines, the range is exact. <strong>Only design with syntax awareness.</strong></p>
+<h3 id="4-3-op-diversity-pi-hashline-edit-s-edge">4.3 Op diversity — pi-hashline-edit’s edge</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Op</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>replace</code> + pos</td><td>single line</td></tr>
+<tr><td><code>replace</code> + pos + end</td><td>range</td></tr>
+<tr><td><code>append</code> / <code>prepend</code></td><td>after/before line or EOF/BOF</td></tr>
+<tr><td><code>replace_text</code></td><td>exact string replace</td></tr>
+</tbody></table></div>
+<p>oh-my-pi’s DSL is more expressive (blocks + file ops) but harder for models to learn. pi-hashline-edit-pro is replace-only.</p>
+<hr />
+<h2 id="5-feature-matrix">5. Feature matrix</h2>
+<h3 id="core">Core</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Dimension</th><th>oh-my-pi</th><th>pi-hashline-edit</th><th>pi-hashline-edit-pro</th></tr></thead>
+<tbody>
+<tr><td>Hash grain</td><td>whole file → 4-hex</td><td>context-aware per line</td><td>content per line</td></tr>
+<tr><td>Collision space</td><td>16-bit</td><td>context + textHint</td><td>18-bit + backoff</td></tr>
+<tr><td>Anchor form</td><td><code>[path#TAG]</code></td><td><code>LINE#HASH[:textHint]</code></td><td><code>HASH</code> (no line)</td></tr>
+<tr><td>Invalidation</td><td>global</td><td>±1 line</td><td>edited line</td></tr>
+<tr><td>Recovery</td><td>anchor remapping</td><td>3-way merge (multi-version)</td><td>stable mapping</td></tr>
+</tbody></table></div>
+<h3 id="ops-tolerance">Ops & tolerance</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Dimension</th><th>oh-my-pi</th><th>pi-hashline-edit</th><th>pi-hashline-edit-pro</th></tr></thead>
+<tbody>
+<tr><td>Line ops</td><td>SWAP/DEL/INS</td><td>replace/append/prepend/replace_text</td><td>replace</td></tr>
+<tr><td>Block (tree-sitter)</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>File ops</td><td>REM / MV</td><td>❌</td><td>❌</td></tr>
+<tr><td>Stale recovery</td><td>✅ remapping</td><td>✅ 3-way merge</td><td>❌ (stable hash)</td></tr>
+<tr><td>Noop loop</td><td>❌</td><td>✅ ≥3</td><td>❌</td></tr>
+<tr><td>Duplicate edit</td><td>❌</td><td>✅</td><td>❌</td></tr>
+<tr><td>Boundary repair</td><td>✅ ~1200 LOC</td><td>⚠️ slim</td><td>⚠️ slim + autoFix</td></tr>
+<tr><td>Dialect normalize</td><td>❌</td><td>✅</td><td>❌</td></tr>
+<tr><td>textHint</td><td>❌</td><td>✅</td><td>❌</td></tr>
+</tbody></table></div>
+<hr />
+<h2 id="6-piex-hashline-s-choice">6. piex/hashline’s choice</h2>
+<h3 id="current-architecture-oh-my-pi-as-engine">Current architecture: oh-my-pi as engine</h3>
+<p><a href="https://github.com/piex-dev/piex/tree/main/packages/hashline" target="_blank" rel="noopener">piex/hashline</a> uses <strong>oh-my-pi as the core engine</strong>, with a Node.js adapter. That keeps:</p>
+<ul>
+<li><strong>tree-sitter block ops</strong> (<code>SWAP.BLK</code> / <code>DEL.BLK</code> / <code>INS.BLK.POST</code>)</li>
+<li><strong>boundary repair</strong> (~1200 LOC)</li>
+</ul>
+<h3 id="four-way-comparison">Four-way comparison</h3>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Dimension</th><th>oh-my-pi</th><th><strong>piex/hashline</strong></th><th>pi-hashline-edit</th><th>pi-hashline-edit-pro</th></tr></thead>
+<tbody>
+<tr><td>Engine</td><td>self</td><td><strong>wraps oh-my-pi</strong></td><td>independent rewrite</td><td>from scratch</td></tr>
+<tr><td>Size</td><td>~3500</td><td><strong>~200 adapter</strong></td><td>~4000</td><td>~3500</td></tr>
+<tr><td>Block ops</td><td>✅</td><td><strong>✅ inherited</strong></td><td>❌</td><td>❌</td></tr>
+<tr><td>Boundary repair</td><td>✅</td><td><strong>✅ inherited</strong></td><td>⚠️</td><td>⚠️</td></tr>
+<tr><td>Stale recovery</td><td>✅</td><td><strong>❌</strong></td><td>✅</td><td>❌</td></tr>
+<tr><td>Noop / Dup / Dialect</td><td>❌</td><td><strong>✅ Phase 1</strong></td><td>✅</td><td>❌</td></tr>
+</tbody></table></div>
+<p><strong>Inheritance layer all ✅; Phase 1 tolerance done ✅.</strong> Remaining gaps are Phase 2: stale recovery and multi-version snapshots.</p>
+<h2 id="roadmap">Roadmap</h2>
+<div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>Phase 1 ✅ done — high ROI (~180 LOC):
+  ├── Noop Loop Guard
+  ├── Duplicate Edit detection
+  └── Dialect normalization
+
+Phase 2 — reliability (~550 LOC):
+  ├── Stale Anchor recovery (3-way merge)
+  ├── Multi-version snapshot store (LRU)
+  └── Grep with anchors
+
+Phase 3 — polish:
+  ├── Undo / Auto-Read / Raw Read / Stable Hash Mapping</code></pre></div>
+<p>Phase 1 lives in <a href="https://github.com/piex-dev/piex/tree/main/packages/hashline/extensions/patches.ts" target="_blank" rel="noopener"><code>extensions/patches.ts</code></a> (<code>EditGuard</code>) and <code>normalizeInput()</code> in <code>extensions/hashline.ts</code>.</p>
+<hr />
+<h2 id="7-references">7. References</h2>
+<ul>
+<li><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/hashline" target="_blank" rel="noopener">oh-my-pi hashline</a></li>
+<li><a href="https://github.com/RimuruW/pi-hashline-edit" target="_blank" rel="noopener">pi-hashline-edit</a> — 7 ADRs</li>
+<li><a href="https://github.com/YuGiMob/pi-hashline-edit-pro" target="_blank" rel="noopener">pi-hashline-edit-pro</a></li>
+<li>Key ADRs: <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0001-keep-two-character-hashlines.md" target="_blank" rel="noopener">0001</a>, <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0003-context-based-line-hashing.md" target="_blank" rel="noopener">0003</a>, <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0004-snapshot-merge-recovery.md" target="_blank" rel="noopener">0004</a>, <a href="https://github.com/RimuruW/pi-hashline-edit/blob/main/docs/adr/0005-multi-version-snapshot-history.md" target="_blank" rel="noopener">0005</a></li>
+</ul>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Post navigation">
+        <a class="blog-nav-card" href="/">
+          <span class="blog-nav-label">Home</span>
+          <span class="blog-nav-title">PieX</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/blogs/pi-extension-mechanism/">
+          <span class="blog-nav-label">Next</span>
+          <span class="blog-nav-title">Pi Extension Mechanism & Internals</span>
+        </a>
+      </nav>
+      <p class="blog-source">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/notes/hashline.md" target="_blank" rel="noopener">docs/notes/hashline.md</a>
+      </p>
+
+
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#why-anchored-editing">Why anchored editing</a>
+        <a href="#1-three-reference-implementations">Three reference implementations</a>
+        <a href="#2-whole-file-hash-vs-per-line-hash">Whole-file vs per-line hash</a>
+        <a href="#fail-map">Invalidation ranges</a>
+        <a href="#3-tolerance-mechanisms">Tolerance mechanisms</a>
+        <a href="#4-edit-operation-models">Edit operation models</a>
+        <a href="#5-feature-matrix">Feature matrix</a>
+        <a href="#6-piex-hashline-s-choice">piex/hashline’s choice</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#7-references">References</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260719i18n"></script>
+  <script src="../../../assets/main.js?v=20260719i18n"></script>
+</body>
+</html>

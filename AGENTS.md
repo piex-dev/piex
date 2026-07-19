@@ -6,7 +6,7 @@
 
 PieX 是 [Pi](https://pi.dev)（pi-coding-agent）的功能扩展集合，以独立 npm 包 `@piex-dev/*` 分发的 monorepo。它从 oh-my-pi (omp)、Claude Code、OpenCode 等 coding agent 中提取核心功能，**100% 基于 pi Extension API 重新实现**——不 fork pi、不修改 pi 内部代码。
 
-核心原则（详见 `docs/design.md`）：
+核心原则（详见 `docs/design.md`，线上中英 HTML 见 `/zh|en/docs/design/`）：
 
 1. **100% Extension API**：所有功能通过 `pi.registerTool` / `pi.registerCommand` / `pi.on(...)` 等标准扩展接口实现。
 2. **随 pi 升级而升级**：每个 package 是独立 npm 包，版本独立管理，与 pi 无耦合。
@@ -26,7 +26,8 @@ piex/
 │   ├── xai-oauth/            # xAI Grok OAuth 订阅登录 provider（含实时模型发现）
 │   └── theme-dark-terminal/  # 静态暗色高对比终端主题（无 TS 代码）
 ├── eval/                     # Docker 化评测框架（pi bare vs pi+piex vs omp）
-├── docs/                     # 中文文档 + 手工搭建的静态站（GitHub Pages，piex.dev）
+├── docs/                     # 中文 md 源稿 + 中英 HTML 静态站（piex.dev）
+├── scripts/                  # publish-all.sh + check-docs-i18n.sh（文档双语校验）
 ├── scripts/publish-all.sh    # 顺序发布全部 @piex-dev/* 包
 └── .github/workflows/        # 唯一的 CI：pages.yml（部署 docs/ 到 GitHub Pages）
 ```
@@ -147,29 +148,45 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 ## 文档站（docs/ → piex.dev）
 
-`docs/` 是零构建静态站：无 SSG、无 CI 编译，GitHub Pages 原样托管。**线上正文是结构化 HTML，Markdown 只作源稿与 Git diff 底稿**——只改 md 不改 HTML，线上不会变。
+`docs/` 是零构建静态站：无 SSG、无 CI 编译，GitHub Pages 原样托管。**线上正文是结构化 HTML**；**Markdown 只写中文**（文档在 `docs/*.md`，博客在 `docs/notes/`），作 Git 底稿与内容唯一来源——只改 md 不改 HTML，线上不会变。
 
+### 源稿与产出（中文 md 唯一源）
 
-| 角色  | 源稿 Markdown                                                  | HTML（线上）                       | URL              |
-| --- | ------------------------------------------------------------ | ------------------------------ | ---------------- |
-| 文档  | `docs/<slug>.md`                                             | `docs/docs/<slug>/index.html`  | `/docs/<slug>/`  |
-| 博客  | `docs/notes/<slug>.md`（frontmatter 必填 `title`/`date`/`tags`） | `docs/blogs/<slug>/index.html` | `/blogs/<slug>/` |
-| 主页  | —                                                            | `docs/index.html`              | `/`              |
+| 角色 | 源稿（仅中文） | HTML（中英各一份） | URL |
+| --- | --- | --- | --- |
+| 文档 | `docs/<slug>.md` | `docs/{zh,en}/docs/<slug>/index.html` | `/{lang}/docs/<slug>/` |
+| 博客 | `docs/notes/<slug>.md`（frontmatter: `title`/`date`/`tags`） | `docs/{zh,en}/blogs/<slug>/index.html` | `/{lang}/blogs/<slug>/` |
+| 主页 | — | `docs/index.html`（JS 字典 i18n） | `/` |
 
+**硬性规则：**
 
-新增/修改流程：
+1. **禁止在语言目录写 md**（不要写 `docs/zh/**.md` 或 `docs/en/**.md`）。源稿只在 `docs/*.md` / `docs/notes/*.md`；英文只存在于 HTML。
+2. **改一篇中文 md，必须同时生成/更新中文 HTML + 英文 HTML**（翻译在生成 HTML 时完成）。
+3. 中英 HTML 页脚「源稿」链接都指向**同一中文 md**。
+4. 内容页顶栏切换跳转对端 URL；主页用字典。旧路径 `/docs|blogs/<slug>/` 按语言偏好重定向（`piex-lang` → `navigator.language` → 默认 en）。
 
-1. 写/改 md 源稿（论点、数据、章节变更必须先改 md；仅版式调整可只动 HTML/`blog.css`）。
-2. 按源稿生成/更新结构化 HTML：复制最近一篇同类型页作三栏壳（左站内导航 · 中正文 · 右本页 TOC），复用 `assets/blog.css` 组件，**提炼而非 1:1 dump**，无 JS 也能读完全文。
-3. 同步导航：**所有**同类页左栏 `.docs-nav` + 主页 `docs/index.html` 的 `#docs`/`#blog` 卡片 + 本页 TOC；改标题/日期/slug 时还需同步全部侧栏文案。
-4. 本地验收：`cd docs && python3 -m http.server 8080`，检查桌面三栏与窄屏折叠。
-5. commit / push 由用户主动要求；push 到 main 且触及 `docs/**` 后 `pages.yml` 自动部署。
+### 新增/修改流程
+
+1. **只写/改中文 md**（论点、数据、章节变更必须先改 md；仅版式调整可只动 HTML/`blog.css`）。
+2. **同时**生成/更新中英结构化 HTML：复制同类型壳（`docs-layout` 三栏），复用 `blog.css` 组件，**提炼而非 1:1 dump**；en 页翻译正文、壳层用英文文案；无 JS 也能读完全文。
+3. 同步导航：各语言全部同类页左栏 `.docs-nav` + 主页 `#docs`/`#blog` + 本页 TOC + `hreflang`。
+4. **提交前校验**（触及文档/博客 md 时必须跑）：
+   ```bash
+   ./scripts/check-docs-i18n.sh           # 全量
+   ./scripts/check-docs-i18n.sh --staged  # commit 前：staged md 必须连带 staged 中英 HTML
+   ```
+   校验：无 en md、每篇 zh md 有中英 HTML、语言启发式（zh 中文为主 / en 英文为主）、h2 结构大致对齐、源稿链接指向 `docs/zh/`。
+5. 本地验收：`cd docs && python3 -m http.server 8080`，检查 `/zh/...` 与 `/en/...`、顶栏切换跳转。
+6. commit / push 由用户主动要求；push 到 main 且触及 `docs/**` 后 `pages.yml` 自动部署。
+
+**Agent 义务：** 用户要求 commit 且 staged/变更包含 `docs/*.md`（除 `site.md`）或 `docs/notes/**/*.md` 时，必须先跑 `./scripts/check-docs-i18n.sh --staged`，失败则先补齐中英 HTML 再提交。
 
 组件详表、页面壳检查清单、Agent 生成提示、部署与 DNS 细节均见 `docs/site.md`。
 
 ## 代码约定
 
 ### 模块与导入风格
+
 
 - Node 内置模块一律 `node:` 前缀：`import * as path from "node:path";`。
 - 类型用 type-only import：`import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";`。
@@ -199,7 +216,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 ## 测试与质量保障
 
-- **无 CI 测试**：唯一工作流是 `.github/workflows/pages.yml`（push 触及 `docs/**` 时部署文档站）。没有自动化测试、lint、发布 CI。
+- **无 CI 测试**：唯一工作流是 `.github/workflows/pages.yml`（push 触及 `docs/**` 时部署文档站）。没有自动化测试、lint、发布 CI。文档双语本地校验：`./scripts/check-docs-i18n.sh`（commit 触及 md 时 agent 必须跑 `--staged`）；CI 在 `pages.yml` deploy 前强制跑全量校验。
 - **仓库级 QA**：`eval/` Docker 评测框架，指标含 `resolve_rate`、`avg_tokens`、`avg_time`、`est_cost` 及归因指标（`edit_accuracy`、`debug_success`、`plan_follow_rate`）。
 - **新 package 要求**：带 `README.md`（安装说明、支持的 action、上游差异表）；发布前完成冒烟测试；主题包须含合法 `themes/*.json`（`name`、可选 `vars`、全部必需 color token）。
 

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Testing Guide — PieX</title>
+  <meta name="description" content="Per-package pi -e smoke commands, functional checks, and runtime requirements." />
+  <link rel="canonical" href="https://piex.dev/en/docs/testing/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/docs/testing/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/docs/testing/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/docs/testing/" />
+  <meta property="og:title" content="Testing Guide — PieX" />
+  <meta property="og:description" content="Per-package pi -e smoke commands, functional checks, and runtime requirements." />
+  <meta property="og:url" content="https://piex.dev/en/docs/testing/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260719i18n" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260719i18n" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Documentation">
+      <p class="blog-toc-title">Docs</p>
+      <nav>
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/" class="is-active">Testing</a>
+        <a href="/en/docs/references/">References</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Docs nav</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <a href="/en/docs/design/">Design Philosophy</a>
+        <a href="/en/docs/architecture/">Architecture</a>
+        <a href="/en/docs/roadmap/">Roadmap</a>
+        <a href="/en/docs/evaluation/">Evaluation</a>
+        <a href="/en/docs/testing/" class="is-active">Testing</a>
+        <a href="/en/docs/references/">References</a>
+        </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#smoke-tests">Smoke tests</a>
+        <a href="#functional-tests">Functional tests</a>
+        <a href="#hashline" class="depth-3">hashline</a>
+        <a href="#dap" class="depth-3">dap</a>
+        <a href="#lsp" class="depth-3">lsp</a>
+        <a href="#plan" class="depth-3">plan</a>
+        <a href="#review" class="depth-3">review</a>
+        <a href="#environment-requirements">Environment requirements</a>
+        <a href="#bun">Bun</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Docs</span>
+          <span class="blog-tag">Testing</span>
+        </div>
+        <h1>Testing Guide</h1>
+        <p class="blog-lede">Smoke tests, functional workflows, and environment requirements for every piex package.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">Smoke first</p>
+            <p>Every package loads with <code>pi -e … -p "what is 1+1" --no-session</code> before functional checks.</p>
+          </div>
+        </div>
+
+<h2 id="smoke-tests">Smoke tests</h2>
+<p>Each package can be loaded alone via <code>pi -e</code>:</p>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>cd piex
+
+# Load test (extension must not throw)
+pi -e ./packages/hashline/extensions/hashline.ts -p &quot;what is 1+1&quot; --no-session
+pi -e ./packages/dap/extensions/dap.ts       -p &quot;what is 1+1&quot; --no-session
+pi -e ./packages/lsp/extensions/lsp.ts       -p &quot;what is 1+1&quot; --no-session
+pi -e ./packages/plan/extensions/plan.ts     -p &quot;what is 1+1&quot; --no-session
+pi -e ./packages/review/extensions/review.ts  -p &quot;what is 1+1&quot; --no-session
+pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
+
+# xai-oauth unit tests (offline)
+bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts</code></pre></div>
+<h2 id="functional-tests">Functional tests</h2>
+<h3 id="hashline">hashline</h3>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Create a fixture
+echo -e &#x27;hello world\nline 2\nline 3&#x27; &gt; /tmp/test.txt
+
+# read → edit workflow
+pi -e ./packages/hashline/extensions/hashline.ts \
+  -p &quot;1. Read /tmp/test.txt 2. Use edit tool to replace &#x27;hello world&#x27; with &#x27;hi piex&#x27; using hashline SWAP syntax with [PATH#TAG]&quot; \
+  --no-session -nc
+
+# Verify
+cat /tmp/test.txt</code></pre></div>
+<h3 id="dap">dap</h3>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># List debug sessions
+pi -e ./packages/dap/extensions/dap.ts \
+  -p &quot;Use the debug tool with action=sessions&quot; --no-session
+
+# Launch (requires a debug adapter)
+pi -e ./packages/dap/extensions/dap.ts \
+  -p &quot;Use the debug tool: action=launch, program=script.py, adapter=debugpy, timeout=5&quot; --no-session</code></pre></div>
+<h3 id="lsp">lsp</h3>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># LSP status
+pi -e ./packages/lsp/extensions/lsp.ts \
+  -p &quot;Use the lsp tool with action=status&quot; --no-session
+
+# Diagnostics (requires matching LSP server)
+pi -e ./packages/lsp/extensions/lsp.ts \
+  -p &quot;Use the lsp tool with action=diagnostics, file=README.md&quot; --no-session</code></pre></div>
+<h3 id="plan">plan</h3>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Interactive (TUI)
+pi -e ./packages/plan/extensions/plan.ts
+
+# Then type /plan to enter plan mode</code></pre></div>
+<h3 id="review">review</h3>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># review tool with no changes
+pi -e ./packages/review/extensions/review.ts \
+  -p &quot;Use the review tool with action=diff&quot; --no-session
+
+# Interactive
+pi -e ./packages/review/extensions/review.ts
+# Type /review for the review menu</code></pre></div>
+<h2 id="environment-requirements">Environment requirements</h2>
+<div class="blog-table-wrap"><table>
+<thead><tr><th>Package</th><th>Runtime</th><th>Extra tools</th></tr></thead>
+<tbody>
+<tr><td>hashline</td><td>Node.js ≥ 18 or Bun ≥ 1.3.14</td><td>none</td></tr>
+<tr><td>dap</td><td>Node.js ≥ 18</td><td>debug adapter (e.g. debugpy, gdb)</td></tr>
+<tr><td>lsp</td><td>Node.js ≥ 18</td><td>LSP server (e.g. marksman, ts-ls)</td></tr>
+<tr><td>plan</td><td>Node.js ≥ 18</td><td>none</td></tr>
+<tr><td>review</td><td>Node.js ≥ 18</td><td>git</td></tr>
+</tbody></table></div>
+<h2 id="bun">Bun</h2>
+<p>Under Bun, hashline uses native Bun APIs (no polyfill):</p>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>bun run pi -e ./packages/hashline/extensions/hashline.ts -p &quot;hi&quot; --no-session</code></pre></div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Doc navigation">
+        <a class="blog-nav-card" href="/en/docs/evaluation/">
+          <span class="blog-nav-label">Previous</span>
+          <span class="blog-nav-title">Evaluation</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/docs/references/">
+          <span class="blog-nav-label">Next</span>
+          <span class="blog-nav-title">References</span>
+        </a>
+      </nav>
+      <p class="blog-source">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/testing.md" target="_blank" rel="noopener">docs/testing.md</a>
+      </p>
+
+
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#smoke-tests">Smoke tests</a>
+        <a href="#functional-tests">Functional tests</a>
+        <a href="#hashline" class="depth-3">hashline</a>
+        <a href="#dap" class="depth-3">dap</a>
+        <a href="#lsp" class="depth-3">lsp</a>
+        <a href="#plan" class="depth-3">plan</a>
+        <a href="#review" class="depth-3">review</a>
+        <a href="#environment-requirements">Environment requirements</a>
+        <a href="#bun">Bun</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260719i18n"></script>
+  <script src="../../../assets/main.js?v=20260719i18n"></script>
+</body>
+</html>

@@ -6,6 +6,9 @@
   <title>PieX — Pi Extensions</title>
   <meta name="description" content="Independent Pi Extension API packages: hashline editing, DAP debugging, LSP, Plan Mode, code review & themes." />
   <link rel="canonical" href="https://piex.dev/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/" />
   <meta property="og:title" content="PieX — Pi Extensions" />
   <meta property="og:description" content="Core capabilities from top coding agents, packaged as npm packages for on-demand install into Pi." />
   <meta property="og:url" content="https://piex.dev/" />
@@ -13,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/style.css?v=20260322f" />
+  <link rel="stylesheet" href="assets/style.css?v=20260719i18n" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
@@ -109,7 +112,7 @@
           <p data-i18n="why.4.desc">Behavior-changing extensions ship with eval criteria &amp; data. No measurement, no adoption.</p>
         </article>
       </div>
-      <p class="why-note anim-fade"><a href="/docs/design/" data-i18n="why.more">Read the full design philosophy →</a></p>
+      <p class="why-note anim-fade"><a href="/en/docs/design/" data-i18n="why.more">Read the full design philosophy →</a></p>
     </section>
 
 
@@ -208,12 +211,12 @@
         <p class="section-desc" data-i18n="docs.desc" data-i18n-html>Synced with the <code>docs/</code> directory in the repository.</p>
       </div>
       <ul class="docs-list">
-        <li class="anim-fade"><a href="/docs/design/"><span class="doc-title" data-i18n="docs.design.title">Design Philosophy</span><span class="doc-sub" data-i18n="docs.design.sub">Core principles &amp; architecture patterns</span></a></li>
-        <li class="anim-fade"><a href="/docs/architecture/"><span class="doc-title" data-i18n="docs.arch.title">Architecture Overview</span><span class="doc-sub" data-i18n="docs.arch.sub">Structure, tool registration, API mapping</span></a></li>
-        <li class="anim-fade"><a href="/docs/roadmap/"><span class="doc-title" data-i18n="docs.roadmap.title">Roadmap</span><span class="doc-sub" data-i18n="docs.roadmap.sub">Completed &amp; planned</span></a></li>
-        <li class="anim-fade"><a href="/docs/evaluation/"><span class="doc-title" data-i18n="docs.eval.title">Evaluation Plan</span><span class="doc-sub" data-i18n="docs.eval.sub">Benchmarks, metrics &amp; implementation path</span></a></li>
-        <li class="anim-fade"><a href="/docs/testing/"><span class="doc-title" data-i18n="docs.testing.title">Testing Guide</span><span class="doc-sub" data-i18n="docs.testing.sub">Per-package verification commands</span></a></li>
-        <li class="anim-fade"><a href="/docs/references/"><span class="doc-title" data-i18n="docs.refs.title">References</span><span class="doc-sub" data-i18n="docs.refs.sub">Pi docs &amp; source projects</span></a></li>
+        <li class="anim-fade"><a href="/en/docs/design/"><span class="doc-title" data-i18n="docs.design.title">Design Philosophy</span><span class="doc-sub" data-i18n="docs.design.sub">Core principles &amp; architecture patterns</span></a></li>
+        <li class="anim-fade"><a href="/en/docs/architecture/"><span class="doc-title" data-i18n="docs.arch.title">Architecture Overview</span><span class="doc-sub" data-i18n="docs.arch.sub">Structure, tool registration, API mapping</span></a></li>
+        <li class="anim-fade"><a href="/en/docs/roadmap/"><span class="doc-title" data-i18n="docs.roadmap.title">Roadmap</span><span class="doc-sub" data-i18n="docs.roadmap.sub">Completed &amp; planned</span></a></li>
+        <li class="anim-fade"><a href="/en/docs/evaluation/"><span class="doc-title" data-i18n="docs.eval.title">Evaluation Plan</span><span class="doc-sub" data-i18n="docs.eval.sub">Benchmarks, metrics &amp; implementation path</span></a></li>
+        <li class="anim-fade"><a href="/en/docs/testing/"><span class="doc-title" data-i18n="docs.testing.title">Testing Guide</span><span class="doc-sub" data-i18n="docs.testing.sub">Per-package verification commands</span></a></li>
+        <li class="anim-fade"><a href="/en/docs/references/"><span class="doc-title" data-i18n="docs.refs.title">References</span><span class="doc-sub" data-i18n="docs.refs.sub">Pi docs &amp; source projects</span></a></li>
       </ul>
     </section>
 
@@ -233,15 +236,15 @@
             <span class="blog-date">2026-07-16</span>
             <span class="blog-tag">Hashline</span>
           </div>
-          <h3 class="blog-title"><a href="/blogs/hashline/">Hashline 方案的原理及借鉴</a></h3>
-          <p class="blog-excerpt">深入对比 oh-my-pi、pi-hashline-edit、pi-hashline-edit-pro 三种锚定编辑实现，分析整体哈希 vs 逐行哈希、容错机制、Block 操作等关键设计决策。</p>
+          <h3 class="blog-title"><a href="/en/blogs/hashline/" data-i18n="blog.post2.title">Hashline: Principles &amp; Lessons</a></h3>
+          <p class="blog-excerpt" data-i18n="blog.post2.excerpt">Compare three anchored-edit designs — whole-file vs per-line hashing, recovery, and why piex/hashline builds on oh-my-pi.</p>
         </article>
         <article class="blog-card anim-fade">
           <div class="blog-meta">
             <span class="blog-date">2026-07-14</span>
             <span class="blog-tag">Pi Extension</span>
           </div>
-          <h3 class="blog-title"><a href="/blogs/pi-extension-mechanism/" data-i18n="blog.post1.title">Pi Extension 机制及工作原理</a></h3>
+          <h3 class="blog-title"><a href="/en/blogs/pi-extension-mechanism/" data-i18n="blog.post1.title">Pi Extension 机制及工作原理</a></h3>
           <p class="blog-excerpt" data-i18n="blog.post1.excerpt">深入剖析 Pi 的 Extension API 设计哲学、工具注册、Hook 系统和扩展加载全流程。</p>
         </article>
       </div>
@@ -255,15 +258,15 @@
         <ul>
           <li><a href="https://github.com/piex-dev/piex" data-i18n="footer.ghub">GitHub</a></li>
           <li><a href="https://www.npmjs.com/org/piex-dev" data-i18n="footer.npm">npm</a></li>
-          <li><a href="/docs/roadmap/" data-i18n="footer.roadmap">Roadmap</a></li>
+          <li><a href="/en/docs/roadmap/" data-i18n="footer.roadmap">Roadmap</a></li>
         </ul>
       </div>
       <div class="footer-col">
         <h4 data-i18n="footer.docs">Docs</h4>
         <ul>
-          <li><a href="/docs/design/" data-i18n="footer.design">Design</a></li>
-          <li><a href="/docs/architecture/" data-i18n="footer.arch">Architecture</a></li>
-          <li><a href="/docs/testing/" data-i18n="footer.testing">Testing Guide</a></li>
+          <li><a href="/en/docs/design/" data-i18n="footer.design">Design</a></li>
+          <li><a href="/en/docs/architecture/" data-i18n="footer.arch">Architecture</a></li>
+          <li><a href="/en/docs/testing/" data-i18n="footer.testing">Testing Guide</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -279,6 +282,6 @@
     </div>
   </footer>
 
-  <script src="assets/main.js?v=20260322f"></script>
+  <script src="assets/main.js?v=20260719i18n"></script>
 </body>
 </html>

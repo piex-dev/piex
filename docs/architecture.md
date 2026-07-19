@@ -6,11 +6,11 @@
 piex/                                  # monorepo
 ├── README.md                         # 项目入口
 ├── docs/                             # 📚 文档 + 静态站（piex.dev，Pages 根）
-│   ├── index.html                    #   主页
-│   ├── <slug>.md                     #   文档源稿（design/architecture/…）
-│   ├── docs/<slug>/index.html        #   文档 HTML → /docs/<slug>/
-│   ├── notes/<slug>.md               #   博客 Markdown 底稿
-│   ├── blogs/<slug>/index.html       #   博客 HTML → /blogs/<slug>/
+│   ├── index.html                    #   主页（JS 字典 i18n）
+│   ├── <slug>.md                     #   文档源稿（仅中文）
+│   ├── notes/<slug>.md               #   博客源稿（仅中文）
+│   ├── {lang}/docs/<slug>/index.html #   中/英文档 HTML → /{lang}/docs/<slug>/
+│   ├── {lang}/blogs/<slug>/index.html#   中/英博客 HTML → /{lang}/blogs/<slug>/
 │   ├── assets/                       #   style / main / blog 静态资源
 │   └── migration/                    #   迁移方案记录
 └── packages/                         # 📦 7 个独立 piex package

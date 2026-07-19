@@ -1,303 +1,37 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en-US">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>参考资料 — PieX</title>
-  <meta name="description" content="设计哲学、pi 官方文档、扩展示例、功能来源索引与相关项目链接。" />
-  <link rel="canonical" href="https://piex.dev/docs/references/" />
-  <meta property="og:title" content="参考资料 — PieX" />
-  <meta property="og:description" content="设计哲学、pi 官方文档、扩展示例、功能来源索引与相关项目链接。" />
-  <meta property="og:url" content="https://piex.dev/docs/references/" />
-  <meta property="og:type" content="article" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../assets/style.css?v=20260718h" />
-  <link rel="stylesheet" href="../../assets/blog.css?v=20260718h" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <title>Redirecting…</title>
+  <!-- no-JS fallback: default English (x-default) -->
+  <meta http-equiv="refresh" content="0; url=/en/docs/references/" />
+  <link rel="canonical" href="https://piex.dev/en/docs/references/" />
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-0BJ0ZVPSWN');
+    (function () {
+      var kind = 'docs';
+      var slug = 'references';
+      var lang = "en";
+      try {
+        var saved = localStorage.getItem("piex-lang");
+        if (saved === "zh" || saved === "en") {
+          lang = saved;
+        } else {
+          var nav = (navigator.languages && navigator.languages[0]) || navigator.language || "";
+          if (/^zh\b/i.test(nav)) lang = "zh";
+        }
+      } catch (e) { /* private mode / blocked storage */ }
+      var target = "/" + lang + "/" + kind + "/" + slug + "/" + (location.hash || "");
+      location.replace(target);
+    })();
   </script>
 </head>
 <body>
-  <header class="site-header">
-    <nav class="nav-inner">
-      <a class="logo" href="/" aria-label="PieX home">
-        <span class="logo-mark">π</span>
-        PieX
-      </a>
-      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
-      <div class="nav-links" id="nav-links">
-        <a href="/#why" data-i18n="nav.why">Why</a>
-        <a href="/#principles" data-i18n="nav.principles">Principles</a>
-        <a href="/#packages" data-i18n="nav.packages">Packages</a>
-        <a href="/#docs" data-i18n="nav.docs">Docs</a>
-        <a href="/#blog" data-i18n="nav.blog">Blog</a>
-        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
-        <div class="lang-switch" role="radiogroup" aria-label="Language">
-          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
-          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
-        </div>
-      </div>
-    </nav>
-  </header>
-
-  <div class="blog-layout docs-layout">
-    <aside class="docs-nav" aria-label="Documentation">
-      <p class="blog-toc-title">文档</p>
-      <nav>
-        <a href="/docs/design/">设计理念</a>
-        <a href="/docs/architecture/">架构概览</a>
-        <a href="/docs/roadmap/">实施路线</a>
-        <a href="/docs/evaluation/">评测方案</a>
-        <a href="/docs/testing/">测试指南</a>
-        <a href="/docs/references/" class="is-active">参考资料</a>
-      </nav>
-    </aside>
-
-    <article class="blog-article">
-      <div class="docs-mobile-nav">
-        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
-          <span>文档导航</span>
-          <span class="chev" aria-hidden="true">▾</span>
-        </button>
-        <nav class="blog-toc-mobile-nav docs-nav-mobile">
-        <a href="/docs/design/">设计理念</a>
-        <a href="/docs/architecture/">架构概览</a>
-        <a href="/docs/roadmap/">实施路线</a>
-        <a href="/docs/evaluation/">评测方案</a>
-        <a href="/docs/testing/">测试指南</a>
-        <a href="/docs/references/" class="is-active">参考资料</a>
-        </nav>
-      </div>
-
-      <div class="blog-toc-mobile">
-        <button type="button" class="blog-toc-toggle" aria-expanded="false">
-          <span>本页目录</span>
-          <span class="chev" aria-hidden="true">▾</span>
-        </button>
-        <nav class="blog-toc-mobile-nav">
-<a href="#设计哲学">设计哲学</a>
-        <a href="#pi-官方文档">pi 官方文档</a>
-        <a href="#pi-扩展示例">pi 扩展示例</a>
-        <a href="#功能来源">功能来源</a>
-        <a href="#其他参考项目">其他参考项目</a>
-        </nav>
-      </div>
-<header class="blog-header">
-        <div class="blog-meta-row">
-          <span class="blog-tag">Docs</span>
-          <span class="blog-tag">References</span>
-        </div>
-        <h1>参考资料</h1>
-        <p class="blog-lede">设计哲学、pi 官方文档、扩展示例、功能来源索引与相关项目链接。</p>
-      </header>
-
-      <div class="blog-prose">
-<h2 id="设计哲学">设计哲学</h2>
-<div class="blog-table-wrap"><table><thead><tr>
-<th>资料</th>
-<th>说明</th>
-</tr></thead><tbody>
-<tr>
-<td><a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener">What I learned building an opinionated and minimal coding agent</a></td>
-<td>pi 作者的设计纲领：minimal prompt/toolset、No plan mode、No sub-agents 等</td>
-</tr>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md" target="_blank" rel="noopener">pi README — Philosophy</a></td>
-<td>"aggressively extensible"；"What pi doesn't do" 官方清单</td>
-</tr>
-<tr>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi README</a></td>
-<td>fork + batteries-included 路线的自我表述，piex 的主要功能来源</td>
-</tr>
-<tr>
-<td><a href="https://github.com/can1357/oh-my-pi/blob/main/docs/porting-from-pi-mono.md" target="_blank" rel="noopener">porting-from-pi-mono.md</a></td>
-<td>omp backport 上游的维护 playbook，fork 路线成本的一手材料</td>
-</tr>
-</tbody></table></div>
-<h2 id="pi-官方文档">pi 官方文档</h2>
-<p>基于 <a href="https://github.com/earendil-works/pi" target="_blank" rel="noopener">earendil-works/pi</a> 中 <code>packages/coding-agent</code> 的文档。</p>
-<div class="blog-callout note"><div class="blog-callout-icon" aria-hidden="true">ℹ️</div><div class="blog-callout-body"><p class="blog-callout-label">Note</p><p>链接默认分支为 <code>main</code>；若 404，请对照 <a href="https://github.com/earendil-works/pi" target="_blank" rel="noopener">earendil-works/pi</a> 当前默认分支调整路径。</p></div></div>
-<div class="blog-table-wrap"><table><thead><tr>
-<th>文档</th>
-<th>链接</th>
-</tr></thead><tbody>
-<tr>
-<td>pi 主文档</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md" target="_blank" rel="noopener">README.md</a></td>
-</tr>
-<tr>
-<td>扩展开发</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/extensions.md" target="_blank" rel="noopener">docs/extensions.md</a></td>
-</tr>
-<tr>
-<td>Package 管理</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md" target="_blank" rel="noopener">docs/packages.md</a></td>
-</tr>
-<tr>
-<td>Prompt 模板</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/prompt-templates.md" target="_blank" rel="noopener">docs/prompt-templates.md</a></td>
-</tr>
-<tr>
-<td>Skills 开发</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md" target="_blank" rel="noopener">docs/skills.md</a></td>
-</tr>
-<tr>
-<td>主题开发</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/themes.md" target="_blank" rel="noopener">docs/themes.md</a></td>
-</tr>
-<tr>
-<td>TUI 组件</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/tui.md" target="_blank" rel="noopener">docs/tui.md</a></td>
-</tr>
-<tr>
-<td>快捷键</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/keybindings.md" target="_blank" rel="noopener">docs/keybindings.md</a></td>
-</tr>
-<tr>
-<td>SDK 集成</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/sdk.md" target="_blank" rel="noopener">docs/sdk.md</a></td>
-</tr>
-<tr>
-<td>自定义 Provider</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/custom-provider.md" target="_blank" rel="noopener">docs/custom-provider.md</a></td>
-</tr>
-<tr>
-<td>模型配置</td>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/models.md" target="_blank" rel="noopener">docs/models.md</a></td>
-</tr>
-</tbody></table></div>
-<h2 id="pi-扩展示例">pi 扩展示例</h2>
-<p><a href="https://github.com/earendil-works/pi/tree/main/packages/coding-agent/examples/extensions" target="_blank" rel="noopener">examples/extensions/</a></p>
-<p>关键示例：</p>
-<div class="blog-table-wrap"><table><thead><tr>
-<th>示例</th>
-<th>用途</th>
-</tr></thead><tbody>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/tool-override.ts" target="_blank" rel="noopener">tool-override.ts</a></td>
-<td>覆盖内置工具（hashline 参考）</td>
-</tr>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/tools.ts" target="_blank" rel="noopener">tools.ts</a></td>
-<td>注册自定义工具 + 工具启用/禁用</td>
-</tr>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/plan-mode/index.ts" target="_blank" rel="noopener">plan-mode/index.ts</a></td>
-<td>计划模式（plan 的基础）</td>
-</tr>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/tree/main/packages/coding-agent/examples/extensions/subagent" target="_blank" rel="noopener">subagent/</a></td>
-<td>子 agent 实现参考</td>
-</tr>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/summarize.ts" target="_blank" rel="noopener">summarize.ts</a></td>
-<td>自定义 compaction</td>
-</tr>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/permission-gate.ts" target="_blank" rel="noopener">permission-gate.ts</a></td>
-<td>权限控制</td>
-</tr>
-<tr>
-<td><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/extensions/protected-paths.ts" target="_blank" rel="noopener">protected-paths.ts</a></td>
-<td>路径保护</td>
-</tr>
-</tbody></table></div>
-<h2 id="功能来源">功能来源</h2>
-<div class="blog-table-wrap"><table><thead><tr>
-<th>功能</th>
-<th>来源项目</th>
-<th>源码</th>
-</tr></thead><tbody>
-<tr>
-<td>hashline</td>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a></td>
-<td><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/hashline/src" target="_blank" rel="noopener">packages/hashline/src/</a></td>
-</tr>
-<tr>
-<td>DAP</td>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a></td>
-<td><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/dap" target="_blank" rel="noopener">packages/coding-agent/src/dap/</a></td>
-</tr>
-<tr>
-<td>LSP</td>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a></td>
-<td><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/lsp" target="_blank" rel="noopener">packages/coding-agent/src/lsp/</a></td>
-</tr>
-<tr>
-<td>Plan mode</td>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a></td>
-<td><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/plan-mode" target="_blank" rel="noopener">packages/coding-agent/src/plan-mode/</a></td>
-</tr>
-<tr>
-<td>Review command</td>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a></td>
-<td><a href="https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/extensibility/custom-commands/bundled/review" target="_blank" rel="noopener">bundled/review/</a></td>
-</tr>
-<tr>
-<td>Review tool</td>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a></td>
-<td><a href="https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/src/tools/review.ts" target="_blank" rel="noopener">tools/review.ts</a></td>
-</tr>
-<tr>
-<td>Plan TOC</td>
-<td><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a></td>
-<td><a href="https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/src/modes/components/plan-toc.ts" target="_blank" rel="noopener">plan-toc.ts</a></td>
-</tr>
-<tr>
-<td>dark-terminal 主题</td>
-<td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td>
-<td><a href="https://github.com/debugtalk/opencode-themes/blob/main/dark-terminal.json" target="_blank" rel="noopener">dark-terminal.json</a></td>
-</tr>
-</tbody></table></div>
-<h2 id="其他参考项目">其他参考项目</h2>
-<ul><li><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener">oh-my-pi</a> — 功能特性的主要来源</li><li><a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" rel="noopener">Claude Code</a> — 交互模式参考</li><li><a href="https://github.com/opencode-ai/opencode" target="_blank" rel="noopener">OpenCode</a> — 扩展机制参考</li><li><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a> — 终端暗色主题配色来源</li></ul>
-      </div>
-
-      <nav class="blog-footer-nav" aria-label="Doc navigation">
-        <a class="blog-nav-card" href="/docs/testing/">
-          <span class="blog-nav-label">← Previous</span>
-          <span class="blog-nav-title">测试指南</span>
-        </a>
-        <a class="blog-nav-card is-next" href="/#docs">
-          <span class="blog-nav-label">Next →</span>
-          <span class="blog-nav-title">文档列表</span>
-        </a>
-      </nav>
-
-      <p class="blog-source-link">
-        源稿 Markdown：
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/references.md" target="_blank" rel="noopener">docs/references.md</a>
-      </p>
-    
-    
-    </article>
-
-    <aside class="page-toc" aria-label="On this page">
-      <p class="blog-toc-title">本页目录</p>
-      <nav>
-<a href="#设计哲学">设计哲学</a>
-        <a href="#pi-官方文档">pi 官方文档</a>
-        <a href="#pi-扩展示例">pi 扩展示例</a>
-        <a href="#功能来源">功能来源</a>
-        <a href="#其他参考项目">其他参考项目</a>
-      </nav>
-    </aside>
-  </div>
-
-  <footer class="site-footer">
-    <div class="footer-bottom">
-      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
-    </div>
-  </footer>
-
-  <script src="../../assets/blog.js?v=20260718h"></script>
-  <script src="../../assets/main.js?v=20260718h"></script>
+  <p>Redirecting to the localized page…</p>
+  <p>
+    <a href="/en/docs/references/">English</a>
+    ·
+    <a href="/zh/docs/references/">中文</a>
+  </p>
 </body>
 </html>
