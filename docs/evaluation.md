@@ -43,7 +43,7 @@ SWE-bench Leaderboard、官方 Blog、论文中 Claude Code / Aider / OpenHands 
 |---------|------|---------|
 | **hashline** | 覆盖 `edit`（hashline 语法） | SWE-bench（编辑正确率、token 效率）、Can It Edit |
 | **dap** | `debug`（14 个 adapter） | DebugBench、SWE-bench（调试路径） |
-| **lsp** | `lsp`（11 个 server） | RepoBench、SWE-bench（代码理解） |
+| **lsp** | `lsp`（~50 server 默认；写后 ERROR） | RepoBench、SWE-bench（代码理解） |
 | **plan** | `/plan`、`/todos`（计划模式） | SWE-bench（多步任务规划） |
 | **review** | `/review`、`review` 工具 | CodeReviewer / c-CRAB |
 

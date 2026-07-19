@@ -1,8 +1,8 @@
 {
   "name": "@piex-dev/lsp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
-  "description": "LSP (Language Server Protocol) extension for pi — diagnostics, definitions, references, hover, symbols, and formatting",
+  "description": "LSP extension for pi — diagnostics (incl. post-edit ERRORs), navigation, rename, code actions, format",
   "license": "MIT",
   "author": "debugtalk",
   "publishConfig": {
@@ -20,10 +20,13 @@
     "lsp",
     "language-server-protocol",
     "diagnostics",
-    "formatting"
+    "formatting",
+    "rename"
   ],
   "pi": {
-    "extensions": ["./extensions/lsp.ts"]
+    "extensions": [
+      "./extensions/lsp.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/lsp.ts"
@@ -32,8 +35,14 @@
     "extensions",
     "README.md"
   ],
+  "scripts": {
+    "test": "bun test lsp.test.ts"
+  },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
     "typebox": "*"
   }
 }

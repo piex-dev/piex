@@ -141,6 +141,11 @@
     │   ├── package.json
     │   └── extensions/
     │       └── review.ts
+    ├── init/
+    │   ├── README.md
+    │   ├── package.json              # pi.prompts
+    │   └── prompts/
+    │       └── init.md               # → /init
     ├── xai-oauth/
     │   ├── README.md
     │   ├── package.json
@@ -162,9 +167,10 @@
 </tr></thead><tbody>
 <tr><td>hashline</td><td>191 行 + polyfill 127 行</td><td>覆盖 <code>edit</code></td><td><code>@oh-my-pi/hashline</code></td><td>oh-my-pi</td></tr>
 <tr><td>dap</td><td>1942 行 + 212 行 JSON</td><td><code>debug</code></td><td>无</td><td>oh-my-pi</td></tr>
-<tr><td>lsp</td><td>570 行 + 499 行 JSON</td><td><code>lsp</code></td><td>无</td><td>oh-my-pi</td></tr>
+<tr><td>lsp</td><td>~1350 行 + 499 行 JSON</td><td><code>lsp</code></td><td>无</td><td>oh-my-pi</td></tr>
 <tr><td>plan</td><td>348 行</td><td><code>/plan</code>, <code>/todos</code></td><td>无</td><td>pi 示例</td></tr>
 <tr><td>review</td><td>330 行</td><td><code>/review</code>, <code>review</code></td><td>无</td><td>oh-my-pi</td></tr>
+<tr><td>init</td><td>prompt only</td><td><code>/init</code></td><td>无</td><td>OpenCode</td></tr>
 <tr><td>xai-oauth</td><td>530 行 + 419 行 models</td><td><code>/login</code> xAI Grok OAuth 订阅登录（含实时模型发现）</td><td>无</td><td>oh-my-pi / pi-grok</td></tr>
 <tr><td>theme-dark-terminal</td><td>—</td><td>暗终端高对比度主题</td><td>无</td><td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td></tr>
 </tbody></table></div>
@@ -183,7 +189,7 @@
 <tr><td><code>ls</code></td><td>pi 内置</td><td>读</td><td>列出目录</td></tr>
 <tr><td><strong><code>edit</code></strong></td><td><strong>hashline</strong></td><td>写</td><td>hashline 编辑（覆盖内置）</td></tr>
 <tr><td><strong><code>debug</code></strong></td><td><strong>dap</strong></td><td>读写</td><td>DAP 调试（launch/attach/step/evaluate）</td></tr>
-<tr><td><strong><code>lsp</code></strong></td><td><strong>lsp</strong></td><td>读写</td><td>LSP 语言服务器（diagnostics/hover/references）</td></tr>
+<tr><td><strong><code>lsp</code></strong></td><td><strong>lsp</strong></td><td>读写</td><td>LSP：诊断/导航/rename；edit 后 ERROR</td></tr>
 <tr><td><strong><code>review</code></strong></td><td><strong>review</strong></td><td>读</td><td>代码评审（diff/file/branch/commit）</td></tr>
 </tbody></table></div>
 <h2 id="provider-注册总览">Provider 注册总览</h2>
@@ -207,12 +213,20 @@
 <tr><td>注册 debug 工具</td><td>omp</td><td>dap.ts</td><td><code>pi.registerTool({ name: &quot;debug&quot; })</code></td></tr>
 <tr><td>会话清理 DAP 进程</td><td>omp</td><td>dap.ts</td><td><code>pi.on(&quot;session_shutdown&quot;, ...)</code></td></tr>
 <tr><td>注册 lsp 工具</td><td>omp</td><td>lsp.ts</td><td><code>pi.registerTool({ name: &quot;lsp&quot; })</code></td></tr>
+<tr>
+<td>写后诊断 hook</td>
+<td>OpenCode</td>
+<td>lsp.ts</td>
+<td><code>pi.on("tool_result")</code> on edit/write</td>
+</tr>
+
 <tr><td>计划模式 /plan</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.registerCommand(&quot;plan&quot;, ...)</code></td></tr>
 <tr><td>只读工具切换</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.setActiveTools([...])</code></td></tr>
 <tr><td>危险命令拦截</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.on(&quot;tool_call&quot;, ...)</code> → block</td></tr>
 <tr><td>进度追踪 [DONE:n]</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.on(&quot;turn_end&quot;, ...)</code></td></tr>
 <tr><td>交互评审菜单</td><td>omp</td><td>review.ts</td><td><code>pi.registerCommand(&quot;review&quot;, ...)</code></td></tr>
 <tr><td>注册 review 工具</td><td>omp</td><td>review.ts</td><td><code>pi.registerTool({ name: &quot;review&quot; })</code></td></tr>
+<tr><td>引导生成 AGENTS.md</td><td>OpenCode</td><td>init <code>prompts/init.md</code></td><td><code>pi.prompts</code> → <code>/init</code></td></tr>
 <tr><td>状态持久化</td><td>pi</td><td>plan.ts</td><td><code>pi.appendEntry(&quot;plan-mode&quot;, ...)</code></td></tr>
 <tr><td>Footer/Widge</td><td>pi</td><td>plan.ts</td><td><code>ctx.ui.setStatus/setWidget(...)</code></td></tr>
 <tr><td>注册 xAI OAuth provider</td><td>omp</td><td>xai-oauth.ts</td><td><code>pi.registerProvider(&quot;xai-oauth&quot;, { oauth: {...} })</code></td></tr>

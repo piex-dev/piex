@@ -17,12 +17,13 @@ PieX 是 [Pi](https://pi.dev)（pi-coding-agent）的功能扩展集合，以独
 
 ```
 piex/
-├── packages/                 # 7 个独立可发布的 package（无 workspace，各自独立）
+├── packages/                 # 独立可发布的 package（无 workspace，各自独立）
 │   ├── hashline/             # 覆盖内置 edit 工具，替换为 hashline DSL 编辑
 │   ├── dap/                  # DAP 调试扩展，注册 debug 工具（14 个 adapter）
-│   ├── lsp/                  # LSP 扩展，注册 lsp 工具（11 个 server）
+│   ├── lsp/                  # LSP 扩展：lsp 工具 + 写后 ERROR 诊断（~50 server 默认）
 │   ├── plan/                 # /plan、/todos 命令 + 计划模式
 │   ├── review/               # /review 命令 + review 工具
+│   ├── init/                 # /init prompt：引导生成/改进 AGENTS.md（纯 prompts 包）
 │   ├── xai-oauth/            # xAI Grok OAuth 订阅登录 provider（含实时模型发现）
 │   └── theme-dark-terminal/  # 静态暗色高对比终端主题（无 TS 代码）
 ├── eval/                     # Docker 化评测框架（pi bare vs pi+piex vs omp）
@@ -47,11 +48,22 @@ piex/
     └── ...辅助模块.ts
 ```
 
+资源包（无 TS）另两种形态：
+
+```
+# prompt 包（如 init）
+{"pi": {"prompts": ["./prompts"]}}   → prompts/*.md 变成 /文件名
+
+# 主题包（如 theme-dark-terminal）
+{"pi": {"themes": ["./themes"]}}     → themes/*.json
+```
+
 值得注意的偏差：
 
 - `packages/hashline/`：**唯一有运行时依赖的 package**（`@oh-my-pi/hashline`），含 `node_modules/` + `package-lock.json`，本地使用前需先 `npm install`。辅助模块：`bun-polyfill.ts`、`filesystem.ts`、`patches.ts`（EditGuard 容错）。
 - `packages/dap/extensions/`：多模块，含 `client.ts`（JSON-RPC 客户端）、`session.ts`、`config.ts`、`non-interactive-env.ts`、`defaults.json`（adapter 默认配置）等。
-- `packages/lsp/extensions/`：`lsp.ts` + `defaults.json`（server 默认配置）。
+- `packages/lsp/`：`extensions/lsp.ts` + `defaults.json`；根目录 `lsp.test.ts` + `fixtures/mock-lsp-server.mjs`（`bun test`，devDep `typebox`）。
+- `packages/init/`：无 `extensions/`，纯 prompt 包：`prompts/init.md`（`"pi": { "prompts": ["./prompts"] }`），安装后提供 `/init`。
 - `packages/xai-oauth/`：辅助模块 `models.ts`；单元测试在 package 根目录（`xai-oauth.test.ts`、`models.test.ts`，从 `./extensions/` 导入）。
 - `packages/theme-dark-terminal/`：无 `extensions/`，主题为 `themes/dark-terminal.json`（`name` + 可选 `vars` + 51 个必需 color token）。
 
@@ -106,18 +118,21 @@ pi -e ./packages/<name>/extensions/<name>.ts -p "what is 1+1" --no-session
 
 每个扩展改动后都应跑冒烟测试验证可加载。各包功能性验证命令（hashline 的 read→edit 工作流、dap 的 debug 工具、lsp 诊断等）见 `docs/testing.md`。
 
-### 单元测试（仅 xai-oauth 有）
+### 单元测试
 
 ```bash
 bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
+bun test packages/lsp/lsp.test.ts   # mock LSP server，不依赖真实 language server
 ```
 
-覆盖 OAuth helper、模型目录回退、发现合并、env 过滤，不依赖网络。
+xai-oauth：OAuth helper、模型目录回退、发现合并、env 过滤，不依赖网络。  
+lsp：配置解析、TextEdit/WorkspaceEdit、JSON-RPC 客户端与诊断 wait（`fixtures/mock-lsp-server.mjs`）。
 
 ### 本地安装
 
 ```bash
-cd packages/hashline && npm install && cd ../..   # 仅 hashline 需要（有运行时依赖）
+cd packages/hashline && npm install && cd ../..   # hashline 运行时依赖
+cd packages/lsp && npm install && cd ../..         # lsp 单测 devDep typebox
 pi install packages/hashline                      # 全局 settings
 pi install -l packages/hashline                   # 项目 .pi/settings.json
 pi list                                           # 查看已安装
@@ -131,7 +146,7 @@ npm login                  # 需 @piex-dev org 发布权限
 ./scripts/publish-all.sh
 ```
 
-按 `hashline → dap → lsp → plan → review → theme-dark-terminal → xai-oauth` 顺序发布；中途失败即停止，已发布的包保持已发布（重发前需先 bump 版本号）。
+按 `hashline → dap → lsp → plan → review → init → theme-dark-terminal → xai-oauth` 顺序发布；中途失败即停止，已发布的包保持已发布（重发前需先 bump 版本号）。
 
 ### 评测框架
 
@@ -197,22 +212,21 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 | frontmatter | 必填 `title` / `date` / `tags` |
 | README 回链 | 每个 package 的 `README.md` 须有「深度解读」小节，链到上述 URL（可附源稿相对路径） |
 
-**正文结构（四级标题，均为四字，顺序固定）：**
+**正文结构（主节固定顺序；「设计参考」可选）：**
 
 1. **问题背景**：要解决什么痛点、对用户的影响  
 2. **技术原理**：核心概念与机制，通俗深入浅出  
 3. **实现方案**：本仓库当前实现、关键模块与取舍  
-4. **优化计划**：不足与下一步合并写（现状 → 影响 → 怎么补），避免「问题列表 + 路线图」两套重复  
+4. **设计参考**（可选）：该 package 借鉴过的相关项目；对比介绍原项目的设计实现机制，以及 piex 的取舍（采纳 / 不采纳 / 改写原因）。无外部借鉴时可省略整节  
+5. **优化计划**：不足与下一步合并写（现状 → 影响 → 怎么补），避免「问题列表 + 路线图」两套重复  
 
 **版式约定：**
 
 - 文首 frontmatter 之后、第一个 `##` 之前：一段 **blockquote 导语**（一句话价值主张，结论先行）  
-- 可选 `## 附录：…` 放对比表、调研细节；正文四节保持干净  
+- 可选 `## 附录：…` 放对比表、调研细节；正文主节保持干净  
 - 面向读者，少堆内部黑话；需要时用表格/小例子，不写成长 PRD  
 - 新增或实质改动 package 时：同步写/改博客 md；按文档站流程补中英 HTML 与导航（用户明确「只写 md」时可暂缓 HTML，但 README 链接与源稿不得缺）  
 - 机制类长文（如 `pi-extension-mechanism`）不占用 package slug，与 package 博客分开
-
-
 
 ## 代码约定
 

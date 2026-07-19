@@ -70,9 +70,9 @@ pi remove npm:@piex-dev/plan        # 随时卸载
 |---------|---------|---------|
 | hashline | oh-my-pi hashline | 依赖 `@oh-my-pi/hashline` + pi 适配层 + Node.js polyfill |
 | dap | oh-my-pi DAP | 从 omp 独立移植（Bun → Node.js） |
-| lsp | oh-my-pi LSP | 从 omp 精简移植 |
+| lsp | oh-my-pi LSP | 从 omp 移植并学 OpenCode 写后诊断闭环 |
 | plan | pi 官方示例 | 基于 plan-mode 示例增强 |
-| review | oh-my-pi /review | 从 omp 精简移植 |
+| review | oh-my-pi /review | 从 omp 移植并学 OpenCode 写后诊断闭环 |
 | theme-dark-terminal | [opencode-themes](https://github.com/debugtalk/opencode-themes) | pi.themes 静态主题 JSON 分发 |
 
 ### 4. 评测优先

@@ -51,6 +51,7 @@
 | hashline | [oh-my-pi](https://github.com/can1357/oh-my-pi) | [packages/hashline/src/](https://github.com/can1357/oh-my-pi/tree/main/packages/hashline/src) |
 | DAP | [oh-my-pi](https://github.com/can1357/oh-my-pi) | [packages/coding-agent/src/dap/](https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/dap) |
 | LSP | [oh-my-pi](https://github.com/can1357/oh-my-pi) | [packages/coding-agent/src/lsp/](https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/lsp) |
+| LSP 写后诊断闭环 | [OpenCode](https://github.com/anomalyco/opencode) | `packages/opencode/src/lsp/` + edit/write touchFile |
 | Plan mode | [oh-my-pi](https://github.com/can1357/oh-my-pi) | [packages/coding-agent/src/plan-mode/](https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/plan-mode) |
 | Review command | [oh-my-pi](https://github.com/can1357/oh-my-pi) | [bundled/review/](https://github.com/can1357/oh-my-pi/tree/main/packages/coding-agent/src/extensibility/custom-commands/bundled/review) |
 | Review tool | [oh-my-pi](https://github.com/can1357/oh-my-pi) | [tools/review.ts](https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/src/tools/review.ts) |

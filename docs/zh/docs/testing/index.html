@@ -91,6 +91,7 @@
         <a href="#lsp" class="depth-3">lsp</a>
         <a href="#plan" class="depth-3">plan</a>
         <a href="#review" class="depth-3">review</a>
+        <a href="#init" class="depth-3">init</a>
         <a href="#环境要求">环境要求</a>
         <a href="#bun-测试">Bun 测试</a>
         </nav>
@@ -116,9 +117,12 @@ pi -e ./packages/lsp/extensions/lsp.ts       -p &quot;what is 1+1&quot; --no-ses
 pi -e ./packages/plan/extensions/plan.ts     -p &quot;what is 1+1&quot; --no-session
 pi -e ./packages/review/extensions/review.ts  -p &quot;what is 1+1&quot; --no-session
 pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
+# init prompt package
+pi --prompt-template ./packages/init/prompts/init.md -p &quot;/init&quot; --no-session
 
-# xai-oauth 单元测试（不依赖网络）
-bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts</code></pre></div>
+# 单元测试
+bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
+cd packages/lsp &amp;&amp; npm install &amp;&amp; bun test</code></pre></div>
 <h2 id="功能测试">功能测试</h2>
 <h3 id="hashline">hashline</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 创建测试文件
@@ -146,7 +150,7 @@ pi -e ./packages/lsp/extensions/lsp.ts \
 
 # 获取诊断（需要对应的 LSP server）
 pi -e ./packages/lsp/extensions/lsp.ts \
-  -p &quot;Use the lsp tool with action=diagnostics, file=README.md&quot; --no-session</code></pre></div>
+  -p &quot;Use the lsp tool with action=diagnostics file=src/index.ts（需本机 language server）&quot; --no-session</code></pre></div>
 <h3 id="plan">plan</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 交互式测试（需要 TUI 模式）
 pi -e ./packages/plan/extensions/plan.ts
@@ -160,6 +164,13 @@ pi -e ./packages/review/extensions/review.ts \
 # 交互式测试
 pi -e ./packages/review/extensions/review.ts
 # 输入 /review 查看评审菜单</code></pre></div>
+
+<h3 id="init">init</h3>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 本地加载 prompt（不写 settings）
+pi --prompt-template ./packages/init/prompts/init.md
+# 或 install 后：
+pi install -l packages/init
+pi -p &quot;/init&quot; --no-session</code></pre></div>
 <h2 id="环境要求">环境要求</h2>
 <div class="blog-table-wrap"><table><thead><tr>
 <th>Package</th>
@@ -190,6 +201,11 @@ pi -e ./packages/review/extensions/review.ts
 <td>review</td>
 <td>Node.js ≥ 18</td>
 <td>git</td>
+</tr>
+<tr>
+<td>init</td>
+<td>任意（仅 prompt 资源）</td>
+<td>无</td>
 </tr>
 </tbody></table></div>
 <h2 id="bun-测试">Bun 测试</h2>
@@ -226,6 +242,7 @@ pi -e ./packages/review/extensions/review.ts
         <a href="#lsp" class="depth-3">lsp</a>
         <a href="#plan" class="depth-3">plan</a>
         <a href="#review" class="depth-3">review</a>
+        <a href="#init" class="depth-3">init</a>
         <a href="#环境要求">环境要求</a>
         <a href="#bun-测试">Bun 测试</a>
       </nav>

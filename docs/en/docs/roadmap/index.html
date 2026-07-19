@@ -150,12 +150,21 @@
 <tbody>
 <tr><td>1</td><td><strong>hashline</strong></td><td>➕ Enhancement</td><td>📈 metrics (accuracy↑ tokens↓)</td><td>hashline edit (overrides <code>edit</code>)</td><td>omp</td><td>318</td></tr>
 <tr><td>2</td><td><strong>dap</strong></td><td>🆕 New</td><td>—</td><td>DAP debug — 14 adapters</td><td>omp</td><td>2154</td></tr>
-<tr><td>3</td><td><strong>lsp</strong></td><td>🆕 New</td><td>—</td><td>LSP — 11 servers</td><td>omp</td><td>1069</td></tr>
+<tr><td>3</td><td><strong>lsp</strong></td><td>🆕 New</td><td>—</td><td>LSP — ~50 default servers</td><td>omp</td><td>1069</td></tr>
 <tr><td>4</td><td><strong>plan</strong></td><td>🆕 New</td><td>✨ UX (step approval, tool lock)</td><td>Plan Mode (<code>/plan</code> + workflow)</td><td>omp</td><td>348</td></tr>
 <tr><td>5</td><td><strong>review</strong></td><td>🆕 New</td><td>—</td><td>Code review (<code>/review</code> + tool, light)</td><td>omp</td><td>330</td></tr>
-<tr><td>6</td><td><strong>theme-dark-terminal</strong></td><td>🆕 New</td><td>✨ UX</td><td>Dark high-contrast terminal theme</td><td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td><td>—</td></tr>
+<tr>
+<td>6</td>
+<td><strong>init</strong></td>
+<td>🆕 New</td>
+<td>✨ UX</td>
+<td><code>/init</code> guided AGENTS.md create/improve (prompt-only package)</td>
+<td>OpenCode</td>
+<td>—</td>
+</tr>
+<tr><td>7</td><td><strong>theme-dark-terminal</strong></td><td>🆕 New</td><td>✨ UX</td><td>Dark high-contrast terminal theme</td><td><a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes</a></td><td>—</td></tr>
 </tbody></table></div>
-<p><strong>6 packages migrated, ~4219 LOC of core.</strong> Multi-agent review is TBD (needs subagent).</p>
+<p><strong>7+ packages migrated (incl. xai-oauth), ~4219 LOC of core.</strong> Multi-agent review is TBD (needs subagent).</p>
 <h3 id="distribution">Distribution</h3>
 <div class="blog-table-wrap"><table>
 <thead><tr><th>L1</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th><th>Done</th><th>Total</th></tr></thead>
@@ -299,7 +308,7 @@
 <div class="blog-table-wrap"><table>
 <thead><tr><th>omp</th><th>piex</th><th>Delta</th></tr></thead>
 <tbody>
-<tr><td>11 servers</td><td>11 servers</td><td>✅</td></tr>
+<tr><td>~50 default servers</td><td>~50 default servers</td><td>✅</td></tr>
 <tr><td>multi-file layout</td><td>single-file slim (570 + 499 JSON)</td><td>⚠️ ~60% less code</td></tr>
 <tr><td>native highlight + TUI</td><td>pure JSON-RPC</td><td>⚠️ highlight omitted</td></tr>
 </tbody></table></div>

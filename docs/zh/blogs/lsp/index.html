@@ -58,6 +58,7 @@
         <a href="/zh/blogs/lsp/" class="is-active">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
+        <a href="/zh/blogs/init/">Init：一键写出 AGENTS.md</a>
         <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
         <a href="/zh/blogs/pi-extension-mechanism/">Pi Extension 机制及工作原理</a>
@@ -76,6 +77,7 @@
         <a href="/zh/blogs/lsp/" class="is-active">LSP：语言服务器的眼睛</a>
         <a href="/zh/blogs/plan/">Plan Mode：先想清楚再动手</a>
         <a href="/zh/blogs/review/">Review：Code Review 一等公民</a>
+        <a href="/zh/blogs/init/">Init：一键写出 AGENTS.md</a>
         <a href="/zh/blogs/xai-oauth/">xAI OAuth：订阅登录 Grok</a>
         <a href="/zh/blogs/theme-dark-terminal/">Dark Terminal 主题</a>
         <a href="/zh/blogs/pi-extension-mechanism/">Pi Extension 机制及工作原理</a>
@@ -102,7 +104,7 @@
           <span class="blog-tag">Extension</span>
         </div>
         <h1>LSP：给 Agent 一双「语言服务器」的眼睛</h1>
-        <p class="blog-lede">不是更会聊天，而是能问有没有错、定义在哪。</p>
+        <p class="blog-lede">更关键的是 edit 之后自动看到 ERROR，不必靠模型记得再调诊断。</p>
       </header>
 
       <div class="blog-prose">
@@ -110,7 +112,7 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">导语</p>
-            <p><code>@piex-dev/lsp</code> 不是让 agent 更会聊天，而是让它在改代码前后能问到和 IDE 同一类问题：有没有错、定义在哪、引用还有谁。</p>
+            <p><code>@piex-dev/lsp</code> 让 agent 能问 IDE 同一类问题；更关键的是 <strong>edit 之后自动看到 ERROR</strong>，不必靠模型记得再调诊断。</p>
           </div>
         </div>
 
@@ -119,22 +121,22 @@
           没有 LSP 时，agent 只靠 read/grep 与脑补类型。改签名漏调用点、红线要等整次构建才知道。人编辑器交给语言服务器；agent 也该能问。
         </p>
         <p>
-          <code>@piex-dev/lsp</code> 提供 diagnostics / definition / references / hover / symbols / format。
+          <code>@piex-dev/lsp</code>：导航、诊断、rename/code_actions，以及写后 ERROR 闭环。
         </p>
         <h2 id="theory">技术原理</h2>
         <p>
-          按后缀匹配 server，root markers 定 workspace，stdio JSON-RPC，会话内缓存进程。诊断来自 <code>publishDiagnostics</code> 推送缓存，不是轮询。
+          stdio JSON-RPC；rootMarkers 发现 server；publishDiagnostics 缓存。写路径 hook：sync（didOpen/didChange）→ 等诊断 → 仅 ERROR 裁剪后附在 tool 结果。
         </p>
         <h2 id="impl">实现方案</h2>
         <p>
-          单文件 <code>lsp.ts</code> + 数据驱动 <code>defaults.json</code>（大量 server 默认）。九个 action 覆盖读智能与格式化；无 TUI 高亮，是 omp 的子集。
+          兼容 initOptions/settings；多 server 聚合诊断、linter 不抢导航；rename 默认 preview；WorkspaceEdit 限 cwd。<code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code> 可关写后诊断。
         </p>
         <p>
-          推荐闭环：lsp 弄清改哪 → hashline 安全改 → 再 diagnostics → 运行时问题上 dap。
+          闭环：hashline edit → 自动 ERROR → 需要时显式 lsp 导航/重构 → 运行时问题上 dap。
         </p>
         <h2 id="roadmap">优化计划</h2>
         <p>
-          优先 rename/codeAction；indexing 就绪状态；诊断分级摘要；项目级 overrides；edit 后可选自动诊断。
+          已完成正确性、写后诊断、rename/code_actions。单测：<code>bun test packages/lsp</code>。下一步：项目级 <code>.lsp.json</code>、模块拆分、假 server 单测、indexing ready。暂缓 lspmux/自动下载/completion。
         </p>
       </div>
 

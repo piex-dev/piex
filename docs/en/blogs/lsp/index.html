@@ -58,6 +58,7 @@
         <a href="/en/blogs/lsp/" class="is-active">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
+        <a href="/en/blogs/init/">Init: One-Shot AGENTS.md</a>
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
         <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism &amp; Internals</a>
@@ -76,6 +77,7 @@
         <a href="/en/blogs/lsp/" class="is-active">LSP: Language-Server Eyes for Agents</a>
         <a href="/en/blogs/plan/">Plan Mode: Think Before You Edit</a>
         <a href="/en/blogs/review/">Review: First-Class Code Review</a>
+        <a href="/en/blogs/init/">Init: One-Shot AGENTS.md</a>
         <a href="/en/blogs/xai-oauth/">xAI OAuth: Subscription Login for Grok</a>
         <a href="/en/blogs/theme-dark-terminal/">Dark Terminal Theme</a>
         <a href="/en/blogs/pi-extension-mechanism/">Pi Extension Mechanism &amp; Internals</a>
@@ -102,7 +104,7 @@
           <span class="blog-tag">Extension</span>
         </div>
         <h1>LSP: Language-Server Eyes for Agents</h1>
-        <p class="blog-lede">Not chattier agents—agents that can check the truth.</p>
+        <p class="blog-lede">The win is automatic ERRORs after edit—not hoping the model remembers to ask.</p>
       </header>
 
       <div class="blog-prose">
@@ -110,7 +112,7 @@
           <div class="blog-callout-icon" aria-hidden="true">💡</div>
           <div class="blog-callout-body">
             <p class="blog-callout-label">In short</p>
-            <p><code>@piex-dev/lsp</code> doesn’t make agents chat more; it lets them ask IDE questions: errors, definitions, references.</p>
+            <p><code>@piex-dev/lsp</code> answers IDE questions—and <strong>appends ERRORs after edit/write</strong> so the model does not have to remember to re-check.</p>
           </div>
         </div>
 
@@ -119,19 +121,19 @@
           Without LSP, agents lean on read/grep and guesswork. Signature changes miss call sites; type errors wait for full builds.
         </p>
         <p>
-          <code>@piex-dev/lsp</code> adds diagnostics, go-to-def, references, hover, symbols, and format.
+          <code>@piex-dev/lsp</code> adds navigation, diagnostics, rename/code actions, and a post-edit ERROR loop.
         </p>
         <h2 id="theory">How it works</h2>
         <p>
-          Match servers by filetype, find roots via markers, speak JSON-RPC over stdio, cache processes. Diagnostics come from push notifications.
+          stdio JSON-RPC; rootMarkers for discovery; publishDiagnostics cache. On edit/write: sync disk (didOpen/didChange) → wait → ERROR-only cap attached to the tool result.
         </p>
         <h2 id="impl">Implementation</h2>
         <p>
-          Self-contained client + large <code>defaults.json</code>. Nine actions; subset of omp; pairs with hashline and dap in a static→edit→dynamic loop.
+          initOptions/settings wired correctly; multi-server diagnostics with linter vs primary routing; rename defaults to preview; WorkspaceEdit confined to cwd. Disable post-edit with <code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code>.
         </p>
         <h2 id="roadmap">Roadmap</h2>
         <p>
-          Rename/codeAction first, indexing readiness, graded diagnostic digests, project overrides, optional post-edit checks.
+          Done: correctness, post-edit diagnostics, rename/code_actions. Tests: <code>bun test packages/lsp</code>. Next: project <code>.lsp.json</code>, module split, fake-server tests, indexing readiness. Deferred: lspmux, auto-download, completion.
         </p>
       </div>
 

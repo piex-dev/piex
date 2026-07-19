@@ -91,6 +91,7 @@
         <a href="#lsp" class="depth-3">lsp</a>
         <a href="#plan" class="depth-3">plan</a>
         <a href="#review" class="depth-3">review</a>
+        <a href="#init" class="depth-3">init</a>
         <a href="#environment-requirements">Environment requirements</a>
         <a href="#bun">Bun</a>
         </nav>
@@ -124,9 +125,12 @@ pi -e ./packages/lsp/extensions/lsp.ts       -p &quot;what is 1+1&quot; --no-ses
 pi -e ./packages/plan/extensions/plan.ts     -p &quot;what is 1+1&quot; --no-session
 pi -e ./packages/review/extensions/review.ts  -p &quot;what is 1+1&quot; --no-session
 pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
+# init prompt package
+pi --prompt-template ./packages/init/prompts/init.md -p &quot;/init&quot; --no-session
 
 # xai-oauth unit tests (offline)
-bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts</code></pre></div>
+bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
+cd packages/lsp &amp;&amp; npm install &amp;&amp; bun test</code></pre></div>
 <h2 id="functional-tests">Functional tests</h2>
 <h3 id="hashline">hashline</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Create a fixture
@@ -168,6 +172,13 @@ pi -e ./packages/review/extensions/review.ts \
 # Interactive
 pi -e ./packages/review/extensions/review.ts
 # Type /review for the review menu</code></pre></div>
+
+<h3 id="init">init</h3>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Load prompt without writing settings
+pi --prompt-template ./packages/init/prompts/init.md
+# Or after install:
+pi install -l packages/init
+pi -p &quot;/init&quot; --no-session</code></pre></div>
 <h2 id="environment-requirements">Environment requirements</h2>
 <div class="blog-table-wrap"><table>
 <thead><tr><th>Package</th><th>Runtime</th><th>Extra tools</th></tr></thead>
@@ -177,6 +188,11 @@ pi -e ./packages/review/extensions/review.ts
 <tr><td>lsp</td><td>Node.js ≥ 18</td><td>LSP server (e.g. marksman, ts-ls)</td></tr>
 <tr><td>plan</td><td>Node.js ≥ 18</td><td>none</td></tr>
 <tr><td>review</td><td>Node.js ≥ 18</td><td>git</td></tr>
+<tr>
+<td>init</td>
+<td>any (prompt resources only)</td>
+<td>none</td>
+</tr>
 </tbody></table></div>
 <h2 id="bun">Bun</h2>
 <p>Under Bun, hashline uses native Bun APIs (no polyfill):</p>
@@ -211,6 +227,7 @@ pi -e ./packages/review/extensions/review.ts
         <a href="#lsp" class="depth-3">lsp</a>
         <a href="#plan" class="depth-3">plan</a>
         <a href="#review" class="depth-3">review</a>
+        <a href="#init" class="depth-3">init</a>
         <a href="#environment-requirements">Environment requirements</a>
         <a href="#bun">Bun</a>
       </nav>

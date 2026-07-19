@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>实施路线 — PieX</title>
-  <meta name="description" content="对照 oh-my-pi 的功能迁移分析：P0 已完成 6 包，Tier 1–3 候选与优先级建议。" />
+  <meta name="description" content="对照 oh-my-pi 的功能迁移分析：P0 已完成含 init 等，Tier 1–3 候选与优先级建议。" />
   <link rel="canonical" href="https://piex.dev/zh/docs/roadmap/" />
   <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/docs/roadmap/" />
   <link rel="alternate" hreflang="en" href="https://piex.dev/en/docs/roadmap/" />
   <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/docs/roadmap/" />
   <meta property="og:title" content="实施路线 — PieX" />
-  <meta property="og:description" content="对照 oh-my-pi 的功能迁移分析：P0 已完成 6 包，Tier 1–3 候选与优先级建议。" />
+  <meta property="og:description" content="对照 oh-my-pi 的功能迁移分析：P0 已完成含 init 等，Tier 1–3 候选与优先级建议。" />
   <meta property="og:url" content="https://piex.dev/zh/docs/roadmap/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -117,7 +117,7 @@
           <span class="blog-tag">Roadmap</span>
         </div>
         <h1>实施路线</h1>
-        <p class="blog-lede">对照 oh-my-pi 的功能迁移分析：P0 已完成 6 包，Tier 1–3 候选与优先级建议。</p>
+        <p class="blog-lede">对照 oh-my-pi 的功能迁移分析：P0 已完成含 init 等，Tier 1–3 候选与优先级建议。</p>
       </header>
 
       <div class="blog-prose">
@@ -197,7 +197,7 @@
 <td><strong>lsp</strong></td>
 <td>🆕 新功能</td>
 <td>—</td>
-<td>LSP 语言服务器：11 个 server</td>
+<td>LSP 语言服务器：~50 server 默认</td>
 <td>omp</td>
 <td>1069</td>
 </tr>
@@ -221,6 +221,15 @@
 </tr>
 <tr>
 <td>6</td>
+<td><strong>init</strong></td>
+<td>🆕 新功能</td>
+<td>✨ 体验优化</td>
+<td><code>/init</code> 引导生成/改进 AGENTS.md（纯 prompt 包）</td>
+<td>OpenCode</td>
+<td>—</td>
+</tr>
+<tr>
+<td>7</td>
 <td><strong>theme-dark-terminal</strong></td>
 <td>🆕 新功能</td>
 <td>✨ 体验优化</td>
@@ -229,7 +238,7 @@
 <td>—</td>
 </tr>
 </tbody></table></div>
-<p><strong>已迁移 6 个 package，覆盖约 4219 行核心代码。</strong> review 多 agent 版待定（依赖 subagent 机制）。</p>
+<p><strong>已迁移 7 个 package（另含 xai-oauth 等），覆盖约 4219 行核心代码。</strong> review 多 agent 版待定（依赖 subagent 机制）。</p>
 <h3 id="功能分布统计">功能分布统计</h3>
 <div class="blog-table-wrap"><table><thead><tr>
 <th>一层分类</th>

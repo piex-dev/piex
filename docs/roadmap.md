@@ -26,12 +26,13 @@
 |---|---------|------|------|------|------|------|
 | 1 | **hashline** | ➕ 功能增量 | 📈 指标优化（准确率↑ token↓） | hashline 编辑（覆盖 edit 工具） | omp | 318 |
 | 2 | **dap** | 🆕 新功能 | — | DAP 调试：14 个 debug adapter | omp | 2154 |
-| 3 | **lsp** | 🆕 新功能 | — | LSP 语言服务器：11 个 server | omp | 1069 |
+| 3 | **lsp** | 🆕 新功能 | 📈 指标优化 | LSP：~50 server 默认、写后 ERROR、rename/code_actions | omp + OpenCode | ~1850 |
 | 4 | **plan** | 🆕 新功能 | ✨ 体验优化（步骤审批、工具锁定） | Plan Mode（/plan 命令 + 计划工作流） | omp | 348 |
 | 5 | **review** | 🆕 新功能 | — | 代码评审（/review + review 工具，轻量版） | omp | 330 |
-| 6 | **theme-dark-terminal** | 🆕 新功能 | ✨ 体验优化 | 暗终端高对比度主题（pi.themes 分发） | [opencode-themes](https://github.com/debugtalk/opencode-themes) | — |
+| 6 | **init** | 🆕 新功能 | ✨ 体验优化 | `/init` 引导生成/改进 AGENTS.md（纯 prompt 包） | OpenCode | — |
+| 7 | **theme-dark-terminal** | 🆕 新功能 | ✨ 体验优化 | 暗终端高对比度主题（pi.themes 分发） | [opencode-themes](https://github.com/debugtalk/opencode-themes) | — |
 
-**已迁移 6 个 package，覆盖约 4219 行核心代码。** review 多 agent 版待定（依赖 subagent 机制）。
+**已迁移 7 个 package（另含 xai-oauth 等）。** review 多 agent 版待定（依赖 subagent 机制）。
 
 ### 功能分布统计
 
@@ -180,11 +181,13 @@
 
 ### lsp
 
-| omp | piex | 差异 |
-|-----|-----|------|
-| 11 LSP servers | 11 LSP servers | ✅ 完全等效 |
-| 多文件架构 | 单文件精简 (570 + 499 JSON) | ⚠️ 代码量减少 60% |
-| 原生语法高亮 + TUI 渲染 | 纯 JSON-RPC | ⚠️ 高亮省略 |
+| omp / OpenCode | piex | 差异 |
+|----------------|------|------|
+| ~50 defaults + 多层配置 | ~50 defaults.json | ⚠️ 项目级 `.lsp.json` 待做 |
+| 14 action（含 rename/codeAction） | 13 action（含 rename/code_actions，preview 默认） | ✅ 主路径对齐 |
+| writethrough / deferred 诊断 | tool_result 附 ERROR（可关） | ✅ 学 OpenCode 闭环 |
+| 多 server + isLinter | ✅ 诊断聚合 / 导航排除 linter | ✅ |
+| TUI 渲染 / lspmux | 纯文本 | ⚠️ 有意精简 |
 
 ### plan
 

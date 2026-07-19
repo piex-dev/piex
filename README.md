@@ -47,9 +47,10 @@ pi -e ./packages/hashline/extensions/hashline.ts
 | ------------------- | ------------------------------------- | --------------------------------------------------------------- | ---- |
 | hashline            | 覆盖 `edit`（hashline 语法）                | oh-my-pi                                                        | 318  |
 | dap                 | `debug`（14 个 adapter）                 | oh-my-pi                                                        | 2154 |
-| lsp                 | `lsp`（11 个 server）                    | oh-my-pi                                                        | 1069 |
+| lsp                 | `lsp`（~50 server 默认；写后 ERROR；rename/code_actions） | oh-my-pi + OpenCode                                      | ~1850 |
 | plan                | `/plan`, `/todos`                     | pi 示例                                                           | 348  |
 | review              | `/review`, `review` 工具                | oh-my-pi                                                        | 330  |
+| init                | `/init`（生成/改进 AGENTS.md）              | OpenCode                                                        | —    |
 | xai-oauth           | `/login` xAI Grok OAuth 订阅登录（含实时模型发现） | oh-my-pi / pi-grok                                              | 949  |
 | theme-dark-terminal | 暗终端高对比度主题                             | [opencode-themes](https://github.com/debugtalk/opencode-themes) | —    |
 

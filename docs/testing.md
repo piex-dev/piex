@@ -15,8 +15,12 @@ pi -e ./packages/plan/extensions/plan.ts     -p "what is 1+1" --no-session
 pi -e ./packages/review/extensions/review.ts  -p "what is 1+1" --no-session
 pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p "what is 1+1" --no-session
 
-# xai-oauth 单元测试（不依赖网络）
+# init 为 prompt 包（无 extensions），用 --prompt-template 或 install 后测
+pi --prompt-template ./packages/init/prompts/init.md -p "/init" --no-session
+
+# 单元测试（不依赖真实外部服务）
 bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
+cd packages/lsp && npm install && bun test   # mock LSP server
 ```
 
 ## 功能测试
@@ -51,13 +55,22 @@ pi -e ./packages/dap/extensions/dap.ts \
 ### lsp
 
 ```bash
-# 查看 LSP 状态
-pi -e ./packages/lsp/extensions/lsp.ts \
-  -p "Use the lsp tool with action=status" --no-session
+# 单元测试（推荐，无需安装 language server）
+cd packages/lsp && npm install && bun test
 
-# 获取诊断（需要对应的 LSP server）
+# 查看 LSP 状态（按项目 rootMarkers 列出默认 server）
 pi -e ./packages/lsp/extensions/lsp.ts \
-  -p "Use the lsp tool with action=diagnostics, file=README.md" --no-session
+  -p "Call the lsp tool with action=status and show the output" --no-session
+
+# 诊断 / 导航 / 重构（需要本机已装对应 server，如 typescript-language-server、pyright）
+pi -e ./packages/lsp/extensions/lsp.ts \
+  -p "Use lsp action=diagnostics file=src/index.ts" --no-session
+
+pi -e ./packages/lsp/extensions/lsp.ts \
+  -p "Use lsp action=rename file=src/a.ts line=1 column=1 new_name=foo apply=false" --no-session
+
+# 写后诊断：edit/write 成功后 tool 结果应附带 [lsp diagnostics] ERROR 块
+# 关闭：PI_LSP_DIAGNOSTICS_ON_EDIT=0
 ```
 
 ### plan
@@ -79,7 +92,17 @@ pi -e ./packages/review/extensions/review.ts \
 # 交互式测试
 pi -e ./packages/review/extensions/review.ts
 # 输入 /review 查看评审菜单
+# 输入 /review 查看评审菜单
 ```
+
+### init
+
+```bash
+# 本地加载 prompt（不写 settings）
+pi --prompt-template ./packages/init/prompts/init.md
+# 交互输入 /init，或：
+pi install -l packages/init
+pi -p "/init" --no-session   # 在目标项目目录执行，会创建/更新 AGENTS.md
 
 ## 环境要求
 
@@ -87,9 +110,11 @@ pi -e ./packages/review/extensions/review.ts
 |---------|--------|---------|
 | hashline | Node.js ≥ 18 或 Bun ≥ 1.3.14 | 无 |
 | dap | Node.js ≥ 18 | debug adapter（如 debugpy, gdb） |
-| lsp | Node.js ≥ 18 | LSP server（如 marksman, ts-ls） |
+| lsp | Node.js ≥ 18；单测需 Bun | 可选：真实 LSP server（ts-ls、pyright…）；单测用 mock |
 | plan | Node.js ≥ 18 | 无 |
 | review | Node.js ≥ 18 | git |
+| init | 任意（仅 prompt 资源） | 无 |
+| xai-oauth | Node.js ≥ 18；单测需 Bun | 无（单测不联网） |
 
 ## Bun 测试
 
