@@ -209,7 +209,7 @@ piex/eval/
 每次评测生成 Markdown 报告，先呈现 piex 对 pi 的提升，再以 omp 为参照系对比：
 
 ```markdown
-## SWE-bench Verified：piex 评测报告 (2026-07-14)
+## SWE-bench Verified — piex 评测报告 (2026-07-14)
 
 ### 评测结果
 

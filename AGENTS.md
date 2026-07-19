@@ -196,6 +196,8 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 **Agent 义务：** 用户要求 commit 且 staged/变更包含 `docs/*.md`（除 `site.md`）或 `docs/notes/**/*.md` 时，必须先跑 `./scripts/check-docs-i18n.sh --staged`，失败则先补齐中英 HTML 再提交。
 
+组件详表、页面壳检查清单、Agent 生成提示、部署与 DNS 细节均见 `docs/site.md`。
+
 ### 文案约定（破折号）
 
 - **该用**：表格空值（`| — |`）、标题分隔（`设计理念 — PieX`）、引用原文中的破折号

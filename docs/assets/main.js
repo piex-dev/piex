@@ -134,7 +134,7 @@
       "why.title": "设计理念",
       "why.desc": "充分拓展 pi 而非 fork，按需自由切换，知其所以然，评测优先。",
       "why.1.title": "充分拓展，而非 fork",
-      "why.1.desc": "omp fork 内核并全量内置；piex 只做官方扩展——不碰内核，随 pi 升级而升级。",
+      "why.1.desc": "omp fork 内核并全量内置；piex 只做官方扩展，不碰内核，随 pi 升级而升级。",
       "why.2.title": "按需拓展，自由切换",
       "why.2.desc": "扩展相互独立、即装即卸；克制可控，只为用到的能力付出 token。",
       "why.3.title": "知其所以然",
