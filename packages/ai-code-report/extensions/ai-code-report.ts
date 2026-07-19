@@ -2,7 +2,7 @@
  * ai-code-report extension — AI code edit telemetry for pi.
  *
  * Direct TEA SDK integration. Event mapping:
- *   tool_result (write/edit) → dev_agent_tool_call (with unified diff)
+ *   tool_result (write/edit) → dev_agent_tool_call (per-line, accept_content)
  *   tool_result (bash mv/cp) → dev_agent_bash_call
  *   turn_end (non-edit tools) → dev_agent_tool_call
  *   turn_end (MCP tools)      → dev_agent_mcp_call
@@ -18,7 +18,7 @@ import { TeaSDK } from "@dp/tea-sdk-node";
 import { httpPlugin } from "@logsdk/node-plugin-http";
 import * as diff from "diff";
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -42,12 +42,29 @@ function ensureUuid(params: Record<string, unknown>): string {
   return String(params.uuid || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 }
 
+const DEBUG_LOG_MAX_FIELD = 200; // max chars for input/output/accept_content in debug log
+
+function debugParams(event: string, params: Record<string, unknown>, uuid: string): Record<string, unknown> {
+  const safe: Record<string, unknown> = { event };
+  for (const [k, v] of Object.entries(params)) {
+    if (typeof v === "string" && (k === "input" || k === "output" || k === "accept_content")) {
+      safe[k] = v.length > DEBUG_LOG_MAX_FIELD ? v.slice(0, DEBUG_LOG_MAX_FIELD) + "…" : v;
+    } else {
+      safe[k] = v;
+    }
+  }
+  safe.uuid = uuid;
+  return safe;
+}
+
+
 function report(
   event: string,
   params: Record<string, unknown>,
   userId?: string,
 ): void {
   const uuid = ensureUuid(params);
+  debugLog("report", debugParams(event, params, uuid));
   const sdk = getSdk();
   sdk.config({ user: { user_unique_id: userId } });
   try {
@@ -56,8 +73,42 @@ function report(
       { ...params, uuid, app_name_for_bits: "piex" },
       { user: { user_unique_id: userId } },
     );
-  } catch {
+  } catch (e) {
+    debugLog("report_error", { event, uuid, error: (e as Error).message || String(e) });
     // TeaSDK errors must not propagate to pi event handlers
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Debug logging
+// ══════════════════════════════════════════════════════════════════════════
+
+const DEBUG_DIR = path.join(
+  process.env.HOME || process.env.USERPROFILE || "/tmp",
+  ".pi", "piex-dev", "ai-code-report",
+);
+
+let _debugFile: string | null = null;
+
+function debugFilePath(): string {
+  if (_debugFile) return _debugFile;
+  const d = new Date();
+  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  _debugFile = path.join(DEBUG_DIR, `${ymd}.jsonl`);
+  return _debugFile;
+}
+
+function debugLog(step: string, data?: Record<string, unknown>): void {
+  try {
+    const fp = debugFilePath();
+    mkdirSync(DEBUG_DIR, { recursive: true });
+    appendFileSync(
+      fp,
+      JSON.stringify({ ts: new Date().toISOString(), step, ...(data || {}) }) + "\n",
+      "utf-8",
+    );
+  } catch {
+    // debug log failure must never affect reporting
   }
 }
 
@@ -141,6 +192,24 @@ function getRepoUrl(cwd: string): string {
   return root ? getGitUrl(root) : "";
 }
 
+function isGitHubRepo(url: string): boolean {
+  const normalized = url.trim().toLowerCase().replace(/\.git$/, "");
+  return normalized.startsWith("https://github.com/") ||
+    normalized.startsWith("git@github.com:");
+}
+
+function getBranch(cwd: string): string {
+  try {
+    return execSync("git rev-parse --abbrev-ref HEAD", {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // Session ID
 // ══════════════════════════════════════════════════════════════════════════
@@ -184,6 +253,64 @@ function editDiff(
   return edits
     .map((e) => diff.createPatch(filePath, e.oldText, e.newText, "before", "after"))
     .join("");
+}
+
+/**
+ * Extract added lines from a unified diff patch (for line-based reporting).
+ * Matches ByteDance's per-line format: each added non-empty line = one record.
+ */
+function extractAddedLines(patch: string): string[] {
+  return patch
+    .split("\n")
+    .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+    .map((l) => l.slice(1))
+    .filter((l) => l.trim().length > 0);
+}
+
+/**
+ * Report a code edit event — per-line mode.
+ * Each added/modified non-empty line becomes one telemetry record
+ * with accept_content, matching ByteDance's Hive table format.
+ */
+function reportCodeEdit(
+  params: {
+    session_id: string;
+    uuid: string;
+    name: string;
+    file_path: string;
+    patch: string;
+    model?: string;
+    repo?: string;
+    branch?: string;
+    toolCallId?: string;
+  },
+  userId?: string,
+): void {
+  const base = {
+    session_id: params.session_id,
+    file_path: params.file_path,
+    timestamp: new Date().toISOString(),
+    source: "pi",
+    user_unique_id: userId,
+    model: params.model || "",
+    repo: params.repo || "",
+    branch: params.branch || "",
+    call_id: params.toolCallId || params.uuid,
+  };
+
+  const lines = extractAddedLines(params.patch);
+  debugLog("code_edit", {
+    tool: params.name, file: params.file_path,
+    patchBytes: byteLength(params.patch), lines,
+  });
+  for (const line of lines) {
+    report("dev_agent_tool_call", {
+      ...base,
+      uuid: `${params.uuid}:${Buffer.from(line).toString("base64").slice(0, 12)}`,
+      name: params.name,
+      accept_content: line.slice(0, 400),
+    }, userId);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -257,17 +384,28 @@ const POST_TOOL_USE_TOOLS = new Set(["write", "edit", "bash"]);
 // ══════════════════════════════════════════════════════════════════════════
 // Extension
 // ══════════════════════════════════════════════════════════════════════════
-
 export default function (pi: ExtensionAPI) {
   let userId: string | undefined;
-
+  let repoUrl = "";
+  let branch = "";
+  let skipReport = false;
   pi.on("session_start", (_event, ctx) => {
     userId = getUserId();
+    repoUrl = getRepoUrl(ctx.cwd);
+    branch = getBranch(ctx.cwd);
+    skipReport = isGitHubRepo(repoUrl);
+    debugLog("session_start", {
+      userId, repoUrl, branch, skipReport, cwd: ctx.cwd,
+      reason: (_event as any).reason,
+    });
   });
-
   // ── PostToolUse equivalent: Write / Edit / Bash ───────────
 
   pi.on("tool_result", (event, ctx) => {
+    if (skipReport) {
+      debugLog("skip_tool_result", { reason: "github_repo", toolName: event.toolName });
+      return;
+    }
     const sid = resolveSessionId(ctx.sessionManager.getSessionFile() ?? undefined);
     const { toolName, toolCallId, input } = event;
     if (!POST_TOOL_USE_TOOLS.has(toolName)) return;
@@ -277,10 +415,9 @@ export default function (pi: ExtensionAPI) {
       const content = (input as any)?.content || "";
       const patch = writeDiff(fp, content);
       if (!patch || byteLength(patch) > MAX_PATCH_BYTES) return;
-      report("dev_agent_tool_call", {
+      reportCodeEdit({
         session_id: sid, uuid: toolCallId, name: "write",
-        file_path: fp, patch,
-        timestamp: new Date().toISOString(), source: "pi", user_unique_id: userId,
+        file_path: fp, patch, repo: repoUrl, branch,
       }, userId);
       return;
     }
@@ -291,16 +428,16 @@ export default function (pi: ExtensionAPI) {
       if (!edits.length) return;
       const patch = editDiff(fp, edits);
       if (!patch || byteLength(patch) > MAX_PATCH_BYTES) return;
-      report("dev_agent_tool_call", {
+      reportCodeEdit({
         session_id: sid, uuid: toolCallId, name: "edit",
-        file_path: fp, patch,
-        timestamp: new Date().toISOString(), source: "pi", user_unique_id: userId,
+        file_path: fp, patch, repo: repoUrl, branch,
       }, userId);
       return;
     }
 
     if (toolName === "bash") {
-      const ops = parseBashOps((input as any)?.command || "");
+      const cmd = (input as any)?.command || "";
+      const ops = parseBashOps(cmd);
       if (!ops.length) return;
       ops.forEach((op, i) => {
         report("dev_agent_bash_call", {
@@ -308,20 +445,24 @@ export default function (pi: ExtensionAPI) {
           uuid: ops.length > 1 ? `${toolCallId}:${i}` : toolCallId,
           name: "bash", action: op.action,
           source_path: op.source_path, file_path: op.file_path,
+          command: cmd, repo: repoUrl, branch,
           timestamp: new Date().toISOString(), source: "pi", user_unique_id: userId,
         }, userId);
       });
       return;
     }
   });
-
   // ── Stop equivalent: turn summary + non-edit tools + tokens ─
 
   pi.on("turn_end", (event, ctx) => {
+    if (skipReport) {
+      debugLog("skip_turn_end", { reason: "github_repo", turnIndex: event.turnIndex });
+      return;
+    }
     const sid = resolveSessionId(ctx.sessionManager.getSessionFile() ?? undefined);
     const ti = event.turnIndex;
     const ts = new Date().toISOString();
-    const repo = getRepoUrl(ctx.cwd);
+    const repo = repoUrl;
     const msg = event.message as any;
     const model = msg?.model || "";
     const usage = msg?.usage;
@@ -347,7 +488,7 @@ export default function (pi: ExtensionAPI) {
           conversation_uuid: `${sid}-${ti}`,
           input: serializedInput, output: serializedOutput,
           is_error: tr.isError || false, timestamp: ts, duration: 0,
-          model, repo, source: "pi", user_unique_id: userId,
+          model, repo, branch, source: "pi", user_unique_id: userId,
         }, userId);
       } else {
         report("dev_agent_tool_call", {
@@ -355,7 +496,7 @@ export default function (pi: ExtensionAPI) {
           conversation_uuid: `${sid}-${ti}`,
           input: serializedInput, output: serializedOutput,
           is_error: tr.isError || false, timestamp: ts, duration: 0,
-          model, repo, source: "pi", user_unique_id: userId,
+          model, repo, branch, source: "pi", user_unique_id: userId,
         }, userId);
       }
     }
@@ -364,7 +505,7 @@ export default function (pi: ExtensionAPI) {
     report("dev_agent_user_ask", {
       session_id: sid, uuid: `${sid}-${ti}`, model,
       is_thinking: false, thinking_model: "", timestamp: ts, duration: 0,
-      skill: "", repo, source: "pi", user_unique_id: userId,
+      skill: "", repo, branch, source: "pi", user_unique_id: userId,
       input_tokens: usage?.input || 0, output_tokens: usage?.output || 0,
     }, userId);
 
@@ -376,6 +517,7 @@ export default function (pi: ExtensionAPI) {
         total_tokens: usage.totalTokens || (usage.input || 0) + (usage.output || 0),
         cache_read_input_tokens: usage.cacheRead || 0,
         cache_creation_input_tokens: usage.cacheWrite || 0,
+        reasoning_tokens: usage.reasoning || 0,
         is_estimated: false, user_unique_id: userId,
       }, userId);
     }
