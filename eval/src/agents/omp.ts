@@ -1,15 +1,15 @@
-import type { AgentConfig, AgentRunResult, Task } from '../types.ts'
-import { Sandbox } from '../sandbox.ts'
-import { parseTokenUsage } from '../tokens.ts'
+import type { AgentConfig, AgentRunResult, Task } from "../types.ts";
+import { Sandbox } from "../sandbox.ts";
+import { parseTokenUsage } from "../tokens.ts";
 
 export function ompAgentConfig(): AgentConfig {
   return {
-    name: 'omp',
-    image: 'piex-eval-omp',
-    role: 'reference',
+    name: "omp",
+    image: "piex-eval-omp",
+    role: "reference",
     extensions: [],
     extraArgs: [],
-  }
+  };
 }
 
 export async function runOmp(
@@ -25,12 +25,15 @@ export async function runOmp(
     workDir,
     extensions: [],
     command: [
-      '--model', (model ?? 'deepseek:deepseek-v4-flash').replace(':', '/'),
-      '-p', task.prompt,
-      '--no-session', '--yolo',
+      "--model",
+      (model ?? "deepseek:deepseek-v4-flash").replace(":", "/"),
+      "-p",
+      task.prompt,
+      "--no-session",
+      "--yolo",
     ],
     env,
-  })
+  });
 
   return {
     taskId: task.id,
@@ -42,5 +45,5 @@ export async function runOmp(
     stderr: result.stderr,
     wallTime: result.wallTime,
     tokenUsage: parseTokenUsage(result.stdout),
-  }
+  };
 }
