@@ -9,6 +9,12 @@
  * - 1.3 方言归一化: 预处理 DSL 输入，吸收 CRLF/代码块包裹/多余空行
  * 1.1 + 1.2 的状态由 patches.ts 的 EditGuard 统一管理。
  *
+ * Phase 2 — 编辑后校验与回显 (2026-07-19):
+ * - 2.1 Warnings 透出: patcher 的 parser/applier warnings 原样回给模型
+ * - 2.2 Diff 回显: update 附带 compact diff preview，"实际改了什么"当场可见
+ * - 2.3 Tag balance (delta): 编辑 .html 后对比前后结构标签平衡，
+ *   仅在本次编辑引入新失衡时告警（防 SWAP 范围算错吞掉闭合标签）
+ *
  * Install:
  *   pi install npm:@piex-dev/hashline
  * Try:
@@ -36,6 +42,7 @@ const {
   Patcher,
   Patch,
   MismatchError,
+  buildCompactDiffPreview,
   formatHashlineHeader,
   normalizeToLF,
   stripBom,
@@ -163,6 +170,144 @@ function normalizeInput(raw: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 2 — 编辑后校验与回显
+// ---------------------------------------------------------------------------
+
+/**
+ * Structural tags whose open/close counts are compared after editing .html
+ * files. Optionally-closed tags (`<p>`, `<li>`, `<tr>` …) are excluded —
+ * they are legal unclosed and would false-positive on valid documents.
+ */
+const HTML_STRUCTURE_TAGS = new Set([
+  "html", "head", "body", "main", "header", "footer", "aside", "nav",
+  "section", "article", "div", "pre", "ul", "ol", "table", "thead", "tbody",
+]);
+
+/** Strip regions whose contents must not be scanned for tags. */
+function stripHtmlNoScanZones(content: string): string {
+  return content
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "");
+}
+
+/**
+ * Count opening vs closing occurrences of structural HTML tags in `content`.
+ * Returns only tags whose counts differ, as { tag: [openCount, closeCount] }.
+ */
+export function checkTagBalance(content: string): Record<string, [number, number]> {
+  const text = stripHtmlNoScanZones(content);
+  const openCounts: Record<string, number> = {};
+  const closeCounts: Record<string, number> = {};
+  for (const m of text.matchAll(/<(\w+)[\s>]/g)) {
+    const tag = m[1].toLowerCase();
+    if (HTML_STRUCTURE_TAGS.has(tag)) openCounts[tag] = (openCounts[tag] || 0) + 1;
+  }
+  for (const m of text.matchAll(/<\/(\w+)>/g)) {
+    const tag = m[1].toLowerCase();
+    if (HTML_STRUCTURE_TAGS.has(tag)) closeCounts[tag] = (closeCounts[tag] || 0) + 1;
+  }
+  const unbalanced: Record<string, [number, number]> = {};
+  for (const tag of HTML_STRUCTURE_TAGS) {
+    const open = openCounts[tag] || 0;
+    const close = closeCounts[tag] || 0;
+    if (open !== close) unbalanced[tag] = [open, close];
+  }
+  return unbalanced;
+}
+
+/**
+ * Delta between two balance reports: keep only tags whose imbalance was
+ * introduced or worsened between `before` and `after`. A pre-existing
+ * imbalance elsewhere in the file must not re-warn on every edit.
+ */
+export function worsenedImbalances(
+  before: Record<string, [number, number]>,
+  after: Record<string, [number, number]>,
+): Record<string, [number, number]> {
+  const out: Record<string, [number, number]> = {};
+  for (const [tag, [open, close]] of Object.entries(after)) {
+    const [beforeOpen, beforeClose] = before[tag] ?? [0, 0];
+    if (Math.abs(open - close) > Math.abs(beforeOpen - beforeClose)) {
+      out[tag] = [open, close];
+    }
+  }
+  return out;
+}
+
+/** Skip the LCS matrix when inputs are huge (cells = aLines × bLines). */
+const DIFF_MAX_CELLS = 4_000_000;
+
+/** Hard cap on preview rows echoed back to the model. */
+const DIFF_PREVIEW_MAX_LINES = 60;
+
+/**
+ * Line-based LCS diff in the numbered `±<line>|<text>` format consumed by
+ * buildCompactDiffPreview: removed rows carry pre-edit line numbers,
+ * added/context rows carry post-edit line numbers. Returns null when the
+ * inputs are too large for an in-memory matrix.
+ */
+export function buildNumberedLineDiff(before: string, after: string): string | null {
+  const a = before.split("\n");
+  const b = after.split("\n");
+  if (a.length * b.length > DIFF_MAX_CELLS) return null;
+
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const dp = new Int32Array(rows * cols);
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      dp[i * cols + j] = a[i] === b[j]
+        ? dp[(i + 1) * cols + (j + 1)] + 1
+        : Math.max(dp[(i + 1) * cols + j], dp[i * cols + (j + 1)]);
+    }
+  }
+
+  const out: string[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      out.push(` ${j + 1}|${b[j]}`);
+      i++;
+      j++;
+    } else if (dp[(i + 1) * cols + j] >= dp[i * cols + (j + 1)]) {
+      out.push(`-${i + 1}|${a[i]}`);
+      i++;
+    } else {
+      out.push(`+${j + 1}|${b[j]}`);
+      j++;
+    }
+  }
+  while (i < a.length) {
+    out.push(`-${i + 1}|${a[i]}`);
+    i++;
+  }
+  while (j < b.length) {
+    out.push(`+${j + 1}|${b[j]}`);
+    j++;
+  }
+  return out.join("\n");
+}
+
+/**
+ * Compact "what actually changed" echo for an updated section. Removed rows
+ * make accidental neighbor deletion visible; the numbered after-rows double
+ * as fresh anchors for the next edit. Returns null when no diff is available.
+ */
+function buildEditPreview(before: string, after: string): string | null {
+  const numbered = buildNumberedLineDiff(before, after);
+  if (numbered === null) return null;
+  const { preview, addedLines, removedLines } = buildCompactDiffPreview(numbered);
+  if (addedLines + removedLines === 0) return null;
+  const rows = preview.split("\n");
+  const capped = rows.length > DIFF_PREVIEW_MAX_LINES
+    ? [...rows.slice(0, DIFF_PREVIEW_MAX_LINES), `… (${rows.length - DIFF_PREVIEW_MAX_LINES} more rows)`].join("\n")
+    : preview;
+  return `diff (+${addedLines}/-${removedLines}):\n${capped}`;
+}
+
+// ---------------------------------------------------------------------------
 // Extension entry
 // ---------------------------------------------------------------------------
 
@@ -266,6 +411,45 @@ export default function hashlineExtension(pi: ExtensionAPI) {
             section.op === "delete" ? "deleted" :
             "updated";
           parts.push(`${verb}: ${section.path}`);
+
+          // ── Phase 2.1 Warnings 透出 ─────────────────────────────
+          // parser/applier 已检测出的模型失误（keeper 复述修复、drift 等）
+          // 必须回给模型，否则静默损坏无从自纠。
+          for (const warning of section.warnings ?? []) {
+            parts.push(`[WARN] ${warning}`);
+          }
+
+          // ── Phase 2.2 块解析回显 ────────────────────────────────
+          // "block N → lines start.=end"，让模型核对 tree-sitter 选中的范围。
+          for (const br of section.blockResolutions ?? []) {
+            parts.push(`block ${br.anchorLine} → lines ${br.start}.=${br.end} (${br.op})`);
+          }
+
+          // ── Phase 2.3 Diff 回显 ─────────────────────────────────
+          // create/delete 不附 diff：新建文件全量是噪音，删除无内容可显示。
+          if (section.op === "update") {
+            const preview = buildEditPreview(section.before, section.after);
+            if (preview !== null) parts.push(preview);
+
+            // ── Phase 2.4 HTML 结构校验（delta） ──────────────────
+            // 对比编辑前后平衡，只报本次编辑引入/加剧的失衡。
+            if (section.path.endsWith(".html")) {
+              const worsened = worsenedImbalances(
+                checkTagBalance(section.before),
+                checkTagBalance(section.after),
+              );
+              const entries = Object.entries(worsened);
+              if (entries.length > 0) {
+                const detail = entries
+                  .map(([tag, [o, c]]) => `<${tag}> ${o} open / ${c} close`)
+                  .join(", ");
+                parts.push(
+                  `[WARN] HTML structure may be broken in ${section.path}: ${detail}. ` +
+                  `This edit introduced the imbalance — verify no closing tag was dropped or element duplicated.`,
+                );
+              }
+            }
+          }
 
           // Record new snapshot after successful edit. 只读一次：同一份
           // normalized 内容同时用于 snapshot 和 Phase 1.2 的 applied 记录。

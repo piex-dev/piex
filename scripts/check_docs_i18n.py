@@ -163,6 +163,58 @@ def is_stale(html: Path, md: Path) -> bool:
     return html.stat().st_mtime + 5 < md.stat().st_mtime
 
 
+def check_mainjs_symmetry(c: Counter) -> None:
+    """docs/assets/main.js en/zh dictionaries must define the same key set.
+
+    Guards against the recurring homepage i18n accidents: a key dropped from
+    one language (silent fallback to the inline English text) or a duplicate
+    key (dead entry, last one wins).
+    """
+    print("\n── main.js i18n key symmetry")
+    js = ROOT / "docs" / "assets" / "main.js"
+    if not js.is_file():
+        c.warn(f"{rel(js)} not found — skipping key symmetry check")
+        return
+
+    dicts: dict[str, list[str]] = {}
+    current: str | None = None
+    for line in js.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"^    (en|zh): \{$", line)
+        if m:
+            current = m.group(1)
+            dicts[current] = []
+            continue
+        if current and re.match(r"^    \},?$", line):
+            current = None
+            continue
+        if current:
+            km = re.match(r'^\s+"([A-Za-z0-9._]+)":', line)
+            if km:
+                dicts[current].append(km.group(1))
+
+    if set(dicts) != {"en", "zh"}:
+        c.err(f"could not locate both en/zh dictionaries in {rel(js)}")
+        return
+
+    bad = False
+    for lang in ("en", "zh"):
+        keys = dicts[lang]
+        dupes = sorted({k for k in keys if keys.count(k) > 1})
+        if dupes:
+            bad = True
+            c.err(f"main.js {lang} dictionary has duplicate keys: {', '.join(dupes)}")
+    only_en = sorted(set(dicts["en"]) - set(dicts["zh"]))
+    only_zh = sorted(set(dicts["zh"]) - set(dicts["en"]))
+    if only_en:
+        bad = True
+        c.err(f"main.js keys only in en (missing in zh): {', '.join(only_en)}")
+    if only_zh:
+        bad = True
+        c.err(f"main.js keys only in zh (missing in en): {', '.join(only_zh)}")
+    if not bad:
+        c.ok(f"main.js en/zh dictionaries symmetric ({len(dicts['en'])} keys each)")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -308,6 +360,8 @@ def main() -> int:
                     f"orphan English HTML without Chinese md: {rel(d)}/ "
                     f"(missing {rel(md)})"
                 )
+
+    check_mainjs_symmetry(c)
 
     print()
     if c.errors:

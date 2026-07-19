@@ -25,7 +25,9 @@ piex/
 │   ├── review/               # /review 命令 + review 工具
 │   ├── init/                 # /init prompt：引导生成/改进 AGENTS.md（纯 prompts 包）
 │   ├── xai-oauth/            # xAI Grok OAuth 订阅登录 provider（含实时模型发现）
-│   └── theme-dark-terminal/  # 静态暗色高对比终端主题（无 TS 代码）
+│   ├── theme-dark-terminal/  # 静态暗色高对比终端主题（无 TS 代码）
+│   ├── btw/                  # /btw 临时提问（不污染上下文）
+│   └── context/              # /context 上下文用量报告
 ├── eval/                     # Docker 化评测框架（pi bare vs pi+piex vs omp）
 ├── docs/                     # 中文 md 源稿 + 中英 HTML 静态站（piex.dev）
 ├── scripts/                  # publish-all.sh + check-docs-i18n.sh（文档双语校验）
@@ -196,6 +198,42 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 **Agent 义务：** 用户要求 commit 且 staged/变更包含 `docs/*.md`（除 `site.md`）或 `docs/notes/**/*.md` 时，必须先跑 `./scripts/check-docs-i18n.sh --staged`，失败则先补齐中英 HTML 再提交。
 
+### 同步检查清单
+
+新增/修改 package 或网站功能时，以下项目**必须全部同步**，缺一不可：
+
+| 变更类型 | 必须同步检查 |
+|----------|-------------|
+| 新增 package | `scripts/publish-all.sh` PACKAGES 数组、根 `README.md` 表格、首页 `index.html` 卡片、`docs/install.sh` PACKAGES 数组 |
+| 新增博客 | `docs/blogs/<slug>/` 重定向桩、首页 `index.html` blog-list、**全部** 22 个博客 HTML 侧栏 `.docs-nav`（中英各 11 个）、`docs/assets/main.js` en+zh 字典 |
+| 新增 URL 路径（如 `/zh/xxx/`） | 对应目录 `index.html`（防 Directory listing）、上级目录 `index.html`（如有） |
+| 修改首页布局 | `docs/assets/main.js` en/zh 字典**键必须对称**，不能只加 en 不加 zh |
+| 修改包列表 | 根 `README.md`、首页卡片、`docs/install.sh` PACKAGES、`scripts/publish-all.sh` PACKAGES |
+| 修改博客日期 | 首页 `index.html` 博客卡片日期、博客源稿 `date:` frontmatter、中英 HTML `blog-date` |
+| 修改博客侧栏顺序 | 首页博客卡片顺序也必须同步调整，保持侧栏与首页一致 |
+
+### 提交前自检
+
+每次涉及 HTML/JS/shell 的提交前，跑以下命令全部通过再 commit：
+
+```bash
+# shell 语法
+bash -n docs/install.sh
+bash -n scripts/publish-all.sh
+
+# HTML 结构完整性（关键闭合标签计数）
+grep -cF '</main>' docs/index.html      # 必须 =1
+grep -cF '</footer>' docs/index.html    # 必须 =1
+grep -cF '</html>' docs/index.html      # 必须 =1
+grep -c '<section id="blog"' docs/index.html    # 必须 =1
+grep -c '<section id="packages"' docs/index.html # 必须 =1
+grep -c '<section id="docs"' docs/index.html     # 必须 =1（带 class 属性，匹配不到说明结构损坏）
+grep -c '<section id="why"' docs/index.html      # 必须 =1
+
+# i18n 对齐 + main.js en/zh 字典键对称
+python3 scripts/check_docs_i18n.py
+```
+
 组件详表、页面壳检查清单、Agent 生成提示、部署与 DNS 细节均见 `docs/site.md`。
 
 ### 文案约定（破折号）
@@ -255,7 +293,7 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 ### 典型实现模式
 
 - **工具覆盖**：hashline 注册同名工具覆盖内置 `edit`（`pi.registerTool({ name: "edit", ... })`），并 hook `tool_result` 捕获 read 结果、注入 `[PATH#TAG]` 快照头。
-- **容错 guard**：hashline `patches.ts` 的 `EditGuard` 会在连续 3 次 byte-identical noop 时抛 `[E_NOOP_LOOP]`、成功编辑后重发相同 payload 时抛 `[E_DUPLICATE_EDIT]`，并对 DSL 方言做归一化（CRLF/代码块包裹/多余空行）。
+- **容错 guard**：hashline `patches.ts` 的 `EditGuard` 会在连续 3 次 byte-identical noop 时抛 `[E_NOOP_LOOP]`、成功编辑后重发相同 payload 时抛 `[E_DUPLICATE_EDIT]`，并对 DSL 方言做归一化（CRLF/代码块包裹/多余空行）；编辑后回显 patcher warnings + compact diff（.html 另做结构标签 delta 校验），让静默损坏当场可见。
 - **跨运行时 polyfill**：hashline 为 `@oh-my-pi/hashline` 用到的 Bun API 提供 Node polyfill，必须先于依赖导入（`import "./bun-polyfill.js"` 在前，`await import("@oh-my-pi/hashline")` 在后，规避 ES 模块提升）。
 - **配置即数据**：dap、lsp 把 adapter/server 默认配置放在 `defaults.json`，与代码分离。
 - **错误处理**：防御性 guard + 单例；异步操作用 `AbortSignal` 超时（dap JSON-RPC client）；自定义错误类型（`MismatchError`、`OAuthError`、`LoginCancelledError`）。
