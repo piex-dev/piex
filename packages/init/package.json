@@ -22,7 +22,9 @@
     "AGENTS.md"
   ],
   "pi": {
-    "prompts": ["./prompts"]
+    "prompts": [
+      "./prompts"
+    ]
   },
   "files": [
     "prompts",

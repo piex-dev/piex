@@ -47,11 +47,11 @@ modules, loaded_sources, custom_request
 
 从 omp（Bun）移植到 Node.js 的主要变更：
 
-| Bun API | Node.js 替代 |
-|---------|-------------|
-| `Bun.spawn()` | `child_process.spawn()` |
+| Bun API         | Node.js 替代                          |
+| --------------- | ------------------------------------- |
+| `Bun.spawn()`   | `child_process.spawn()`               |
 | `Bun.sleep(ms)` | `new Promise(r => setTimeout(r, ms))` |
-| `Bun.env` | `process.env` |
+| `Bun.env`       | `process.env`                         |
 
 ## 安装
 
@@ -73,11 +73,11 @@ go install github.com/go-delve/delve/cmd/dlv@latest  # Go
 
 ## 与 omp 实现差异
 
-| omp | dap |
-|-----|---------|
-| 双传输层（stdio + TCP） | 仅 stdio（不支持 TCP/WebSocket 远程调试） |
-| 数据断点、指令断点、异常断点 | 未实现（需手动补全） |
-| completions、exceptionInfo | 未实现（session 层已支持，工具未暴露） |
-| TUI inline rendering | 纯文本输出 |
+| omp                          | dap                                       |
+| ---------------------------- | ----------------------------------------- |
+| 双传输层（stdio + TCP）      | 仅 stdio（不支持 TCP/WebSocket 远程调试） |
+| 数据断点、指令断点、异常断点 | 未实现（需手动补全）                      |
+| completions、exceptionInfo   | 未实现（session 层已支持，工具未暴露）    |
+| TUI inline rendering         | 纯文本输出                                |
 
 功能特性来自 [oh-my-pi](https://github.com/can1357/oh-my-pi) 的 `packages/coding-agent/src/dap`。

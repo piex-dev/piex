@@ -23,7 +23,9 @@
     "execution-tracking"
   ],
   "pi": {
-    "extensions": ["./extensions/plan.ts"]
+    "extensions": [
+      "./extensions/plan.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/plan.ts"

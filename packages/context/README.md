@@ -57,12 +57,12 @@ Estimated total: ~3.2k tokens (11,234 chars)
 
 ## 与 pi /session 的差异
 
-| pi /session | context (piex) |
-|-------------|----------------|
-| 展示 session 列表 | 展示当前 session 内容分布 |
-| 无分布图表 | ASCII bar chart 分布可视化 |
-| 无 token 估算 | chars → tokens 估算 |
-| 无条目分类 | 按 role/type 详细分类 |
+| pi /session       | context (piex)             |
+| ----------------- | -------------------------- |
+| 展示 session 列表 | 展示当前 session 内容分布  |
+| 无分布图表        | ASCII bar chart 分布可视化 |
+| 无 token 估算     | chars → tokens 估算        |
+| 无条目分类        | 按 role/type 详细分类      |
 
 ## 来源
 

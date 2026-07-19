@@ -18,7 +18,10 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { OAuthCredentials, OAuthLoginCallbacks } from "@earendil-works/pi-ai";
+import type {
+  OAuthCredentials,
+  OAuthLoginCallbacks,
+} from "@earendil-works/pi-ai";
 import {
   resolveModels,
   triggerDiscovery,
@@ -34,7 +37,8 @@ const XAI_OAUTH_ISSUER = "https://auth.x.ai";
 const XAI_OAUTH_DISCOVERY_URL = `${XAI_OAUTH_ISSUER}/.well-known/openid-configuration`;
 const XAI_OAUTH_DEVICE_CODE_URL = `${XAI_OAUTH_ISSUER}/oauth2/device/code`;
 const XAI_OAUTH_CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828";
-const XAI_OAUTH_SCOPE = "openid profile email offline_access grok-cli:access api:access";
+const XAI_OAUTH_SCOPE =
+  "openid profile email offline_access grok-cli:access api:access";
 
 // 5-min client-side skew, mirrors Anthropic / omp conventions
 const ACCESS_TOKEN_CLIENT_SKEW_MS = 5 * 60 * 1000;
@@ -91,8 +95,12 @@ export function formatOAuthErrorDetail(body: string, status: number): string {
   try {
     const payload: unknown = JSON.parse(trimmed);
     if (isRecord(payload)) {
-      const description = typeof payload.error_description === "string" ? payload.error_description.trim() : "";
-      const code = typeof payload.error === "string" ? payload.error.trim() : "";
+      const description =
+        typeof payload.error_description === "string"
+          ? payload.error_description.trim()
+          : "";
+      const code =
+        typeof payload.error === "string" ? payload.error.trim() : "";
       const detail = description || code;
       if (detail) {
         return detail.length > ERROR_DETAIL_MAX_LEN
@@ -139,7 +147,9 @@ export function validateXAIEndpoint(url: string, field: string): string {
   return url;
 }
 
-async function xaiOAuthDiscovery(timeoutMs = DISCOVERY_TIMEOUT_MS): Promise<XAIOAuthDiscovery> {
+async function xaiOAuthDiscovery(
+  timeoutMs = DISCOVERY_TIMEOUT_MS,
+): Promise<XAIOAuthDiscovery> {
   let response: Response;
   try {
     response = await fetch(XAI_OAUTH_DISCOVERY_URL, {
@@ -153,7 +163,9 @@ async function xaiOAuthDiscovery(timeoutMs = DISCOVERY_TIMEOUT_MS): Promise<XAIO
     );
   }
   if (response.status !== 200) {
-    throw new OAuthError(`xAI OIDC discovery returned status ${response.status}.`);
+    throw new OAuthError(
+      `xAI OIDC discovery returned status ${response.status}.`,
+    );
   }
   let payload: unknown;
   try {
@@ -166,9 +178,14 @@ async function xaiOAuthDiscovery(timeoutMs = DISCOVERY_TIMEOUT_MS): Promise<XAIO
   if (!isRecord(payload)) {
     throw new OAuthError("xAI OIDC discovery response was not a JSON object.");
   }
-  const tokenEndpoint = typeof payload.token_endpoint === "string" ? payload.token_endpoint.trim() : "";
+  const tokenEndpoint =
+    typeof payload.token_endpoint === "string"
+      ? payload.token_endpoint.trim()
+      : "";
   if (!tokenEndpoint) {
-    throw new OAuthError("xAI OIDC discovery response was missing token_endpoint.");
+    throw new OAuthError(
+      "xAI OIDC discovery response was missing token_endpoint.",
+    );
   }
   validateXAIEndpoint(tokenEndpoint, "token_endpoint");
   return { token_endpoint: tokenEndpoint };
@@ -190,19 +207,35 @@ function parseXAIDeviceAuthorization(payload: unknown): XAIDeviceAuthorization {
   if (!isRecord(payload)) {
     throw new OAuthError("xAI device-code response was not a JSON object.");
   }
-  const deviceCode = typeof payload.device_code === "string" ? payload.device_code.trim() : "";
-  const userCode = typeof payload.user_code === "string" ? payload.user_code.trim() : "";
-  const verificationUri = typeof payload.verification_uri === "string" ? payload.verification_uri.trim() : "";
+  const deviceCode =
+    typeof payload.device_code === "string" ? payload.device_code.trim() : "";
+  const userCode =
+    typeof payload.user_code === "string" ? payload.user_code.trim() : "";
+  const verificationUri =
+    typeof payload.verification_uri === "string"
+      ? payload.verification_uri.trim()
+      : "";
   const verificationUriComplete =
-    typeof payload.verification_uri_complete === "string" ? payload.verification_uri_complete.trim() : "";
+    typeof payload.verification_uri_complete === "string"
+      ? payload.verification_uri_complete.trim()
+      : "";
   const expiresIn = payload.expires_in;
   const interval = payload.interval;
   if (
-    !deviceCode || !userCode || !verificationUri || !verificationUriComplete ||
-    typeof expiresIn !== "number" || !Number.isFinite(expiresIn) || expiresIn <= 0 ||
-    typeof interval !== "number" || !Number.isFinite(interval) || interval <= 0
+    !deviceCode ||
+    !userCode ||
+    !verificationUri ||
+    !verificationUriComplete ||
+    typeof expiresIn !== "number" ||
+    !Number.isFinite(expiresIn) ||
+    expiresIn <= 0 ||
+    typeof interval !== "number" ||
+    !Number.isFinite(interval) ||
+    interval <= 0
   ) {
-    throw new OAuthError("xAI device-code response missing or invalid required fields.");
+    throw new OAuthError(
+      "xAI device-code response missing or invalid required fields.",
+    );
   }
   validateXAIEndpoint(verificationUri, "verification_uri");
   validateXAIEndpoint(verificationUriComplete, "verification_uri_complete");
@@ -215,11 +248,15 @@ function parseXAIDeviceAuthorization(payload: unknown): XAIDeviceAuthorization {
   };
 }
 
-async function requestXAIDeviceAuthorization(signal?: AbortSignal): Promise<XAIDeviceAuthorization> {
+async function requestXAIDeviceAuthorization(
+  signal?: AbortSignal,
+): Promise<XAIDeviceAuthorization> {
   let response: Response;
   try {
     const timeoutSignal = AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS);
-    const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+    const combinedSignal = signal
+      ? AbortSignal.any([signal, timeoutSignal])
+      : timeoutSignal;
     response = await fetch(XAI_OAUTH_DEVICE_CODE_URL, {
       method: "POST",
       headers: {
@@ -245,7 +282,9 @@ async function requestXAIDeviceAuthorization(signal?: AbortSignal): Promise<XAID
     } catch {
       /* ignore */
     }
-    throw new OAuthError(`xAI device-code request failed: ${detail || response.status}`);
+    throw new OAuthError(
+      `xAI device-code request failed: ${detail || response.status}`,
+    );
   }
   let payload: unknown;
   try {
@@ -275,8 +314,10 @@ export function parseXAITokenResponse(
   if (!isRecord(payload)) {
     throw new OAuthError(`${label} was not a JSON object`);
   }
-  const accessToken = typeof payload.access_token === "string" ? payload.access_token : "";
-  const responseRefreshToken = typeof payload.refresh_token === "string" ? payload.refresh_token : "";
+  const accessToken =
+    typeof payload.access_token === "string" ? payload.access_token : "";
+  const responseRefreshToken =
+    typeof payload.refresh_token === "string" ? payload.refresh_token : "";
   const refreshToken = responseRefreshToken || refreshTokenFallback || "";
   const expiresIn = payload.expires_in;
   if (!accessToken) throw new OAuthError(`${label} missing access_token`);
@@ -300,7 +341,9 @@ async function pollXAIDeviceToken(
   let response: Response;
   try {
     const timeoutSignal = AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS);
-    const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+    const combinedSignal = signal
+      ? AbortSignal.any([signal, timeoutSignal])
+      : timeoutSignal;
     response = await fetch(tokenEndpoint, {
       method: "POST",
       headers: {
@@ -338,14 +381,19 @@ async function pollXAIDeviceToken(
   }
 
   if (!isRecord(payload)) {
-    throw new OAuthError(`xAI device-code token polling failed: ${response.status}`);
+    throw new OAuthError(
+      `xAI device-code token polling failed: ${response.status}`,
+    );
   }
 
   const errorCode = typeof payload.error === "string" ? payload.error : "";
   if (errorCode === "authorization_pending") return { status: "pending" };
   if (errorCode === "slow_down") return { status: "slow_down" };
 
-  const errorDescription = typeof payload.error_description === "string" ? payload.error_description : "";
+  const errorDescription =
+    typeof payload.error_description === "string"
+      ? payload.error_description
+      : "";
   const detail = errorDescription || errorCode || String(response.status);
   throw new OAuthError(`xAI device-code token polling failed: ${detail}`);
 }
@@ -376,7 +424,10 @@ export async function pollDeviceCodeFlow(
   signal?: AbortSignal,
 ): Promise<OAuthCredentials> {
   const deadline = Date.now() + expiresInSeconds * 1000;
-  let intervalMs = Math.max(MIN_DEVICE_FLOW_INTERVAL_MS, Math.floor(intervalSeconds * 1000));
+  let intervalMs = Math.max(
+    MIN_DEVICE_FLOW_INTERVAL_MS,
+    Math.floor(intervalSeconds * 1000),
+  );
   let slowDownCount = 0;
 
   while (Date.now() < deadline) {
@@ -387,7 +438,10 @@ export async function pollDeviceCodeFlow(
 
     if (result.status === "slow_down") {
       slowDownCount++;
-      intervalMs = Math.max(MIN_DEVICE_FLOW_INTERVAL_MS, intervalMs + SLOW_DOWN_INTERVAL_INCREMENT_MS);
+      intervalMs = Math.max(
+        MIN_DEVICE_FLOW_INTERVAL_MS,
+        intervalMs + SLOW_DOWN_INTERVAL_INCREMENT_MS,
+      );
     }
 
     const remaining = deadline - Date.now();
@@ -396,9 +450,10 @@ export async function pollDeviceCodeFlow(
     await abortableSleep(Math.min(intervalMs, remaining), signal);
   }
 
-  const msg = slowDownCount > 0
-    ? "Device flow timed out after slow_down responses. This may be caused by clock drift. Try syncing your clock."
-    : "Device flow timed out";
+  const msg =
+    slowDownCount > 0
+      ? "Device flow timed out after slow_down responses. This may be caused by clock drift. Try syncing your clock."
+      : "Device flow timed out";
   throw new OAuthError(msg);
 }
 
@@ -406,14 +461,19 @@ export async function pollDeviceCodeFlow(
 // Token Refresh
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function refreshXAIToken(credentials: OAuthCredentials): Promise<OAuthCredentials> {
+async function refreshXAIToken(
+  credentials: OAuthCredentials,
+): Promise<OAuthCredentials> {
   if (typeof credentials.refresh !== "string" || !credentials.refresh.trim()) {
     throw new OAuthError("missing refresh_token");
   }
 
   // Re-discover token endpoint (it's long-lived but discovery ensures we get the current one)
   const discovery = await xaiOAuthDiscovery();
-  const tokenEndpoint = validateXAIEndpoint(discovery.token_endpoint, "token_endpoint");
+  const tokenEndpoint = validateXAIEndpoint(
+    discovery.token_endpoint,
+    "token_endpoint",
+  );
 
   const response = await fetch(tokenEndpoint, {
     method: "POST",
@@ -436,7 +496,9 @@ async function refreshXAIToken(credentials: OAuthCredentials): Promise<OAuthCred
     } catch {
       /* ignore */
     }
-    throw new OAuthError(`xAI token refresh failed: ${detail || response.status}`);
+    throw new OAuthError(
+      `xAI token refresh failed: ${detail || response.status}`,
+    );
   }
 
   let payload: unknown;
@@ -448,14 +510,20 @@ async function refreshXAIToken(credentials: OAuthCredentials): Promise<OAuthCred
     );
   }
 
-  return parseXAITokenResponse(payload, "xAI token refresh response", credentials.refresh);
+  return parseXAITokenResponse(
+    payload,
+    "xAI token refresh response",
+    credentials.refresh,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Login entry point — called by pi's /login flow
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function loginXAIOAuth(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
+async function loginXAIOAuth(
+  callbacks: OAuthLoginCallbacks,
+): Promise<OAuthCredentials> {
   const signal = callbacks.signal;
 
   // 1. OIDC discovery
@@ -473,7 +541,8 @@ async function loginXAIOAuth(callbacks: OAuthLoginCallbacks): Promise<OAuthCrede
 
   // 4. Poll for token (signal enables /login cancel)
   return pollDeviceCodeFlow(
-    () => pollXAIDeviceToken(discovery.token_endpoint, device.deviceCode, signal),
+    () =>
+      pollXAIDeviceToken(discovery.token_endpoint, device.deviceCode, signal),
     device.intervalSeconds,
     device.expiresInSeconds,
     signal,
@@ -511,7 +580,9 @@ export default async function xaiOAuthExtension(pi: ExtensionAPI) {
 
       modifyModels(models: unknown, credentials: unknown) {
         const creds = credentials as Record<string, unknown>;
-        const effectiveBaseUrl = String(creds.baseUrl ?? XAI_PUBLIC_BASE_URL).replace(/\/+$/, "");
+        const effectiveBaseUrl = String(
+          creds.baseUrl ?? XAI_PUBLIC_BASE_URL,
+        ).replace(/\/+$/, "");
 
         // Kick off background live-catalog fetch. Cache populates asynchronously;
         // the next /reload picks up new models.

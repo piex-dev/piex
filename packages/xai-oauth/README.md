@@ -39,14 +39,14 @@ pi install npm:@piex-dev/xai-oauth
 
 ## 与内置 xAI 的区别
 
-| | pi 内置 `xai` | 本扩展 `xai-oauth` |
-|---|---|---|
-| 认证方式 | API Key (`XAI_API_KEY`) | OAuth 订阅登录 |
-| 模型 | 8 个公开 API 模型 | 11 个 fallback + 实时发现（登录后自动同步） |
-| 模型路由 | 固定 `api.x.ai` | 订阅模型走 `cli-chat-proxy.grok.com`，其余走公开 API |
-| 模型同步 | 需手动升级扩展 | 登录后后台 fetch `/v1/models`，`/reload` 后新模型自动出现 |
-| 计费 | API 按量付费 | 走 SuperGrok / X Premium+ 订阅配额 |
-| 安装 | 内置 | 需手动 `pi install` |
+|          | pi 内置 `xai`           | 本扩展 `xai-oauth`                                        |
+| -------- | ----------------------- | --------------------------------------------------------- |
+| 认证方式 | API Key (`XAI_API_KEY`) | OAuth 订阅登录                                            |
+| 模型     | 8 个公开 API 模型       | 11 个 fallback + 实时发现（登录后自动同步）               |
+| 模型路由 | 固定 `api.x.ai`         | 订阅模型走 `cli-chat-proxy.grok.com`，其余走公开 API      |
+| 模型同步 | 需手动升级扩展          | 登录后后台 fetch `/v1/models`，`/reload` 后新模型自动出现 |
+| 计费     | API 按量付费            | 走 SuperGrok / X Premium+ 订阅配额                        |
+| 安装     | 内置                    | 需手动 `pi install`                                       |
 
 两个 provider 并存，互不冲突。
 

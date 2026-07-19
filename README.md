@@ -56,31 +56,31 @@ pi -e ./packages/hashline/extensions/hashline.ts
 
 ## Package 总览
 
-| Package             | 工具                                                     | 来源                                                              | 行数   |
-| ------------------- | -------------------------------------------------------- | --------------------------------------------------------------- | ---- |
-| hashline            | 覆盖 `edit`（hashline 语法）                              | oh-my-pi                                                        | 318  |
-| dap                 | `debug`（14 个 adapter）                                  | oh-my-pi                                                        | 2154 |
+| Package             | 工具                                                      | 来源                                                            | 行数  |
+| ------------------- | --------------------------------------------------------- | --------------------------------------------------------------- | ----- |
+| hashline            | 覆盖 `edit`（hashline 语法）                              | oh-my-pi                                                        | 318   |
+| dap                 | `debug`（14 个 adapter）                                  | oh-my-pi                                                        | 2154  |
 | lsp                 | `lsp`（~50 server 默认；写后 ERROR；rename/code_actions） | oh-my-pi + OpenCode                                             | ~1850 |
-| plan                | `/plan`, `/todos`                                        | pi 示例                                                          | 348  |
-| review              | `/review`, `review` 工具                                  | oh-my-pi                                                        | 330  |
-| init                | `/init`（生成/改进 AGENTS.md）                             | OpenCode                                                        | —    |
-| xai-oauth           | `/login` xAI Grok OAuth 订阅登录（含实时模型发现）         | oh-my-pi / pi-grok                                              | 949  |
-| theme-dark-terminal | 暗终端高对比度主题                                         | [opencode-themes](https://github.com/debugtalk/opencode-themes) | —    |
-| btw                 | `/btw` 临时提问（不污染上下文）                             | oh-my-pi                                                        | 110  |
-| context             | `/context` 上下文用量报告                                  | oh-my-pi                                                        | 160  |
+| plan                | `/plan`, `/todos`                                         | pi 示例                                                         | 348   |
+| review              | `/review`, `review` 工具                                  | oh-my-pi                                                        | 330   |
+| init                | `/init`（生成/改进 AGENTS.md）                            | OpenCode                                                        | —     |
+| xai-oauth           | `/login` xAI Grok OAuth 订阅登录（含实时模型发现）        | oh-my-pi / pi-grok                                              | 949   |
+| theme-dark-terminal | 暗终端高对比度主题                                        | [opencode-themes](https://github.com/debugtalk/opencode-themes) | —     |
+| btw                 | `/btw` 临时提问（不污染上下文）                           | oh-my-pi                                                        | 110   |
+| context             | `/context` 上下文用量报告                                 | oh-my-pi                                                        | 160   |
 
 各 package 详细文档见对应目录下的 `README.md`。
 
 ## 文档
 
-| 文档                           | 说明                        |
-| ---------------------------- | ------------------------- |
-| [设计理念](docs/design.md)       | 背景动机、核心设计理念与架构模式         |
-| [架构概览](docs/architecture.md) | 项目结构、工具注册、API 映射          |
-| [实施路线](docs/roadmap.md)      | 已完成 &amp; 待规划             |
+| 文档                             | 说明                                        |
+| -------------------------------- | ------------------------------------------- |
+| [设计理念](docs/design.md)       | 背景动机、核心设计理念与架构模式            |
+| [架构概览](docs/architecture.md) | 项目结构、工具注册、API 映射                |
+| [实施路线](docs/roadmap.md)      | 已完成 &amp; 待规划                         |
 | [评测方案](docs/evaluation.md)   | 评测集选择、Docker 架构、指标设计、实施路径 |
-| [测试指南](docs/testing.md)      | package 快速测试与功能验证命令       |
-| [参考资料](docs/references.md)   | pi 文档、来源项目索引              |
+| [测试指南](docs/testing.md)      | package 快速测试与功能验证命令              |
+| [参考资料](docs/references.md)   | pi 文档、来源项目索引                       |
 
 ## 开发
 

@@ -57,10 +57,10 @@ hashline.ts                      # pi 扩展入口
 
 ## 运行时兼容
 
-| 环境 | 方式 |
-|------|------|
+| 环境    | 方式                                                                          |
+| ------- | ----------------------------------------------------------------------------- |
 | Node.js | bun-polyfill.ts 注入 `Bun.hash` 全局 + `PiexNodeFilesystem`（`node:fs` 直驱） |
-| Bun | 原生 Bun API（bun-polyfill 自动跳过） |
+| Bun     | 原生 Bun API（bun-polyfill 自动跳过）                                         |
 
 ## 安装
 
@@ -76,13 +76,13 @@ pi install npm:@piex-dev/hashline
 
 ## 与 omp 实现差异
 
-| omp | hashline |
-|-----|-------------|
-| `HashlineFilesystem` (Bun + LSP writethrough) | `PiexNodeFilesystem` (node:fs + realpath canonicalPath) |
-| `canonicalSnapshotKey` with `fs.realpathSync.native` | ✅ 同级实现 |
-| seen-lines tracking via `recordSeenLinesFromBody` | ✅ `parseSeenLines` + `store.record(path, text, seenLines)` |
-| noop-loop-guard (连续 noop 硬限制) | ✅ `patches.ts` EditGuard（`[E_NOOP_LOOP]` + `[E_DUPLICATE_EDIT]`） |
-| block editing (tree-sitter `SWAP.BLK/DEL.BLK`) | ❌ 未实现（需 blockResolver） |
+| omp                                                  | hashline                                                            |
+| ---------------------------------------------------- | ------------------------------------------------------------------- |
+| `HashlineFilesystem` (Bun + LSP writethrough)        | `PiexNodeFilesystem` (node:fs + realpath canonicalPath)             |
+| `canonicalSnapshotKey` with `fs.realpathSync.native` | ✅ 同级实现                                                         |
+| seen-lines tracking via `recordSeenLinesFromBody`    | ✅ `parseSeenLines` + `store.record(path, text, seenLines)`         |
+| noop-loop-guard (连续 noop 硬限制)                   | ✅ `patches.ts` EditGuard（`[E_NOOP_LOOP]` + `[E_DUPLICATE_EDIT]`） |
+| block editing (tree-sitter `SWAP.BLK/DEL.BLK`)       | ❌ 未实现（需 blockResolver）                                       |
 
 ## 来源
 

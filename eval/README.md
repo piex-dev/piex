@@ -69,5 +69,11 @@ eval/
 每行一个 JSON 对象：
 
 ```json
-{"id": "task-id", "prompt": "自然语言指令", "files": {"main.py": "初始代码"}, "test_cmd": "验证命令", "language": "python"}
+{
+  "id": "task-id",
+  "prompt": "自然语言指令",
+  "files": { "main.py": "初始代码" },
+  "test_cmd": "验证命令",
+  "language": "python"
+}
 ```

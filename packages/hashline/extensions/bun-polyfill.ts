@@ -13,11 +13,11 @@ import * as crypto from "node:crypto";
 // ---------------------------------------------------------------------------
 
 // xxHash32 constants
-const PRIME32_1 = 0x9E3779B1;
-const PRIME32_2 = 0x85EBCA77;
-const PRIME32_3 = 0xC2B2AE3D;
-const PRIME32_4 = 0x27D4EB2F;
-const PRIME32_5 = 0x165667B1;
+const PRIME32_1 = 0x9e3779b1;
+const PRIME32_2 = 0x85ebca77;
+const PRIME32_3 = 0xc2b2ae3d;
+const PRIME32_4 = 0x27d4eb2f;
+const PRIME32_5 = 0x165667b1;
 
 function xxHash32(data: string, seed: number = 0): number {
   const buf = Buffer.from(data, "utf-8");

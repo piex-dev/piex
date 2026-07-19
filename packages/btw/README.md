@@ -51,11 +51,11 @@ pi install npm:@piex-dev/btw
 
 ## 与 omp btw 的差异
 
-| omp btw | btw (piex) |
-|---------|------------|
-| 内建引擎级旁路机制 | context 钩子过滤实现 |
+| omp btw                 | btw (piex)           |
+| ----------------------- | -------------------- |
+| 内建引擎级旁路机制      | context 钩子过滤实现 |
 | 完全不在 session 中写入 | 写入带标记，后续过滤 |
-| Bun 运行时 | Node.js (pi) |
+| Bun 运行时              | Node.js (pi)         |
 
 ## 来源
 

@@ -22,14 +22,18 @@ beforeAll(() => {
 
 describe("FALLBACK_MODELS", () => {
   test("includes proxy-only models with baseUrl", () => {
-    const composer = FALLBACK_MODELS.find((m) => m.id === "grok-composer-2.5-fast");
+    const composer = FALLBACK_MODELS.find(
+      (m) => m.id === "grok-composer-2.5-fast",
+    );
     expect(composer).toBeDefined();
     expect(composer!.baseUrl).toBe(CLI_PROXY_BASE_URL);
     expect(composer!.headers).toEqual(CLI_PROXY_HEADERS);
   });
 
   test("includes multi-agent model", () => {
-    const ma = FALLBACK_MODELS.find((m) => m.id === "grok-4.20-multi-agent-0309");
+    const ma = FALLBACK_MODELS.find(
+      (m) => m.id === "grok-4.20-multi-agent-0309",
+    );
     expect(ma).toBeDefined();
     expect(ma!.reasoning).toBe(true);
     expect(ma!.compat.supportsReasoningEffort).toBe(true);
@@ -57,18 +61,26 @@ describe("FALLBACK_MODELS", () => {
 
 describe("filterModelsByEnv", () => {
   test("returns all models when envIds is empty", () => {
-    expect(filterModelsByEnv(FALLBACK_MODELS, []).length).toBe(FALLBACK_MODELS.length);
+    expect(filterModelsByEnv(FALLBACK_MODELS, []).length).toBe(
+      FALLBACK_MODELS.length,
+    );
   });
 
   test("filters to specified ids", () => {
-    const result = filterModelsByEnv(FALLBACK_MODELS, ["grok-4.5", "grok-build"]);
+    const result = filterModelsByEnv(FALLBACK_MODELS, [
+      "grok-4.5",
+      "grok-build",
+    ]);
     expect(result.length).toBe(2);
     expect(result[0]!.id).toBe("grok-4.5");
     expect(result[1]!.id).toBe("grok-build");
   });
 
   test("reorders by envIds", () => {
-    const result = filterModelsByEnv(FALLBACK_MODELS, ["grok-build", "grok-4.5"]);
+    const result = filterModelsByEnv(FALLBACK_MODELS, [
+      "grok-build",
+      "grok-4.5",
+    ]);
     expect(result[0]!.id).toBe("grok-build");
     expect(result[1]!.id).toBe("grok-4.5");
   });
@@ -92,7 +104,11 @@ describe("mergeLiveModels", () => {
       cost: { input: 2, output: 6, cacheRead: 0.5, cacheWrite: 0 },
       contextWindow: 500_000,
       maxTokens: 500_000,
-      compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: true },
+      compat: {
+        supportsStore: false,
+        supportsDeveloperRole: false,
+        supportsReasoningEffort: true,
+      },
     },
     {
       id: "grok-build",
@@ -102,7 +118,11 @@ describe("mergeLiveModels", () => {
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: 256_000,
       maxTokens: 256_000,
-      compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false },
+      compat: {
+        supportsStore: false,
+        supportsDeveloperRole: false,
+        supportsReasoningEffort: false,
+      },
     },
   ];
 
@@ -117,7 +137,11 @@ describe("mergeLiveModels", () => {
   test("updates context from live catalog", () => {
     const body = {
       data: [
-        { id: "grok-4.5", context_length: 1_000_000, max_output_tokens: 64_000 },
+        {
+          id: "grok-4.5",
+          context_length: 1_000_000,
+          max_output_tokens: 64_000,
+        },
       ],
     };
     const merged = mergeLiveModels(base, body);
@@ -131,7 +155,11 @@ describe("mergeLiveModels", () => {
   test("adds new models from live catalog", () => {
     const body = {
       data: [
-        { id: "grok-new-1", context_length: 100_000, max_output_tokens: 16_000 },
+        {
+          id: "grok-new-1",
+          context_length: 100_000,
+          max_output_tokens: 16_000,
+        },
       ],
     };
     const merged = mergeLiveModels(base, body);
@@ -158,9 +186,7 @@ describe("mergeLiveModels", () => {
 
   test("routes proxy ids to CLI proxy", () => {
     const body = {
-      data: [
-        { id: "grok-4.5", context_length: 500_000 },
-      ],
+      data: [{ id: "grok-4.5", context_length: 500_000 }],
     };
     const proxyIds = new Set(["grok-4.5"]);
     const merged = mergeLiveModels(base, body, proxyIds);
@@ -174,9 +200,7 @@ describe("mergeLiveModels", () => {
 
   test("preserves hardcoded models not in live response", () => {
     const body = {
-      data: [
-        { id: "grok-4.5", context_length: 500_000 },
-      ],
+      data: [{ id: "grok-4.5", context_length: 500_000 }],
     };
     const merged = mergeLiveModels(base, body);
     expect(merged.find((m) => m.id === "grok-build")).toBeDefined();
@@ -215,7 +239,12 @@ describe("rebuildModelsForOAuth", () => {
   test("preserves non-provider models", () => {
     const all = [
       ...providerModels,
-      { id: "other-model", name: "Other", provider: "other", api: "openai-completions" },
+      {
+        id: "other-model",
+        name: "Other",
+        provider: "other",
+        api: "openai-completions",
+      },
     ];
     const result = rebuildModelsForOAuth(
       all as Array<Record<string, unknown>>,
@@ -255,7 +284,8 @@ describe("rebuildModelsForOAuth", () => {
       XAI_PUBLIC_BASE_URL,
       [],
     );
-    const composer = result.find((m) => m.id === "grok-composer-2.5-fast") as Record<string, unknown> | undefined;
+    const composer = result.find((m) => m.id === "grok-composer-2.5-fast") as
+      Record<string, unknown> | undefined;
     expect(composer).toBeDefined();
     expect(composer!.baseUrl).toBe(CLI_PROXY_BASE_URL);
   });

@@ -44,12 +44,12 @@ pi -p "/init" --no-session
 
 ## 与 opencode / omp 的差异
 
-| 能力 | opencode | oh-my-pi | @piex-dev/init |
-|------|----------|----------|----------------|
-| `/init` 生成 AGENTS.md | 内置 slash + prompt | 无 | pi prompt 包 |
-| 多格式 context 发现 | AGENTS / CLAUDE 等 | 多 provider 加载 | 依赖 pi 原生加载 |
-| 实现形态 | 内核 command 模板 | — | `prompts/init.md` only |
-| 运行时依赖 | 内置 | — | 无 |
+| 能力                   | opencode            | oh-my-pi         | @piex-dev/init         |
+| ---------------------- | ------------------- | ---------------- | ---------------------- |
+| `/init` 生成 AGENTS.md | 内置 slash + prompt | 无               | pi prompt 包           |
+| 多格式 context 发现    | AGENTS / CLAUDE 等  | 多 provider 加载 | 依赖 pi 原生加载       |
+| 实现形态               | 内核 command 模板   | —                | `prompts/init.md` only |
+| 运行时依赖             | 内置                | —                | 无                     |
 
 ## 来源
 

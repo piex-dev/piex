@@ -22,7 +22,9 @@
     "debug-adapter-protocol"
   ],
   "pi": {
-    "extensions": ["./extensions/dap.ts"]
+    "extensions": [
+      "./extensions/dap.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/dap.ts"

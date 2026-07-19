@@ -27,10 +27,11 @@ piex/
 │   ├── xai-oauth/            # xAI Grok OAuth 订阅登录 provider（含实时模型发现）
 │   ├── theme-dark-terminal/  # 静态暗色高对比终端主题（无 TS 代码）
 │   ├── btw/                  # /btw 临时提问（不污染上下文）
-│   └── context/              # /context 上下文用量报告
+│   ├── context/              # /context 上下文用量报告
+│   └── ai-code-report/       # AI 代码编辑遥测上报（TEA SDK）
 ├── eval/                     # Docker 化评测框架（pi bare vs pi+piex vs omp）
 ├── docs/                     # 中文 md 源稿 + 中英 HTML 静态站（piex.dev）
-├── scripts/                  # publish-all.sh + check-docs-i18n.sh（文档双语校验）
+├── scripts/                  # publish-all.sh + check-docs-i18n.sh + check_docs_i18n.py
 ├── scripts/publish-all.sh    # 顺序发布全部 @piex-dev/* 包
 └── .github/workflows/        # 唯一的 CI：pages.yml（部署 docs/ 到 GitHub Pages）
 ```
@@ -62,7 +63,8 @@ piex/
 
 值得注意的偏差：
 
-- `packages/hashline/`：**唯一有运行时依赖的 package**（`@oh-my-pi/hashline`），含 `node_modules/` + `package-lock.json`，本地使用前需先 `npm install`。辅助模块：`bun-polyfill.ts`、`filesystem.ts`、`patches.ts`（EditGuard 容错）。
+- `packages/hashline/`：运行时依赖 `@oh-my-pi/hashline`，含 `node_modules/` + `package-lock.json`，本地使用前需先 `npm install`。辅助模块：`bun-polyfill.ts`、`filesystem.ts`、`patches.ts`（EditGuard 容错）。
+- `packages/ai-code-report/`：运行时依赖 `@dp/tea-sdk-node` + `@logsdk/node-plugin-http` + `diff`，含 `node_modules/` + `package-lock.json`，需从内部 registry 安装依赖（`npm install` 前配置 scope registry 映射）。单文件扩展 `extensions/ai-code-report.ts`。
 - `packages/dap/extensions/`：多模块，含 `client.ts`（JSON-RPC 客户端）、`session.ts`、`config.ts`、`non-interactive-env.ts`、`defaults.json`（adapter 默认配置）等。
 - `packages/lsp/`：`extensions/lsp.ts` + `defaults.json`；根目录 `lsp.test.ts` + `fixtures/mock-lsp-server.mjs`（`bun test`，devDep `typebox`）。
 - `packages/init/`：无 `extensions/`，纯 prompt 包：`prompts/init.md`（`"pi": { "prompts": ["./prompts"] }`），安装后提供 `/init`。
@@ -148,7 +150,7 @@ npm login                  # 需 @piex-dev org 发布权限
 ./scripts/publish-all.sh
 ```
 
-按 `hashline → dap → lsp → plan → review → init → theme-dark-terminal → xai-oauth` 顺序发布；中途失败即停止，已发布的包保持已发布（重发前需先 bump 版本号）。
+按 `hashline → dap → lsp → plan → review → init → theme-dark-terminal → xai-oauth → btw → context` 顺序发布（`ai-code-report` 暂未加入发布脚本，需同步 `scripts/publish-all.sh` 和 `docs/install.sh` 的 PACKAGES 数组）；中途失败即停止，已发布的包保持已发布（重发前需先 bump 版本号）。
 
 ### 评测框架
 
@@ -169,11 +171,11 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 ### 源稿与产出（中文 md 唯一源）
 
-| 角色 | 源稿（仅中文） | HTML（中英各一份） | URL |
-| --- | --- | --- | --- |
-| 文档 | `docs/<slug>.md` | `docs/{zh,en}/docs/<slug>/index.html` | `/{lang}/docs/<slug>/` |
+| 角色 | 源稿（仅中文）                                               | HTML（中英各一份）                     | URL                     |
+| ---- | ------------------------------------------------------------ | -------------------------------------- | ----------------------- |
+| 文档 | `docs/<slug>.md`                                             | `docs/{zh,en}/docs/<slug>/index.html`  | `/{lang}/docs/<slug>/`  |
 | 博客 | `docs/notes/<slug>.md`（frontmatter: `title`/`date`/`tags`） | `docs/{zh,en}/blogs/<slug>/index.html` | `/{lang}/blogs/<slug>/` |
-| 主页 | — | `docs/index.html`（JS 字典 i18n） | `/` |
+| 主页 | —                                                            | `docs/index.html`（JS 字典 i18n）      | `/`                     |
 
 **硬性规则：**
 
@@ -202,15 +204,15 @@ npm run check             # tsgo --noEmit 类型检查（需 tsgo 可用）
 
 新增/修改 package 或网站功能时，以下项目**必须全部同步**，缺一不可：
 
-| 变更类型 | 必须同步检查 |
-|----------|-------------|
-| 新增 package | `scripts/publish-all.sh` PACKAGES 数组、根 `README.md` 表格、首页 `index.html` 卡片、`docs/install.sh` PACKAGES 数组 |
-| 新增博客 | `docs/blogs/<slug>/` 重定向桩、首页 `index.html` blog-list、**全部** 22 个博客 HTML 侧栏 `.docs-nav`（中英各 11 个）、`docs/assets/main.js` en+zh 字典 |
-| 新增 URL 路径（如 `/zh/xxx/`） | 对应目录 `index.html`（防 Directory listing）、上级目录 `index.html`（如有） |
-| 修改首页布局 | `docs/assets/main.js` en/zh 字典**键必须对称**，不能只加 en 不加 zh |
-| 修改包列表 | 根 `README.md`、首页卡片、`docs/install.sh` PACKAGES、`scripts/publish-all.sh` PACKAGES |
-| 修改博客日期 | 首页 `index.html` 博客卡片日期、博客源稿 `date:` frontmatter、中英 HTML `blog-date` |
-| 修改博客侧栏顺序 | 首页博客卡片顺序也必须同步调整，保持侧栏与首页一致 |
+| 变更类型                       | 必须同步检查                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 新增 package                   | `scripts/publish-all.sh` PACKAGES 数组、根 `README.md` 表格、首页 `index.html` 卡片、`docs/install.sh` PACKAGES 数组                                   |
+| 新增博客                       | `docs/blogs/<slug>/` 重定向桩、首页 `index.html` blog-list、**全部** 22 个博客 HTML 侧栏 `.docs-nav`（中英各 11 个）、`docs/assets/main.js` en+zh 字典 |
+| 新增 URL 路径（如 `/zh/xxx/`） | 对应目录 `index.html`（防 Directory listing）、上级目录 `index.html`（如有）                                                                           |
+| 修改首页布局                   | `docs/assets/main.js` en/zh 字典**键必须对称**，不能只加 en 不加 zh                                                                                    |
+| 修改包列表                     | 根 `README.md`、首页卡片、`docs/install.sh` PACKAGES、`scripts/publish-all.sh` PACKAGES                                                                |
+| 修改博客日期                   | 首页 `index.html` 博客卡片日期、博客源稿 `date:` frontmatter、中英 HTML `blog-date`                                                                    |
+| 修改博客侧栏顺序               | 首页博客卡片顺序也必须同步调整，保持侧栏与首页一致                                                                                                     |
 
 ### 提交前自检
 
@@ -245,50 +247,43 @@ python3 scripts/check_docs_i18n.py
 
 每个已实现的 `packages/<name>/` **必须**有对应中文博客源稿，面向读者讲清「为什么 / 怎么做 / 做成了什么 / 下一步」，不是 API 说明书（说明书在 package `README.md`）。
 
-| 项 | 约定 |
-| --- | --- |
-| 路径 | `docs/notes/<name>.md`，**slug = package 目录名**（如 `packages/dap` → `docs/notes/dap.md`） |
-| 线上 URL | `https://piex.dev/zh/blogs/<name>/`（英：`/en/blogs/<name>/`） |
-| frontmatter | 必填 `title` / `date` / `tags` |
-| README 回链 | 每个 package 的 `README.md` 须有「深度解读」小节，链到上述 URL（可附源稿相对路径） |
+| 项          | 约定                                                                                         |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| 路径        | `docs/notes/<name>.md`，**slug = package 目录名**（如 `packages/dap` → `docs/notes/dap.md`） |
+| 线上 URL    | `https://piex.dev/zh/blogs/<name>/`（英：`/en/blogs/<name>/`）                               |
+| frontmatter | 必填 `title` / `date` / `tags`                                                               |
+| README 回链 | 每个 package 的 `README.md` 须有「深度解读」小节，链到上述 URL（可附源稿相对路径）           |
 
 **正文结构（主节固定顺序；「设计参考」可选）：**
 
-1. **问题背景**：要解决什么痛点、对用户的影响  
-2. **技术原理**：核心概念与机制，通俗深入浅出  
-3. **实现方案**：本仓库当前实现、关键模块与取舍  
-4. **设计参考**（可选）：该 package 借鉴过的相关项目；对比介绍原项目的设计实现机制，以及 piex 的取舍（采纳 / 不采纳 / 改写原因）。无外部借鉴时可省略整节  
-5. **优化计划**：不足与下一步合并写（现状 → 影响 → 怎么补），避免「问题列表 + 路线图」两套重复  
+1. **问题背景**：要解决什么痛点、对用户的影响
+2. **技术原理**：核心概念与机制，通俗深入浅出
+3. **实现方案**：本仓库当前实现、关键模块与取舍
+4. **设计参考**（可选）：该 package 借鉴过的相关项目；对比介绍原项目的设计实现机制，以及 piex 的取舍（采纳 / 不采纳 / 改写原因）。无外部借鉴时可省略整节
+5. **优化计划**：不足与下一步合并写（现状 → 影响 → 怎么补），避免「问题列表 + 路线图」两套重复
 
 **版式约定：**
 
-- 文首 frontmatter 之后、第一个 `##` 之前：一段 **blockquote 导语**（一句话价值主张，结论先行）  
-- 可选 `## 附录：…` 放对比表、调研细节；正文主节保持干净  
-- 面向读者，少堆内部黑话；需要时用表格/小例子，不写成长 PRD  
-- 新增或实质改动 package 时：同步写/改博客 md；按文档站流程补中英 HTML 与导航（用户明确「只写 md」时可暂缓 HTML，但 README 链接与源稿不得缺）  
+- 文首 frontmatter 之后、第一个 `##` 之前：一段 **blockquote 导语**（一句话价值主张，结论先行）
+- 可选 `## 附录：…` 放对比表、调研细节；正文主节保持干净
+- 面向读者，少堆内部黑话；需要时用表格/小例子，不写成长 PRD
+- 新增或实质改动 package 时：同步写/改博客 md；按文档站流程补中英 HTML 与导航（用户明确「只写 md」时可暂缓 HTML，但 README 链接与源稿不得缺）
 - 机制类长文（如 `pi-extension-mechanism`）不占用 package slug，与 package 博客分开
 
 ## 代码约定
 
 ### 模块与导入风格
 
-
 - Node 内置模块一律 `node:` 前缀：`import * as path from "node:path";`。
 - 类型用 type-only import：`import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";`。
 - 相对导入的扩展名**各包不统一**：hashline 用 `.js`、dap 不带扩展名、xai-oauth 用 `.ts`。jiti 都能加载；修改时**跟随所在文件的现有写法**，不要统一重改。
 - 模块级单例常见（如 dap 的 `DapSessionManager`、hashline 的 `InMemorySnapshotStore`/`EditGuard`）。
 
-### 代码风格（packages 与 eval 不同）
+### 代码风格
 
-- `packages/`：双引号、带分号。
-- `eval/`：单引号、不带分号、相对导入一律 `.ts` 扩展名（由 tsconfig 的 `rewriteRelativeImportExtensions` 支持）。
-
-### 命名约定
-
-- 文件：kebab-case（`xai-oauth.ts`、`non-interactive-env.ts`）。
-- 类型/接口：PascalCase（`ExtensionAPI`、`TodoItem`）。
-- 函数：camelCase；扩展入口函数常命名为 `<name>Extension`。
-- 常量：静态列表/正则用 UPPER_SNAKE_CASE（如 plan 的 `PLAN_MODE_TOOLS`）。
+- 全仓库统一：双引号、带分号（Prettier `singleQuote: false, semi: true`）。
+- `eval/` 相对导入一律 `.ts` 扩展名（由 tsconfig 的 `rewriteRelativeImportExtensions` 支持），packages 相对导入扩展名各包不统一（见上文）。
+- 全仓库统一 Prettier（`singleQuote: false, semi: true`），无 `.prettierignore`。格式化：`npx prettier --write .`
 
 ### 典型实现模式
 
@@ -311,5 +306,4 @@ python3 scripts/check_docs_i18n.py
 - **破坏性命令防护**：plan 模式下 `edit`/`write` 被禁用（只保留 `read`/`bash`/`grep`/`find`/`ls`），且 `plan.ts` 内置 bash 危险命令拦截。
 - **eval 环境变量透传**：`eval/src/orchestrator.ts` 的 `collectApiEnvVars()` 会把宿主机匹配 `API_KEY`/`AUTH_TOKEN`/`ANTHROPIC_*`/`OPENAI_*` 等模式的环境变量传入 Docker 容器。跑不可信任务时注意凭据暴露面。
 - **发布不可逆**：`scripts/publish-all.sh` 直接 `npm publish` 到公共 registry（`publishConfig.access: public`），执行前确认版本号已 bump。
-- 仓库不存放任何密钥；根 `.gitignore` 仅忽略 `node_modules/`、`*.log`、`.DS_Store`，`eval/.gitignore` 额外忽略 `results/`、`dist/`。
-
+- 仓库不存放任何密钥；根 `.gitignore` 忽略 `node_modules/`、`*.log`、`.DS_Store`、`packages/**/package-lock.json`，`eval/.gitignore` 额外忽略 `results/`、`dist/`。

@@ -22,7 +22,9 @@
     "code-edit"
   ],
   "pi": {
-    "extensions": ["./extensions/ai-code-report.ts"]
+    "extensions": [
+      "./extensions/ai-code-report.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/ai-code-report.ts"

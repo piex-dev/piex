@@ -20,11 +20,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ── Types ──────────────────────────────────────────────────────
 
-interface Position { line: number; character: number; }
-interface Range { start: Position; end: Position; }
-interface Location { uri: string; range: Range; }
-interface LocationLink { targetUri: string; targetRange: Range; targetSelectionRange?: Range; }
-interface DiagnosticRelated { location: Location; message: string; }
+interface Position {
+  line: number;
+  character: number;
+}
+interface Range {
+  start: Position;
+  end: Position;
+}
+interface Location {
+  uri: string;
+  range: Range;
+}
+interface LocationLink {
+  targetUri: string;
+  targetRange: Range;
+  targetSelectionRange?: Range;
+}
+interface DiagnosticRelated {
+  location: Location;
+  message: string;
+}
 interface Diagnostic {
   range: Range;
   severity?: 1 | 2 | 3 | 4;
@@ -33,12 +49,27 @@ interface Diagnostic {
   message: string;
   relatedInformation?: DiagnosticRelated[];
 }
-interface TextEdit { range: Range; newText: string; }
-interface SymbolInfo { name: string; kind: number; location: Location; containerName?: string; }
-interface DocumentSymbol {
-  name: string; kind: number; range: Range; selectionRange: Range; children?: DocumentSymbol[];
+interface TextEdit {
+  range: Range;
+  newText: string;
 }
-interface Hover { contents: unknown; range?: Range; }
+interface SymbolInfo {
+  name: string;
+  kind: number;
+  location: Location;
+  containerName?: string;
+}
+interface DocumentSymbol {
+  name: string;
+  kind: number;
+  range: Range;
+  selectionRange: Range;
+  children?: DocumentSymbol[];
+}
+interface Hover {
+  contents: unknown;
+  range?: Range;
+}
 interface CodeAction {
   title: string;
   kind?: string;
@@ -51,7 +82,10 @@ interface CodeAction {
 interface WorkspaceEdit {
   changes?: Record<string, TextEdit[]>;
   documentChanges?: Array<
-    | { textDocument: { uri: string; version?: number | null }; edits: TextEdit[] }
+    | {
+        textDocument: { uri: string; version?: number | null };
+        edits: TextEdit[];
+      }
     | { kind: "create"; uri: string; options?: { overwrite?: boolean } }
     | { kind: "rename"; oldUri: string; newUri: string }
     | { kind: "delete"; uri: string }
@@ -74,13 +108,18 @@ interface ServerConfig {
 function loadDefaults(): Record<string, ServerConfig> {
   const defaultsPath = path.join(__dirname, "defaults.json");
   try {
-    const raw = JSON.parse(fs.readFileSync(defaultsPath, "utf-8")) as Record<string, unknown>;
+    const raw = JSON.parse(fs.readFileSync(defaultsPath, "utf-8")) as Record<
+      string,
+      unknown
+    >;
     const servers: Record<string, ServerConfig> = {};
     for (const [name, cfg] of Object.entries(raw)) {
       const c = cfg as Record<string, unknown>;
       if (typeof c.command !== "string" || !c.command) continue;
       const init =
-        (c.initOptions && typeof c.initOptions === "object" ? c.initOptions : undefined) ??
+        (c.initOptions && typeof c.initOptions === "object"
+          ? c.initOptions
+          : undefined) ??
         (c.initializationOptions && typeof c.initializationOptions === "object"
           ? c.initializationOptions
           : undefined);
@@ -88,13 +127,17 @@ function loadDefaults(): Record<string, ServerConfig> {
         command: c.command,
         args: Array.isArray(c.args) ? (c.args as string[]) : [],
         languages: Array.isArray(c.languages) ? (c.languages as string[]) : [],
-        fileTypes: (Array.isArray(c.fileTypes) ? c.fileTypes as string[] : []).map((f) =>
-          String(f).toLowerCase(),
-        ),
-        rootMarkers: Array.isArray(c.rootMarkers) ? (c.rootMarkers as string[]) : [],
-        settings: c.settings && typeof c.settings === "object"
-          ? (c.settings as Record<string, unknown>)
-          : undefined,
+        fileTypes: (Array.isArray(c.fileTypes)
+          ? (c.fileTypes as string[])
+          : []
+        ).map((f) => String(f).toLowerCase()),
+        rootMarkers: Array.isArray(c.rootMarkers)
+          ? (c.rootMarkers as string[])
+          : [],
+        settings:
+          c.settings && typeof c.settings === "object"
+            ? (c.settings as Record<string, unknown>)
+            : undefined,
         initializationOptions: init as Record<string, unknown> | undefined,
         isLinter: c.isLinter === true,
       };
@@ -203,7 +246,10 @@ class LspClient {
             resolveSupport: { properties: ["edit", "command"] },
           },
           synchronization: { didSave: true, didChange: true, willSave: false },
-          publishDiagnostics: { relatedInformation: true, versionSupport: true },
+          publishDiagnostics: {
+            relatedInformation: true,
+            versionSupport: true,
+          },
         },
         workspace: {
           symbol: { dynamicRegistration: true },
@@ -216,12 +262,17 @@ class LspClient {
           },
         },
       },
-      workspaceFolders: [{ uri: rootUri, name: path.basename(uriToFile(rootUri)) }],
+      workspaceFolders: [
+        { uri: rootUri, name: path.basename(uriToFile(rootUri)) },
+      ],
     });
-    this.#capabilities = (result?.capabilities as Record<string, unknown>) ?? {};
+    this.#capabilities =
+      (result?.capabilities as Record<string, unknown>) ?? {};
     this.notify("initialized", {});
     if (Object.keys(this.#settings).length > 0) {
-      this.notify("workspace/didChangeConfiguration", { settings: this.#settings });
+      this.notify("workspace/didChangeConfiguration", {
+        settings: this.#settings,
+      });
     }
     return this.#capabilities;
   }
@@ -229,13 +280,17 @@ class LspClient {
   async shutdown(): Promise<void> {
     try {
       await this.request("shutdown", undefined, 5_000);
-    } catch { /* ok */ }
+    } catch {
+      /* ok */
+    }
     this.notify("exit", {});
     this.alive = false;
     this.#rejectAll(new Error("LSP server shutdown"));
     try {
       this.#proc.kill();
-    } catch { /* ok */ }
+    } catch {
+      /* ok */
+    }
   }
 
   async request<T = unknown>(
@@ -265,7 +320,9 @@ class LspClient {
       const timer = setTimeout(() => {
         this.#pending.delete(id);
         signal?.removeEventListener("abort", onAbort);
-        reject(new Error(`LSP request ${method} timed out after ${timeoutMs}ms`));
+        reject(
+          new Error(`LSP request ${method} timed out after ${timeoutMs}ms`),
+        );
       }, timeoutMs);
       this.#pending.set(id, {
         method,
@@ -291,7 +348,9 @@ class LspClient {
     const header = `Content-Length: ${Buffer.byteLength(body, "utf-8")}\r\n\r\n`;
     try {
       this.#proc.stdin.write(header + body);
-    } catch { /* dead */ }
+    } catch {
+      /* dead */
+    }
   }
 
   #startReader(): void {
@@ -315,7 +374,9 @@ class LspClient {
         buffer = buffer.subarray(msgEnd);
         try {
           this.#handleMessage(JSON.parse(msgText));
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     });
   }
@@ -328,7 +389,12 @@ class LspClient {
     error?: { code?: number; message?: string };
   }): void {
     // Server → client request
-    if (msg.method && msg.id !== undefined && msg.result === undefined && !msg.error) {
+    if (
+      msg.method &&
+      msg.id !== undefined &&
+      msg.result === undefined &&
+      !msg.error
+    ) {
       this.#handleServerRequest(msg.id, msg.method, msg.params);
       return;
     }
@@ -337,13 +403,17 @@ class LspClient {
       const p = this.#pending.get(Number(msg.id))!;
       this.#pending.delete(Number(msg.id));
       clearTimeout(p.timer);
-      if (msg.error) p.reject(new Error(msg.error.message ?? `LSP error: ${msg.error.code}`));
+      if (msg.error)
+        p.reject(
+          new Error(msg.error.message ?? `LSP error: ${msg.error.code}`),
+        );
       else p.resolve(msg.result);
       return;
     }
     // Notification
     if (msg.method === "textDocument/publishDiagnostics") {
-      const params = msg.params as { uri?: string; diagnostics?: Diagnostic[] } | undefined;
+      const params = msg.params as
+        { uri?: string; diagnostics?: Diagnostic[] } | undefined;
       if (params?.uri) {
         this.#diagnostics.set(params.uri, params.diagnostics ?? []);
         this.#diagReceived.add(params.uri);
@@ -351,7 +421,11 @@ class LspClient {
     }
   }
 
-  #handleServerRequest(id: number | string, method: string, params: unknown): void {
+  #handleServerRequest(
+    id: number | string,
+    method: string,
+    params: unknown,
+  ): void {
     if (method === "workspace/configuration") {
       const p = params as { items?: Array<{ section?: string }> } | undefined;
       const items = p?.items ?? [];
@@ -379,7 +453,10 @@ class LspClient {
       this.#write({ jsonrpc: "2.0", id, result: null });
       return;
     }
-    if (method === "client/registerCapability" || method === "client/unregisterCapability") {
+    if (
+      method === "client/registerCapability" ||
+      method === "client/unregisterCapability"
+    ) {
       this.#write({ jsonrpc: "2.0", id, result: null });
       return;
     }
@@ -470,7 +547,13 @@ function fileToUri(filePath: string): string {
     const norm = abs.replace(/\\/g, "/");
     return "file:///" + norm.split("/").map(encodeURIComponent).join("/");
   }
-  return "file://" + abs.split("/").map((s, i) => (i === 0 && s === "" ? "" : encodeURIComponent(s))).join("/");
+  return (
+    "file://" +
+    abs
+      .split("/")
+      .map((s, i) => (i === 0 && s === "" ? "" : encodeURIComponent(s)))
+      .join("/")
+  );
 }
 
 function uriToFile(uri: string): string {
@@ -549,7 +632,9 @@ function which(cmd: string, cwd?: string): string | null {
       } catch {
         try {
           if (fs.existsSync(candidate)) return candidate;
-        } catch { /* continue */ }
+        } catch {
+          /* continue */
+        }
       }
     }
   }
@@ -562,7 +647,12 @@ function markerExists(cwd: string, marker: string): boolean {
     try {
       const entries = fs.readdirSync(cwd);
       const re = new RegExp(
-        "^" + marker.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$",
+        "^" +
+          marker
+            .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+            .replace(/\*/g, ".*")
+            .replace(/\?/g, ".") +
+          "$",
       );
       return entries.some((e) => re.test(e));
     } catch {
@@ -572,7 +662,9 @@ function markerExists(cwd: string, marker: string): boolean {
   return fs.existsSync(path.join(cwd, marker));
 }
 
-function findServers(cwd: string): Array<{ name: string; config: ServerConfig }> {
+function findServers(
+  cwd: string,
+): Array<{ name: string; config: ServerConfig }> {
   const defaults = loadDefaults();
   const results: Array<{ name: string; config: ServerConfig }> = [];
   for (const [name, config] of Object.entries(defaults)) {
@@ -603,7 +695,9 @@ function getServersForFile(
   // basename match e.g. Dockerfile
   const base = path.basename(filePath).toLowerCase();
   const byBase = servers.filter((s) =>
-    s.config.fileTypes?.some((ft) => ft.toLowerCase() === base || ft.toLowerCase() === `.${base}`),
+    s.config.fileTypes?.some(
+      (ft) => ft.toLowerCase() === base || ft.toLowerCase() === `.${base}`,
+    ),
   );
   if (byBase.length > 0) return byBase;
   return [];
@@ -621,17 +715,42 @@ function getPrimaryServerForFile(
 // ── Formatting / edits ─────────────────────────────────────────
 
 const SYMBOL_KINDS: Record<number, string> = {
-  1: "F", 2: "M", 3: "N", 4: "P", 5: "C", 6: "m", 7: "p", 8: "f",
-  9: "ctor", 10: "E", 11: "I", 12: "fn", 13: "v", 14: "c", 15: "s",
-  16: "n", 20: "e", 22: "t", 23: "S", 26: "T",
+  1: "F",
+  2: "M",
+  3: "N",
+  4: "P",
+  5: "C",
+  6: "m",
+  7: "p",
+  8: "f",
+  9: "ctor",
+  10: "E",
+  11: "I",
+  12: "fn",
+  13: "v",
+  14: "c",
+  15: "s",
+  16: "n",
+  20: "e",
+  22: "t",
+  23: "S",
+  26: "T",
 };
 
 function formatDiag(d: Diagnostic, fileRel: string): string {
   const sev =
-    d.severity === 1 ? "error" : d.severity === 2 ? "warning" : d.severity === 3 ? "info" : "hint";
+    d.severity === 1
+      ? "error"
+      : d.severity === 2
+        ? "warning"
+        : d.severity === 3
+          ? "info"
+          : "hint";
   const pos = `L${d.range.start.line + 1}:${d.range.start.character + 1}`;
   const src = d.source ? `[${d.source}]` : "";
-  let line = `${fileRel}:${pos} ${sev} ${src} ${d.message}`.replace(/\s+/g, " ").trim();
+  let line = `${fileRel}:${pos} ${sev} ${src} ${d.message}`
+    .replace(/\s+/g, " ")
+    .trim();
   if (d.relatedInformation?.length) {
     for (const r of d.relatedInformation.slice(0, 3)) {
       line += `\n    → ${formatLocation(r.location)} ${r.message}`;
@@ -652,7 +771,8 @@ function normalizeLocations(raw: unknown): Location[] {
   for (const item of arr) {
     if (!item || typeof item !== "object") continue;
     const o = item as Location & LocationLink;
-    if ("uri" in o && o.uri && o.range) out.push({ uri: o.uri, range: o.range });
+    if ("uri" in o && o.uri && o.range)
+      out.push({ uri: o.uri, range: o.range });
     else if ("targetUri" in o && o.targetUri) {
       out.push({
         uri: o.targetUri,
@@ -667,15 +787,20 @@ function formatHover(h: Hover): string {
   if (typeof h.contents === "string") return h.contents;
   if (Array.isArray(h.contents)) {
     return h.contents
-      .map((c) => (typeof c === "string" ? c : (c as { value?: string }).value ?? ""))
+      .map((c) =>
+        typeof c === "string" ? c : ((c as { value?: string }).value ?? ""),
+      )
       .join("\n");
   }
-  return (h.contents as { value?: string })?.value ?? JSON.stringify(h.contents);
+  return (
+    (h.contents as { value?: string })?.value ?? JSON.stringify(h.contents)
+  );
 }
 
 function applyTextEditsToContent(text: string, edits: TextEdit[]): string {
   const sorted = [...edits].sort((a, b) => {
-    if (a.range.start.line !== b.range.start.line) return b.range.start.line - a.range.start.line;
+    if (a.range.start.line !== b.range.start.line)
+      return b.range.start.line - a.range.start.line;
     if (a.range.start.character !== b.range.start.character) {
       return b.range.start.character - a.range.start.character;
     }
@@ -685,7 +810,8 @@ function applyTextEditsToContent(text: string, edits: TextEdit[]): string {
   const lines = text.split("\n");
   const offsetAt = (line: number, character: number): number => {
     let off = 0;
-    for (let i = 0; i < line && i < lines.length; i++) off += lines[i].length + 1;
+    for (let i = 0; i < line && i < lines.length; i++)
+      off += lines[i].length + 1;
     return off + character;
   };
   let result = text;
@@ -726,14 +852,17 @@ function applyWorkspaceEdit(cwd: string, edit: WorkspaceEdit): string[] {
       } else if ("kind" in change && change.kind === "create") {
         const fp = assertPathInCwd(cwd, uriToFile(change.uri));
         fs.mkdirSync(path.dirname(fp), { recursive: true });
-        if (!fs.existsSync(fp) || change.options?.overwrite) fs.writeFileSync(fp, "");
+        if (!fs.existsSync(fp) || change.options?.overwrite)
+          fs.writeFileSync(fp, "");
         touched.push(path.relative(cwd, fp) || fp);
       } else if ("kind" in change && change.kind === "rename") {
         const oldP = assertPathInCwd(cwd, uriToFile(change.oldUri));
         const newP = assertPathInCwd(cwd, uriToFile(change.newUri));
         fs.mkdirSync(path.dirname(newP), { recursive: true });
         fs.renameSync(oldP, newP);
-        touched.push(`${path.relative(cwd, oldP)} → ${path.relative(cwd, newP)}`);
+        touched.push(
+          `${path.relative(cwd, oldP)} → ${path.relative(cwd, newP)}`,
+        );
       } else if ("kind" in change && change.kind === "delete") {
         const fp = assertPathInCwd(cwd, uriToFile(change.uri));
         if (fs.existsSync(fp)) fs.unlinkSync(fp);
@@ -746,7 +875,8 @@ function applyWorkspaceEdit(cwd: string, edit: WorkspaceEdit): string[] {
 
 function summarizeWorkspaceEdit(edit: WorkspaceEdit): string {
   const files = new Set<string>();
-  if (edit.changes) for (const u of Object.keys(edit.changes)) files.add(uriToFile(u));
+  if (edit.changes)
+    for (const u of Object.keys(edit.changes)) files.add(uriToFile(u));
   if (edit.documentChanges) {
     for (const c of edit.documentChanges) {
       if ("textDocument" in c) files.add(uriToFile(c.textDocument.uri));
@@ -754,7 +884,8 @@ function summarizeWorkspaceEdit(edit: WorkspaceEdit): string {
       else if ("kind" in c && c.kind === "rename") {
         files.add(uriToFile(c.oldUri));
         files.add(uriToFile(c.newUri));
-      } else if ("kind" in c && c.kind === "delete") files.add(uriToFile(c.uri));
+      } else if ("kind" in c && c.kind === "delete")
+        files.add(uriToFile(c.uri));
     }
   }
   return `${files.size} file(s): ${[...files].slice(0, 10).join(", ")}${files.size > 10 ? "…" : ""}`;
@@ -785,11 +916,16 @@ async function getOrCreateServer(
   const existing = activeServers.get(key);
   if (existing?.client.alive) return existing.client;
   if (brokenServers.has(key)) {
-    throw new Error(`LSP server '${name}' previously failed to start (reload to retry)`);
+    throw new Error(
+      `LSP server '${name}' previously failed to start (reload to retry)`,
+    );
   }
 
   const cmd = which(config.command, cwd);
-  if (!cmd) throw new Error(`LSP server '${name}' not found: ${config.command} not on PATH`);
+  if (!cmd)
+    throw new Error(
+      `LSP server '${name}' not found: ${config.command} not on PATH`,
+    );
 
   try {
     const client = LspClient.spawn(cmd, config.args ?? [], cwd);
@@ -827,10 +963,15 @@ async function collectDiagnosticsForFile(
       const client = await getOrCreateServer(srv.name, srv.config, cwd);
       client.syncFile(absPath);
       client.notifySaved(absPath);
-      const { diagnostics } = await client.waitForDiagnostics(uri, timeoutMs, signal);
+      const { diagnostics } = await client.waitForDiagnostics(
+        uri,
+        timeoutMs,
+        signal,
+      );
       used.push(srv.name);
       for (const d of diagnostics) {
-        if (errorsOnly && d.severity !== undefined && d.severity !== 1) continue;
+        if (errorsOnly && d.severity !== undefined && d.severity !== 1)
+          continue;
         all.push({ d, server: srv.name });
       }
     } catch {
@@ -873,12 +1014,20 @@ async function collectDiagnosticsForFile(
   };
 }
 
-function extractEditedPath(toolName: string, input: unknown, resultText: string, cwd: string): string | null {
+function extractEditedPath(
+  toolName: string,
+  input: unknown,
+  resultText: string,
+  cwd: string,
+): string | null {
   const inp = input as Record<string, unknown> | undefined;
   if (toolName === "write" || toolName === "edit") {
-    if (typeof inp?.path === "string" && inp.path) return path.resolve(cwd, inp.path);
-    if (typeof inp?.file_path === "string" && inp.file_path) return path.resolve(cwd, inp.file_path);
-    if (typeof inp?.filePath === "string" && inp.filePath) return path.resolve(cwd, inp.filePath);
+    if (typeof inp?.path === "string" && inp.path)
+      return path.resolve(cwd, inp.path);
+    if (typeof inp?.file_path === "string" && inp.file_path)
+      return path.resolve(cwd, inp.file_path);
+    if (typeof inp?.filePath === "string" && inp.filePath)
+      return path.resolve(cwd, inp.filePath);
   }
   // hashline edit: look for "updated: path" / "created: path"
   const m = resultText.match(/\b(?:updated|created):\s+(.+)$/m);
@@ -942,22 +1091,48 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         description:
           "diagnostics | definition | type_definition | implementation | references | hover | symbols | workspace_symbols | rename | code_actions | format | status | reload",
       }),
-      file: Type.Optional(Type.String({ description: "File path (relative to cwd)" })),
+      file: Type.Optional(
+        Type.String({ description: "File path (relative to cwd)" }),
+      ),
       line: Type.Optional(Type.Number({ description: "Line (1-indexed)" })),
-      column: Type.Optional(Type.Number({ description: "Column (1-indexed, default 1)" })),
-      symbol: Type.Optional(Type.String({ description: "workspace_symbols query / new name for rename" })),
-      new_name: Type.Optional(Type.String({ description: "New name for rename" })),
-      apply: Type.Optional(Type.Boolean({ description: "Apply rename/code_action (default false = preview)" })),
-      index: Type.Optional(Type.Number({ description: "code_actions: 1-based index to apply" })),
-      query: Type.Optional(Type.String({ description: "code_actions: filter by kind or title substring" })),
-      timeout: Type.Optional(Type.Number({ default: 15, description: "Timeout seconds" })),
+      column: Type.Optional(
+        Type.Number({ description: "Column (1-indexed, default 1)" }),
+      ),
+      symbol: Type.Optional(
+        Type.String({
+          description: "workspace_symbols query / new name for rename",
+        }),
+      ),
+      new_name: Type.Optional(
+        Type.String({ description: "New name for rename" }),
+      ),
+      apply: Type.Optional(
+        Type.Boolean({
+          description: "Apply rename/code_action (default false = preview)",
+        }),
+      ),
+      index: Type.Optional(
+        Type.Number({ description: "code_actions: 1-based index to apply" }),
+      ),
+      query: Type.Optional(
+        Type.String({
+          description: "code_actions: filter by kind or title substring",
+        }),
+      ),
+      timeout: Type.Optional(
+        Type.Number({ default: 15, description: "Timeout seconds" }),
+      ),
     }),
 
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
-      const action = String(params.action ?? "").trim().toLowerCase();
+      const action = String(params.action ?? "")
+        .trim()
+        .toLowerCase();
       const cwd = ctx.cwd;
       const timeoutMs =
-        (typeof params.timeout === "number" && params.timeout > 0 ? params.timeout : 15) * 1000;
+        (typeof params.timeout === "number" && params.timeout > 0
+          ? params.timeout
+          : 15) * 1000;
       const abort = signal ?? undefined;
 
       const ok = (text: string, details: Record<string, unknown> = {}) => ({
@@ -982,7 +1157,9 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
                 ? "running"
                 : "not started";
             const lint = s.config.isLinter ? " linter" : "";
-            const onPath = which(s.config.command, cwd) ? "" : " (command missing)";
+            const onPath = which(s.config.command, cwd)
+              ? ""
+              : " (command missing)";
             return `  ${s.name}: ${state}${lint}${onPath} [${s.config.fileTypes?.join(", ") ?? "any"}]`;
           });
           const postEdit = diagnosticsOnEditEnabled() ? "on" : "off";
@@ -995,7 +1172,9 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           for (const srv of activeServers.values()) {
             try {
               await srv.client.shutdown();
-            } catch { /* ok */ }
+            } catch {
+              /* ok */
+            }
           }
           activeServers.clear();
           brokenServers.clear();
@@ -1003,8 +1182,10 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         }
 
         if (action === "workspace_symbols") {
-          const q = typeof params.symbol === "string" ? params.symbol : params.query;
-          if (typeof q !== "string" || !q) throw new Error("'symbol' required for workspace_symbols");
+          const q =
+            typeof params.symbol === "string" ? params.symbol : params.query;
+          if (typeof q !== "string" || !q)
+            throw new Error("'symbol' required for workspace_symbols");
           const servers = findServers(cwd).filter((s) => !s.config.isLinter);
           for (const srv of servers) {
             try {
@@ -1023,10 +1204,14 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
                       (s) =>
                         `  ${SYMBOL_KINDS[s.kind] ?? "?"} ${s.name} — ${formatLocation(s.location)}`,
                     )
-                    .join("\n")}${syms.length > 30 ? `\n  …and ${syms.length - 30} more` : ""}`,
+                    .join(
+                      "\n",
+                    )}${syms.length > 30 ? `\n  …and ${syms.length - 30} more` : ""}`,
                 );
               }
-            } catch { /* next */ }
+            } catch {
+              /* next */
+            }
           }
           return ok(`No symbols found for '${q}'`);
         }
@@ -1056,9 +1241,19 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         const fileRel = path.relative(cwd, absPath) || params.file;
 
         if (action === "diagnostics") {
-          const result = await collectDiagnosticsForFile(cwd, absPath, Math.min(timeoutMs, 8_000), abort, false);
-          if (!result.servers.length) throw new Error(`No LSP server found for ${params.file}`);
-          return ok(result.text, { servers: result.servers, count: result.count });
+          const result = await collectDiagnosticsForFile(
+            cwd,
+            absPath,
+            Math.min(timeoutMs, 8_000),
+            abort,
+            false,
+          );
+          if (!result.servers.length)
+            throw new Error(`No LSP server found for ${params.file}`);
+          return ok(result.text, {
+            servers: result.servers,
+            count: result.count,
+          });
         }
 
         const server = getPrimaryServerForFile(cwd, absPath);
@@ -1066,29 +1261,45 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         const client = await getOrCreateServer(server.name, server.config, cwd);
         client.syncFile(absPath);
 
-        const needPos = NAV_ACTIONS.has(action) || action === "rename" || action === "code_actions";
+        const needPos =
+          NAV_ACTIONS.has(action) ||
+          action === "rename" ||
+          action === "code_actions";
         if (needPos && (typeof params.line !== "number" || params.line < 1)) {
           throw new Error(`'line' (1-indexed) required for ${action}`);
         }
         const col =
-          (typeof params.column === "number" && params.column >= 1 ? params.column : 1) - 1;
+          (typeof params.column === "number" && params.column >= 1
+            ? params.column
+            : 1) - 1;
         const position =
           typeof params.line === "number"
             ? { line: params.line - 1, character: col }
             : { line: 0, character: 0 };
         const textDocument = { uri: fileToUri(absPath) };
 
-        if (action === "definition" || action === "type_definition" || action === "implementation") {
+        if (
+          action === "definition" ||
+          action === "type_definition" ||
+          action === "implementation"
+        ) {
           const method =
             action === "definition"
               ? "textDocument/definition"
               : action === "type_definition"
                 ? "textDocument/typeDefinition"
                 : "textDocument/implementation";
-          const raw = await client.request(method, { textDocument, position }, timeoutMs, abort);
+          const raw = await client.request(
+            method,
+            { textDocument, position },
+            timeoutMs,
+            abort,
+          );
           const locs = normalizeLocations(raw);
           if (!locs.length) return ok(`No ${action.replace("_", " ")} found.`);
-          return ok(locs.map((l) => formatLocation(l)).join("\n"), { server: server.name });
+          return ok(locs.map((l) => formatLocation(l)).join("\n"), {
+            server: server.name,
+          });
         }
 
         if (action === "references") {
@@ -1130,7 +1341,10 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           );
           if (!syms?.length) return ok("No symbols found.");
           const lines: string[] = [];
-          const walk = (arr: Array<DocumentSymbol | SymbolInfo>, indent: string) => {
+          const walk = (
+            arr: Array<DocumentSymbol | SymbolInfo>,
+            indent: string,
+          ) => {
             for (const s of arr) {
               const icon = SYMBOL_KINDS[s.kind] ?? "?";
               if ("children" in s) {
@@ -1139,12 +1353,16 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
                 );
                 if (s.children?.length) walk(s.children, indent + "  ");
               } else {
-                lines.push(`${indent}${icon} ${s.name} — ${formatLocation(s.location)}`);
+                lines.push(
+                  `${indent}${icon} ${s.name} — ${formatLocation(s.location)}`,
+                );
               }
             }
           };
           walk(syms, "  ");
-          return ok(`Symbols in ${fileRel}:\n${lines.join("\n")}`, { server: server.name });
+          return ok(`Symbols in ${fileRel}:\n${lines.join("\n")}`, {
+            server: server.name,
+          });
         }
 
         if (action === "format") {
@@ -1158,7 +1376,9 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           const text = fs.readFileSync(absPath, "utf-8");
           fs.writeFileSync(absPath, applyTextEditsToContent(text, edits));
           client.syncFile(absPath);
-          return ok(`Formatted ${fileRel} (${edits.length} edit(s))`, { server: server.name });
+          return ok(`Formatted ${fileRel} (${edits.length} edit(s))`, {
+            server: server.name,
+          });
         }
 
         if (action === "rename") {
@@ -1166,14 +1386,18 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
             (typeof params.new_name === "string" && params.new_name) ||
             (typeof params.symbol === "string" && params.symbol) ||
             "";
-          if (!newName) throw new Error("'new_name' (or symbol) required for rename");
+          if (!newName)
+            throw new Error("'new_name' (or symbol) required for rename");
           const edit = await client.request<WorkspaceEdit | null>(
             "textDocument/rename",
             { textDocument, position, newName },
             timeoutMs,
             abort,
           );
-          if (!edit) return ok("Rename returned no edits (symbol may not be renameable).");
+          if (!edit)
+            return ok(
+              "Rename returned no edits (symbol may not be renameable).",
+            );
           const summary = summarizeWorkspaceEdit(edit);
           const apply = params.apply === true;
           if (!apply) {
@@ -1190,29 +1414,36 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         }
 
         if (action === "code_actions") {
-          const raw = await client.request<Array<CodeAction | { title: string; command: string }>>(
+          const raw = await client.request<
+            Array<CodeAction | { title: string; command: string }>
+          >(
             "textDocument/codeAction",
             {
               textDocument,
               range: { start: position, end: position },
-              context: { diagnostics: client.getDiagnostics(fileToUri(absPath)) },
+              context: {
+                diagnostics: client.getDiagnostics(fileToUri(absPath)),
+              },
             },
             timeoutMs,
             abort,
           );
           let actions = (raw ?? []).map((a, i) => ({ i: i + 1, a }));
-          const q = typeof params.query === "string" ? params.query.toLowerCase() : "";
+          const q =
+            typeof params.query === "string" ? params.query.toLowerCase() : "";
           if (q) {
             actions = actions.filter(({ a }) => {
               const title = a.title?.toLowerCase() ?? "";
-              const kind = "kind" in a && a.kind ? String(a.kind).toLowerCase() : "";
+              const kind =
+                "kind" in a && a.kind ? String(a.kind).toLowerCase() : "";
               return title.includes(q) || kind.includes(q);
             });
           }
           if (!actions.length) return ok("No code actions.");
 
           const apply = params.apply === true;
-          const idx = typeof params.index === "number" ? params.index : undefined;
+          const idx =
+            typeof params.index === "number" ? params.index : undefined;
           if (!apply) {
             const list = actions
               .map(({ i, a }) => {
@@ -1229,7 +1460,8 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           if (idx === undefined || idx < 1) {
             throw new Error("code_actions apply requires index (1-based)");
           }
-          const picked = actions.find((x) => x.i === idx)?.a ?? (raw ?? [])[idx - 1];
+          const picked =
+            actions.find((x) => x.i === idx)?.a ?? (raw ?? [])[idx - 1];
           if (!picked) throw new Error(`No code action at index ${idx}`);
 
           let actionObj = picked as CodeAction;
@@ -1241,7 +1473,9 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
                 timeoutMs,
                 abort,
               );
-            } catch { /* use unresolved */ }
+            } catch {
+              /* use unresolved */
+            }
           }
           if (actionObj.edit) {
             const touched = applyWorkspaceEdit(cwd, actionObj.edit);
@@ -1265,12 +1499,16 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
               { server: server.name, applied: true },
             );
           }
-          return fail(`Code action '${actionObj.title}' has no edit or command to apply.`);
+          return fail(
+            `Code action '${actionObj.title}' has no edit or command to apply.`,
+          );
         }
 
         throw new Error(`Unhandled action: ${action}`);
       } catch (err) {
-        return fail(`LSP ${action} failed: ${err instanceof Error ? err.message : String(err)}`);
+        return fail(
+          `LSP ${action} failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     },
   });
@@ -1289,14 +1527,27 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
       .filter((c): c is { type: "text"; text: string } => c.type === "text")
       .map((c) => c.text);
     const resultText = textBlocks.join("\n");
-    if (/^Error\b|failed:|E_NOOP_LOOP|E_DUPLICATE_EDIT|Tag mismatch/i.test(resultText)) {
+    if (
+      /^Error\b|failed:|E_NOOP_LOOP|E_DUPLICATE_EDIT|Tag mismatch/i.test(
+        resultText,
+      )
+    ) {
       // likely failure; still try if path extractable and not hard error markers only
-      if (/Tag mismatch|E_NOOP_LOOP|E_DUPLICATE_EDIT|Error parsing|Error applying/i.test(resultText)) {
+      if (
+        /Tag mismatch|E_NOOP_LOOP|E_DUPLICATE_EDIT|Error parsing|Error applying/i.test(
+          resultText,
+        )
+      ) {
         return;
       }
     }
 
-    const absPath = extractEditedPath(event.toolName, event.input, resultText, ctx.cwd);
+    const absPath = extractEditedPath(
+      event.toolName,
+      event.input,
+      resultText,
+      ctx.cwd,
+    );
     if (!absPath || !fs.existsSync(absPath)) return;
 
     // Only if some server matches
@@ -1311,10 +1562,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         true, // errors only for automatic feedback
       );
       if (!text) return;
-      const suffix =
-        count > 0
-          ? `\n\n[lsp diagnostics]\n${text}`
-          : ""; // stay quiet on clean files to save tokens
+      const suffix = count > 0 ? `\n\n[lsp diagnostics]\n${text}` : ""; // stay quiet on clean files to save tokens
       if (!suffix) return;
 
       const updated = [...content];
@@ -1338,7 +1586,9 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
     for (const srv of activeServers.values()) {
       try {
         await srv.client.shutdown();
-      } catch { /* ok */ }
+      } catch {
+        /* ok */
+      }
     }
     activeServers.clear();
     brokenServers.clear();

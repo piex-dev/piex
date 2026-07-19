@@ -40,7 +40,8 @@ function countChars(content: unknown): number {
   if (typeof content === "string") return content.length;
   if (Array.isArray(content)) {
     return content.reduce((sum: number, block: Record<string, unknown>) => {
-      if (block.type === "text" && typeof block.text === "string") return sum + block.text.length;
+      if (block.type === "text" && typeof block.text === "string")
+        return sum + block.text.length;
       return sum;
     }, 0);
   }
@@ -73,9 +74,17 @@ function analyzeEntries(entries: Array<Record<string, unknown>>): EntryStats {
       stats.estimatedChars += chars;
 
       switch (role) {
-        case "user": stats.userMessages++; stats.userChars += chars; break;
-        case "assistant": stats.assistantMessages++; stats.assistantChars += chars; break;
-        case "system": stats.systemMessages++; break;
+        case "user":
+          stats.userMessages++;
+          stats.userChars += chars;
+          break;
+        case "assistant":
+          stats.assistantMessages++;
+          stats.assistantChars += chars;
+          break;
+        case "system":
+          stats.systemMessages++;
+          break;
       }
     } else if (type === "tool_call") {
       stats.toolCalls++;
@@ -195,11 +204,17 @@ export default function contextExtension(pi: ExtensionAPI) {
   pi.registerCommand("context", {
     description: "Show session context usage report",
     handler: async (_args, ctx) => {
-      const entries = ctx.sessionManager.getEntries() as Array<Record<string, unknown>>;
+      const entries = ctx.sessionManager.getEntries() as Array<
+        Record<string, unknown>
+      >;
 
       if (entries.length === 0) {
         pi.sendMessage(
-          { customType: "context-report", content: "**Context Usage**: no entries yet.", display: true },
+          {
+            customType: "context-report",
+            content: "**Context Usage**: no entries yet.",
+            display: true,
+          },
           { deliverAs: "followUp" },
         );
         return;

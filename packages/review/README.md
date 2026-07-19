@@ -42,13 +42,13 @@ pi install npm:@piex-dev/review
 
 ## 与 omp review 的差异
 
-| omp review | review (轻量版) |
-|-----------|-------------------|
-| 多 agent 并行评审 | 当前 agent 直接评审 |
-| TUI overlay 展示结果 | 文本输出 |
-| Diff 解析 + 噪声过滤 | ✅ 完整移植 |
-| 四种评审模式 | ✅ 完整移植 |
-| 结构化 prompt 模板 | ✅ 精简移植 |
+| omp review           | review (轻量版)     |
+| -------------------- | ------------------- |
+| 多 agent 并行评审    | 当前 agent 直接评审 |
+| TUI overlay 展示结果 | 文本输出            |
+| Diff 解析 + 噪声过滤 | ✅ 完整移植         |
+| 四种评审模式         | ✅ 完整移植         |
+| 结构化 prompt 模板   | ✅ 精简移植         |
 
 ## 来源
 

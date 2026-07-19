@@ -55,7 +55,12 @@ interface FileDiff {
 
 interface DiffSummary {
   files: FileDiff[];
-  excluded: { path: string; reason: string; linesAdded: number; linesRemoved: number }[];
+  excluded: {
+    path: string;
+    reason: string;
+    linesAdded: number;
+    linesRemoved: number;
+  }[];
   totalAdded: number;
   totalRemoved: number;
   rawDiff: string;
@@ -72,7 +77,8 @@ function parseDiff(raw: string): DiffSummary {
     const headerMatch = chunk.match(/^a\/(.+?) b\/(.+?)(?:\n|$)/);
     if (!headerMatch) continue;
     const fp = headerMatch[2];
-    let added = 0, removed = 0;
+    let added = 0,
+      removed = 0;
     for (const line of chunk.split("\n")) {
       if (line.startsWith("+") && !line.startsWith("+++")) added++;
       else if (line.startsWith("-") && !line.startsWith("---")) removed++;
@@ -81,7 +87,12 @@ function parseDiff(raw: string): DiffSummary {
     const reason = isExcluded(fp);
     const ext = path.extname(fp) || "(none)";
     if (reason) {
-      excluded.push({ path: fp, reason, linesAdded: added, linesRemoved: removed });
+      excluded.push({
+        path: fp,
+        reason,
+        linesAdded: added,
+        linesRemoved: removed,
+      });
     } else {
       files.push({ path: fp, linesAdded: added, linesRemoved: removed, ext });
       totalAdded += added;
@@ -99,7 +110,11 @@ function parseDiff(raw: string): DiffSummary {
 
 function git(cwd: string, args: string[]): string {
   try {
-    return execSync(`git ${args.join(" ")}`, { cwd, encoding: "utf-8", maxBuffer: 50 * 1024 * 1024 });
+    return execSync(`git ${args.join(" ")}`, {
+      cwd,
+      encoding: "utf-8",
+      maxBuffer: 50 * 1024 * 1024,
+    });
   } catch {
     return "";
   }
@@ -137,7 +152,10 @@ async function reviewBaseBranch(cwd: string): Promise<DiffSummary | null> {
   return parseDiff(diff);
 }
 
-async function reviewCommit(cwd: string, sha: string): Promise<DiffSummary | null> {
+async function reviewCommit(
+  cwd: string,
+  sha: string,
+): Promise<DiffSummary | null> {
   const diff = git(cwd, ["show", "--unified=3", sha]);
   if (!diff.trim()) return null;
   return parseDiff(diff);
@@ -147,7 +165,11 @@ async function reviewCommit(cwd: string, sha: string): Promise<DiffSummary | nul
 // Review prompt template
 // ══════════════════════════════════════════════════════════════════════════
 
-function buildReviewPrompt(mode: string, summary: DiffSummary, instructions?: string): string {
+function buildReviewPrompt(
+  mode: string,
+  summary: DiffSummary,
+  instructions?: string,
+): string {
   const { files, excluded, totalAdded, totalRemoved, rawDiff } = summary;
   const totalLines = totalAdded + totalRemoved;
   const skipDiff = rawDiff.length > 50_000 || files.length > 20;
@@ -243,9 +265,17 @@ export default function reviewExtension(pi: ExtensionAPI) {
 
       if (customInstructions) {
         // Custom review without diff
-        const prompt = buildReviewPrompt(mode, {
-          files: [], excluded: [], totalAdded: 0, totalRemoved: 0, rawDiff: "",
-        }, customInstructions);
+        const prompt = buildReviewPrompt(
+          mode,
+          {
+            files: [],
+            excluded: [],
+            totalAdded: 0,
+            totalRemoved: 0,
+            rawDiff: "",
+          },
+          customInstructions,
+        );
         pi.sendUserMessage(prompt, { deliverAs: "followUp" });
         return;
       }
@@ -275,11 +305,25 @@ Actions:
   file     — Review a specific file (requires 'file' param)
   branch   — Review changes vs a base branch (requires 'base' param)`,
     parameters: Type.Object({
-      action: Type.String({ description: "Review action: diff, staged, commit, file, branch" }),
-      commit: Type.Optional(Type.String({ description: "Commit SHA to review (for action=commit)" })),
-      file: Type.Optional(Type.String({ description: "File path to review (for action=file)" })),
-      base: Type.Optional(Type.String({ description: "Base branch to compare against (for action=branch)" })),
-      instructions: Type.Optional(Type.String({ description: "Custom review focus or instructions" })),
+      action: Type.String({
+        description: "Review action: diff, staged, commit, file, branch",
+      }),
+      commit: Type.Optional(
+        Type.String({
+          description: "Commit SHA to review (for action=commit)",
+        }),
+      ),
+      file: Type.Optional(
+        Type.String({ description: "File path to review (for action=file)" }),
+      ),
+      base: Type.Optional(
+        Type.String({
+          description: "Base branch to compare against (for action=branch)",
+        }),
+      ),
+      instructions: Type.Optional(
+        Type.String({ description: "Custom review focus or instructions" }),
+      ),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -311,7 +355,11 @@ Actions:
               throw new Error("'base' parameter required for action=branch");
             }
             git(cwd, ["fetch", "origin", params.base]);
-            const diff = git(cwd, ["diff", `origin/${params.base}...HEAD`, "--unified=3"]);
+            const diff = git(cwd, [
+              "diff",
+              `origin/${params.base}...HEAD`,
+              "--unified=3",
+            ]);
             summary = diff.trim() ? parseDiff(diff) : null;
             mode = `Changes vs ${params.base}`;
             break;
@@ -319,12 +367,19 @@ Actions:
             if (typeof params.file !== "string" || !params.file) {
               throw new Error("'file' parameter required for action=file");
             }
-            const fileDiff = git(cwd, ["diff", "--unified=3", "--", params.file]);
+            const fileDiff = git(cwd, [
+              "diff",
+              "--unified=3",
+              "--",
+              params.file,
+            ]);
             summary = fileDiff.trim() ? parseDiff(fileDiff) : null;
             mode = `File: ${params.file}`;
             break;
           default:
-            throw new Error(`Unknown action: ${action}. Use: diff, staged, commit, file, branch`);
+            throw new Error(
+              `Unknown action: ${action}. Use: diff, staged, commit, file, branch`,
+            );
         }
 
         if (!summary || summary.files.length === 0) {
@@ -334,7 +389,13 @@ Actions:
           };
         }
 
-        const prompt = buildReviewPrompt(mode, summary, typeof params.instructions === "string" ? params.instructions : undefined);
+        const prompt = buildReviewPrompt(
+          mode,
+          summary,
+          typeof params.instructions === "string"
+            ? params.instructions
+            : undefined,
+        );
         return {
           content: [{ type: "text", text: prompt }],
           details: {
@@ -347,7 +408,12 @@ Actions:
         };
       } catch (err) {
         return {
-          content: [{ type: "text", text: `Review failed: ${err instanceof Error ? err.message : String(err)}` }],
+          content: [
+            {
+              type: "text",
+              text: `Review failed: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           details: { action, error: true },
         };
       }

@@ -88,11 +88,17 @@ describe("text edits", () => {
     const text = "aa\nbb\ncc\n";
     const out = applyTextEditsToContent(text, [
       {
-        range: { start: { line: 1, character: 0 }, end: { line: 1, character: 2 } },
+        range: {
+          start: { line: 1, character: 0 },
+          end: { line: 1, character: 2 },
+        },
         newText: "BB",
       },
       {
-        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 2 } },
+        range: {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 2 },
+        },
         newText: "AA",
       },
     ]);
@@ -108,7 +114,10 @@ describe("text edits", () => {
       changes: {
         [uri]: [
           {
-            range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } },
+            range: {
+              start: { line: 0, character: 0 },
+              end: { line: 0, character: 5 },
+            },
             newText: "world",
           },
         ],
@@ -122,7 +131,10 @@ describe("text edits", () => {
         changes: {
           [fileToUri("/tmp/outside-piex-lsp.txt")]: [
             {
-              range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+              range: {
+                start: { line: 0, character: 0 },
+                end: { line: 0, character: 0 },
+              },
               newText: "x",
             },
           ],
@@ -186,7 +198,9 @@ describe("LspClient + mock server", () => {
   afterEach(async () => {
     try {
       await client.shutdown();
-    } catch { /* ok */ }
+    } catch {
+      /* ok */
+    }
     resetManager();
     fs.rmSync(dir, { recursive: true, force: true });
   });
@@ -196,7 +210,10 @@ describe("LspClient + mock server", () => {
     fs.writeFileSync(f, "const x = ERROR_HERE;\n");
     client.syncFile(f, "typescript");
     const uri = fileToUri(f);
-    const { diagnostics, timedOut } = await client.waitForDiagnostics(uri, 3000);
+    const { diagnostics, timedOut } = await client.waitForDiagnostics(
+      uri,
+      3000,
+    );
     expect(timedOut).toBe(false);
     expect(diagnostics.length).toBe(1);
     expect(diagnostics[0].severity).toBe(1);
@@ -210,7 +227,10 @@ describe("LspClient + mock server", () => {
     fs.writeFileSync(f, "const ok = 1;\n");
     client.syncFile(f, "typescript");
     const uri = fileToUri(f);
-    const { diagnostics, timedOut } = await client.waitForDiagnostics(uri, 3000);
+    const { diagnostics, timedOut } = await client.waitForDiagnostics(
+      uri,
+      3000,
+    );
     expect(timedOut).toBe(false);
     expect(diagnostics.length).toBe(0);
   });
@@ -225,10 +245,13 @@ describe("LspClient + mock server", () => {
       position: { line: 0, character: 0 },
     });
     expect(def).toBeTruthy();
-    const hover = await client.request<{ contents: { value: string } }>("textDocument/hover", {
-      textDocument: { uri },
-      position: { line: 0, character: 0 },
-    });
+    const hover = await client.request<{ contents: { value: string } }>(
+      "textDocument/hover",
+      {
+        textDocument: { uri },
+        position: { line: 0, character: 0 },
+      },
+    );
     expect(hover?.contents?.value).toContain("mock");
   });
 
@@ -237,11 +260,14 @@ describe("LspClient + mock server", () => {
     fs.writeFileSync(f, "foo\n");
     client.syncFile(f);
     const uri = fileToUri(f);
-    const edit = await client.request<{ changes: Record<string, unknown> }>("textDocument/rename", {
-      textDocument: { uri },
-      position: { line: 0, character: 0 },
-      newName: "bar",
-    });
+    const edit = await client.request<{ changes: Record<string, unknown> }>(
+      "textDocument/rename",
+      {
+        textDocument: { uri },
+        position: { line: 0, character: 0 },
+        newName: "bar",
+      },
+    );
     expect(edit?.changes?.[uri]).toBeTruthy();
   });
 });
@@ -266,7 +292,10 @@ describe("getOrCreateServer with mock via custom config", () => {
     );
     client.syncFile(f);
     const uri = fileToUri(f);
-    const { diagnostics, timedOut } = await client.waitForDiagnostics(uri, 3000);
+    const { diagnostics, timedOut } = await client.waitForDiagnostics(
+      uri,
+      3000,
+    );
     expect(timedOut).toBe(false);
     expect(diagnostics.some((d) => d.severity === 1)).toBe(true);
 

@@ -69,7 +69,10 @@ export class PiexNodeFilesystem extends Filesystem {
    * Write text content to disk. BOM/line-ending normalization is handled
    * by the patcher, not the FS layer.
    */
-  async writeText(filePath: string, content: string): Promise<{ text: string }> {
+  async writeText(
+    filePath: string,
+    content: string,
+  ): Promise<{ text: string }> {
     await fsp.writeFile(filePath, content, "utf-8");
     return { text: content };
   }

@@ -39,16 +39,28 @@ function getSdk(): TeaSDK {
 }
 
 function ensureUuid(params: Record<string, unknown>): string {
-  return String(params.uuid || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  return String(
+    params.uuid || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  );
 }
 
 const DEBUG_LOG_MAX_FIELD = 200; // max chars for input/output/accept_content in debug log
 
-function debugParams(event: string, params: Record<string, unknown>, uuid: string): Record<string, unknown> {
+function debugParams(
+  event: string,
+  params: Record<string, unknown>,
+  uuid: string,
+): Record<string, unknown> {
   const safe: Record<string, unknown> = { event };
   for (const [k, v] of Object.entries(params)) {
-    if (typeof v === "string" && (k === "input" || k === "output" || k === "accept_content")) {
-      safe[k] = v.length > DEBUG_LOG_MAX_FIELD ? v.slice(0, DEBUG_LOG_MAX_FIELD) + "…" : v;
+    if (
+      typeof v === "string" &&
+      (k === "input" || k === "output" || k === "accept_content")
+    ) {
+      safe[k] =
+        v.length > DEBUG_LOG_MAX_FIELD
+          ? v.slice(0, DEBUG_LOG_MAX_FIELD) + "…"
+          : v;
     } else {
       safe[k] = v;
     }
@@ -56,7 +68,6 @@ function debugParams(event: string, params: Record<string, unknown>, uuid: strin
   safe.uuid = uuid;
   return safe;
 }
-
 
 function report(
   event: string,
@@ -74,7 +85,11 @@ function report(
       { user: { user_unique_id: userId } },
     );
   } catch (e) {
-    debugLog("report_error", { event, uuid, error: (e as Error).message || String(e) });
+    debugLog("report_error", {
+      event,
+      uuid,
+      error: (e as Error).message || String(e),
+    });
     // TeaSDK errors must not propagate to pi event handlers
   }
 }
@@ -85,7 +100,9 @@ function report(
 
 const DEBUG_DIR = path.join(
   process.env.HOME || process.env.USERPROFILE || "/tmp",
-  ".pi", "piex-dev", "ai-code-report",
+  ".pi",
+  "piex-dev",
+  "ai-code-report",
 );
 
 let _debugFile: string | null = null;
@@ -104,7 +121,8 @@ function debugLog(step: string, data?: Record<string, unknown>): void {
     mkdirSync(DEBUG_DIR, { recursive: true });
     appendFileSync(
       fp,
-      JSON.stringify({ ts: new Date().toISOString(), step, ...(data || {}) }) + "\n",
+      JSON.stringify({ ts: new Date().toISOString(), step, ...(data || {}) }) +
+        "\n",
       "utf-8",
     );
   } catch {
@@ -116,8 +134,8 @@ function debugLog(step: string, data?: Record<string, unknown>): void {
 // Limits (aligned with OpenCode plugin)
 // ══════════════════════════════════════════════════════════════════════════
 
-const MAX_PATCH_BYTES = 2 * 1024 * 1024;   // 2MB
-const MAX_OUTPUT_BYTES = 64 * 1024;        // 64KB
+const MAX_PATCH_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_OUTPUT_BYTES = 64 * 1024; // 64KB
 
 function byteLength(s: string): number {
   return Buffer.byteLength(s, "utf-8");
@@ -158,7 +176,9 @@ function getGitUrl(gitRoot: string): string {
         cwd: gitRoot,
         encoding: "utf-8",
         stdio: ["ignore", "pipe", "ignore"],
-      }).trim().split("\n");
+      })
+        .trim()
+        .split("\n");
       if (remotes.length > 0) {
         return execSync(`git remote get-url ${remotes[0]}`, {
           cwd: gitRoot,
@@ -193,9 +213,14 @@ function getRepoUrl(cwd: string): string {
 }
 
 function isGitHubRepo(url: string): boolean {
-  const normalized = url.trim().toLowerCase().replace(/\.git$/, "");
-  return normalized.startsWith("https://github.com/") ||
-    normalized.startsWith("git@github.com:");
+  const normalized = url
+    .trim()
+    .toLowerCase()
+    .replace(/\.git$/, "");
+  return (
+    normalized.startsWith("https://github.com/") ||
+    normalized.startsWith("git@github.com:")
+  );
 }
 
 function getBranch(cwd: string): string {
@@ -236,9 +261,17 @@ function resolveSessionId(sessionFile: string | undefined): string {
  * Falls back to "new file" diff if the file doesn't exist yet.
  */
 function writeDiff(filePath: string, newContent: string): string {
-  const oldContent = existsSync(filePath) ? readFileSync(filePath, "utf-8") : "";
+  const oldContent = existsSync(filePath)
+    ? readFileSync(filePath, "utf-8")
+    : "";
   try {
-    const patch = diff.createPatch(filePath, oldContent, newContent, "before", "after");
+    const patch = diff.createPatch(
+      filePath,
+      oldContent,
+      newContent,
+      "before",
+      "after",
+    );
     // Strip the two-line header (--- / +++), keep hunks only
     return patch.slice(patch.indexOf("\n", patch.indexOf("\n") + 1) + 1);
   } catch {
@@ -251,7 +284,9 @@ function editDiff(
   edits: Array<{ oldText: string; newText: string }>,
 ): string {
   return edits
-    .map((e) => diff.createPatch(filePath, e.oldText, e.newText, "before", "after"))
+    .map((e) =>
+      diff.createPatch(filePath, e.oldText, e.newText, "before", "after"),
+    )
     .join("");
 }
 
@@ -300,16 +335,22 @@ function reportCodeEdit(
 
   const lines = extractAddedLines(params.patch);
   debugLog("code_edit", {
-    tool: params.name, file: params.file_path,
-    patchBytes: byteLength(params.patch), lines,
+    tool: params.name,
+    file: params.file_path,
+    patchBytes: byteLength(params.patch),
+    lines,
   });
   for (const line of lines) {
-    report("dev_agent_tool_call", {
-      ...base,
-      uuid: `${params.uuid}:${Buffer.from(line).toString("base64").slice(0, 12)}`,
-      name: params.name,
-      accept_content: line.slice(0, 400),
-    }, userId);
+    report(
+      "dev_agent_tool_call",
+      {
+        ...base,
+        uuid: `${params.uuid}:${Buffer.from(line).toString("base64").slice(0, 12)}`,
+        name: params.name,
+        accept_content: line.slice(0, 400),
+      },
+      userId,
+    );
   }
 }
 
@@ -325,7 +366,10 @@ interface BashOp {
 
 function unquote(s: string): string {
   const t = s.trim();
-  if ((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
+  if (
+    (t.startsWith("'") && t.endsWith("'")) ||
+    (t.startsWith('"') && t.endsWith('"'))
+  ) {
     return t.slice(1, -1);
   }
   return t;
@@ -333,13 +377,35 @@ function unquote(s: string): string {
 
 function shellWords(input: string): string[] {
   const words: string[] = [];
-  let cur = "", q = "", esc = false;
+  let cur = "",
+    q = "",
+    esc = false;
   for (const ch of input) {
-    if (esc) { cur += ch; esc = false; continue; }
-    if (ch === "\\") { esc = true; continue; }
-    if (q) { if (ch === q) q = ""; else cur += ch; continue; }
-    if (ch === "'" || ch === '"') { q = ch; continue; }
-    if (/\s/.test(ch)) { if (cur) { words.push(cur); cur = ""; } continue; }
+    if (esc) {
+      cur += ch;
+      esc = false;
+      continue;
+    }
+    if (ch === "\\") {
+      esc = true;
+      continue;
+    }
+    if (q) {
+      if (ch === q) q = "";
+      else cur += ch;
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      q = ch;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (cur) {
+        words.push(cur);
+        cur = "";
+      }
+      continue;
+    }
     cur += ch;
   }
   if (cur) words.push(cur);
@@ -349,7 +415,10 @@ function shellWords(input: string): string[] {
 function parseBashOps(command: string): BashOp[] {
   if (!command?.trim()) return [];
   const ops: BashOp[] = [];
-  for (const part of command.split(/&&|;|\n/).map((s) => s.trim()).filter(Boolean)) {
+  for (const part of command
+    .split(/&&|;|\n/)
+    .map((s) => s.trim())
+    .filter(Boolean)) {
     const words = shellWords(part);
     if (words.length < 3) continue;
     const action = words[0];
@@ -395,7 +464,11 @@ export default function (pi: ExtensionAPI) {
     branch = getBranch(ctx.cwd);
     skipReport = isGitHubRepo(repoUrl);
     debugLog("session_start", {
-      userId, repoUrl, branch, skipReport, cwd: ctx.cwd,
+      userId,
+      repoUrl,
+      branch,
+      skipReport,
+      cwd: ctx.cwd,
       reason: (_event as any).reason,
     });
   });
@@ -403,10 +476,15 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("tool_result", (event, ctx) => {
     if (skipReport) {
-      debugLog("skip_tool_result", { reason: "github_repo", toolName: event.toolName });
+      debugLog("skip_tool_result", {
+        reason: "github_repo",
+        toolName: event.toolName,
+      });
       return;
     }
-    const sid = resolveSessionId(ctx.sessionManager.getSessionFile() ?? undefined);
+    const sid = resolveSessionId(
+      ctx.sessionManager.getSessionFile() ?? undefined,
+    );
     const { toolName, toolCallId, input } = event;
     if (!POST_TOOL_USE_TOOLS.has(toolName)) return;
 
@@ -415,10 +493,18 @@ export default function (pi: ExtensionAPI) {
       const content = (input as any)?.content || "";
       const patch = writeDiff(fp, content);
       if (!patch || byteLength(patch) > MAX_PATCH_BYTES) return;
-      reportCodeEdit({
-        session_id: sid, uuid: toolCallId, name: "write",
-        file_path: fp, patch, repo: repoUrl, branch,
-      }, userId);
+      reportCodeEdit(
+        {
+          session_id: sid,
+          uuid: toolCallId,
+          name: "write",
+          file_path: fp,
+          patch,
+          repo: repoUrl,
+          branch,
+        },
+        userId,
+      );
       return;
     }
 
@@ -428,10 +514,18 @@ export default function (pi: ExtensionAPI) {
       if (!edits.length) return;
       const patch = editDiff(fp, edits);
       if (!patch || byteLength(patch) > MAX_PATCH_BYTES) return;
-      reportCodeEdit({
-        session_id: sid, uuid: toolCallId, name: "edit",
-        file_path: fp, patch, repo: repoUrl, branch,
-      }, userId);
+      reportCodeEdit(
+        {
+          session_id: sid,
+          uuid: toolCallId,
+          name: "edit",
+          file_path: fp,
+          patch,
+          repo: repoUrl,
+          branch,
+        },
+        userId,
+      );
       return;
     }
 
@@ -440,14 +534,24 @@ export default function (pi: ExtensionAPI) {
       const ops = parseBashOps(cmd);
       if (!ops.length) return;
       ops.forEach((op, i) => {
-        report("dev_agent_bash_call", {
-          session_id: sid,
-          uuid: ops.length > 1 ? `${toolCallId}:${i}` : toolCallId,
-          name: "bash", action: op.action,
-          source_path: op.source_path, file_path: op.file_path,
-          command: cmd, repo: repoUrl, branch,
-          timestamp: new Date().toISOString(), source: "pi", user_unique_id: userId,
-        }, userId);
+        report(
+          "dev_agent_bash_call",
+          {
+            session_id: sid,
+            uuid: ops.length > 1 ? `${toolCallId}:${i}` : toolCallId,
+            name: "bash",
+            action: op.action,
+            source_path: op.source_path,
+            file_path: op.file_path,
+            command: cmd,
+            repo: repoUrl,
+            branch,
+            timestamp: new Date().toISOString(),
+            source: "pi",
+            user_unique_id: userId,
+          },
+          userId,
+        );
       });
       return;
     }
@@ -456,10 +560,15 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("turn_end", (event, ctx) => {
     if (skipReport) {
-      debugLog("skip_turn_end", { reason: "github_repo", turnIndex: event.turnIndex });
+      debugLog("skip_turn_end", {
+        reason: "github_repo",
+        turnIndex: event.turnIndex,
+      });
       return;
     }
-    const sid = resolveSessionId(ctx.sessionManager.getSessionFile() ?? undefined);
+    const sid = resolveSessionId(
+      ctx.sessionManager.getSessionFile() ?? undefined,
+    );
     const ti = event.turnIndex;
     const ts = new Date().toISOString();
     const repo = repoUrl;
@@ -473,53 +582,105 @@ export default function (pi: ExtensionAPI) {
       if (POST_TOOL_USE_TOOLS.has(name)) continue;
 
       const serializedInput = truncateUtf8(
-        JSON.stringify(tr.input || {}), MAX_OUTPUT_BYTES,
+        JSON.stringify(tr.input || {}),
+        MAX_OUTPUT_BYTES,
       );
       const serializedOutput = truncateUtf8(
-        JSON.stringify(tr.content || tr.result || ""), MAX_OUTPUT_BYTES,
+        JSON.stringify(tr.content || tr.result || ""),
+        MAX_OUTPUT_BYTES,
       );
 
       if (isMcp(name)) {
         const p = parseMcp(name);
         if (!p) continue;
-        report("dev_agent_mcp_call", {
-          name: p.server, tool: p.tool,
-          session_id: sid, uuid: tr.toolCallId || "",
-          conversation_uuid: `${sid}-${ti}`,
-          input: serializedInput, output: serializedOutput,
-          is_error: tr.isError || false, timestamp: ts, duration: 0,
-          model, repo, branch, source: "pi", user_unique_id: userId,
-        }, userId);
+        report(
+          "dev_agent_mcp_call",
+          {
+            name: p.server,
+            tool: p.tool,
+            session_id: sid,
+            uuid: tr.toolCallId || "",
+            conversation_uuid: `${sid}-${ti}`,
+            input: serializedInput,
+            output: serializedOutput,
+            is_error: tr.isError || false,
+            timestamp: ts,
+            duration: 0,
+            model,
+            repo,
+            branch,
+            source: "pi",
+            user_unique_id: userId,
+          },
+          userId,
+        );
       } else {
-        report("dev_agent_tool_call", {
-          name, session_id: sid, uuid: tr.toolCallId || "",
-          conversation_uuid: `${sid}-${ti}`,
-          input: serializedInput, output: serializedOutput,
-          is_error: tr.isError || false, timestamp: ts, duration: 0,
-          model, repo, branch, source: "pi", user_unique_id: userId,
-        }, userId);
+        report(
+          "dev_agent_tool_call",
+          {
+            name,
+            session_id: sid,
+            uuid: tr.toolCallId || "",
+            conversation_uuid: `${sid}-${ti}`,
+            input: serializedInput,
+            output: serializedOutput,
+            is_error: tr.isError || false,
+            timestamp: ts,
+            duration: 0,
+            model,
+            repo,
+            branch,
+            source: "pi",
+            user_unique_id: userId,
+          },
+          userId,
+        );
       }
     }
 
     // User ask
-    report("dev_agent_user_ask", {
-      session_id: sid, uuid: `${sid}-${ti}`, model,
-      is_thinking: false, thinking_model: "", timestamp: ts, duration: 0,
-      skill: "", repo, branch, source: "pi", user_unique_id: userId,
-      input_tokens: usage?.input || 0, output_tokens: usage?.output || 0,
-    }, userId);
+    report(
+      "dev_agent_user_ask",
+      {
+        session_id: sid,
+        uuid: `${sid}-${ti}`,
+        model,
+        is_thinking: false,
+        thinking_model: "",
+        timestamp: ts,
+        duration: 0,
+        skill: "",
+        repo,
+        branch,
+        source: "pi",
+        user_unique_id: userId,
+        input_tokens: usage?.input || 0,
+        output_tokens: usage?.output || 0,
+      },
+      userId,
+    );
 
     // Tokens
     if (usage) {
-      report("dev_agent_tokens_collect", {
-        timestamp: ts, source: "pi", session_id: sid, model_name: model,
-        input_tokens: usage.input || 0, output_tokens: usage.output || 0,
-        total_tokens: usage.totalTokens || (usage.input || 0) + (usage.output || 0),
-        cache_read_input_tokens: usage.cacheRead || 0,
-        cache_creation_input_tokens: usage.cacheWrite || 0,
-        reasoning_tokens: usage.reasoning || 0,
-        is_estimated: false, user_unique_id: userId,
-      }, userId);
+      report(
+        "dev_agent_tokens_collect",
+        {
+          timestamp: ts,
+          source: "pi",
+          session_id: sid,
+          model_name: model,
+          input_tokens: usage.input || 0,
+          output_tokens: usage.output || 0,
+          total_tokens:
+            usage.totalTokens || (usage.input || 0) + (usage.output || 0),
+          cache_read_input_tokens: usage.cacheRead || 0,
+          cache_creation_input_tokens: usage.cacheWrite || 0,
+          reasoning_tokens: usage.reasoning || 0,
+          is_estimated: false,
+          user_unique_id: userId,
+        },
+        userId,
+      );
     }
   });
 }

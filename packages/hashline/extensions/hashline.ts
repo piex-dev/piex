@@ -179,8 +179,23 @@ function normalizeInput(raw: string): string {
  * they are legal unclosed and would false-positive on valid documents.
  */
 const HTML_STRUCTURE_TAGS = new Set([
-  "html", "head", "body", "main", "header", "footer", "aside", "nav",
-  "section", "article", "div", "pre", "ul", "ol", "table", "thead", "tbody",
+  "html",
+  "head",
+  "body",
+  "main",
+  "header",
+  "footer",
+  "aside",
+  "nav",
+  "section",
+  "article",
+  "div",
+  "pre",
+  "ul",
+  "ol",
+  "table",
+  "thead",
+  "tbody",
 ]);
 
 /** Strip regions whose contents must not be scanned for tags. */
@@ -195,17 +210,21 @@ function stripHtmlNoScanZones(content: string): string {
  * Count opening vs closing occurrences of structural HTML tags in `content`.
  * Returns only tags whose counts differ, as { tag: [openCount, closeCount] }.
  */
-export function checkTagBalance(content: string): Record<string, [number, number]> {
+export function checkTagBalance(
+  content: string,
+): Record<string, [number, number]> {
   const text = stripHtmlNoScanZones(content);
   const openCounts: Record<string, number> = {};
   const closeCounts: Record<string, number> = {};
   for (const m of text.matchAll(/<(\w+)[\s>]/g)) {
     const tag = m[1].toLowerCase();
-    if (HTML_STRUCTURE_TAGS.has(tag)) openCounts[tag] = (openCounts[tag] || 0) + 1;
+    if (HTML_STRUCTURE_TAGS.has(tag))
+      openCounts[tag] = (openCounts[tag] || 0) + 1;
   }
   for (const m of text.matchAll(/<\/(\w+)>/g)) {
     const tag = m[1].toLowerCase();
-    if (HTML_STRUCTURE_TAGS.has(tag)) closeCounts[tag] = (closeCounts[tag] || 0) + 1;
+    if (HTML_STRUCTURE_TAGS.has(tag))
+      closeCounts[tag] = (closeCounts[tag] || 0) + 1;
   }
   const unbalanced: Record<string, [number, number]> = {};
   for (const tag of HTML_STRUCTURE_TAGS) {
@@ -247,7 +266,10 @@ const DIFF_PREVIEW_MAX_LINES = 60;
  * added/context rows carry post-edit line numbers. Returns null when the
  * inputs are too large for an in-memory matrix.
  */
-export function buildNumberedLineDiff(before: string, after: string): string | null {
+export function buildNumberedLineDiff(
+  before: string,
+  after: string,
+): string | null {
   const a = before.split("\n");
   const b = after.split("\n");
   if (a.length * b.length > DIFF_MAX_CELLS) return null;
@@ -257,9 +279,10 @@ export function buildNumberedLineDiff(before: string, after: string): string | n
   const dp = new Int32Array(rows * cols);
   for (let i = a.length - 1; i >= 0; i--) {
     for (let j = b.length - 1; j >= 0; j--) {
-      dp[i * cols + j] = a[i] === b[j]
-        ? dp[(i + 1) * cols + (j + 1)] + 1
-        : Math.max(dp[(i + 1) * cols + j], dp[i * cols + (j + 1)]);
+      dp[i * cols + j] =
+        a[i] === b[j]
+          ? dp[(i + 1) * cols + (j + 1)] + 1
+          : Math.max(dp[(i + 1) * cols + j], dp[i * cols + (j + 1)]);
     }
   }
 
@@ -298,12 +321,17 @@ export function buildNumberedLineDiff(before: string, after: string): string | n
 function buildEditPreview(before: string, after: string): string | null {
   const numbered = buildNumberedLineDiff(before, after);
   if (numbered === null) return null;
-  const { preview, addedLines, removedLines } = buildCompactDiffPreview(numbered);
+  const { preview, addedLines, removedLines } =
+    buildCompactDiffPreview(numbered);
   if (addedLines + removedLines === 0) return null;
   const rows = preview.split("\n");
-  const capped = rows.length > DIFF_PREVIEW_MAX_LINES
-    ? [...rows.slice(0, DIFF_PREVIEW_MAX_LINES), `… (${rows.length - DIFF_PREVIEW_MAX_LINES} more rows)`].join("\n")
-    : preview;
+  const capped =
+    rows.length > DIFF_PREVIEW_MAX_LINES
+      ? [
+          ...rows.slice(0, DIFF_PREVIEW_MAX_LINES),
+          `… (${rows.length - DIFF_PREVIEW_MAX_LINES} more rows)`,
+        ].join("\n")
+      : preview;
   return `diff (+${addedLines}/-${removedLines}):\n${capped}`;
 }
 
@@ -342,10 +370,12 @@ export default function hashlineExtension(pi: ExtensionAPI) {
         patch = Patch.parse(input, { cwd });
       } catch (err) {
         return {
-          content: [{
-            type: "text",
-            text: `Error parsing hashline input: ${err instanceof Error ? err.message : String(err)}`,
-          }],
+          content: [
+            {
+              type: "text",
+              text: `Error parsing hashline input: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           details: {},
         };
       }
@@ -366,14 +396,17 @@ export default function hashlineExtension(pi: ExtensionAPI) {
             // 文件未变 + 相同 payload → 该编辑已生效，拒绝重复
             throw new Error(
               `[E_DUPLICATE_EDIT] This exact edit was already applied to ${section.path} ` +
-              `by your previous edit call — the file already contains this change. ` +
-              `Do NOT resend the same payload: that would duplicate the inserted lines. ` +
-              `Re-read the file to see the current state before editing again.`,
+                `by your previous edit call — the file already contains this change. ` +
+                `Do NOT resend the same payload: that would duplicate the inserted lines. ` +
+                `Re-read the file to see the current state before editing again.`,
             );
           }
         } catch (err) {
           // 如果是我们抛的 E_DUPLICATE_EDIT，返回给模型
-          if (err instanceof Error && err.message.startsWith("[E_DUPLICATE_EDIT]")) {
+          if (
+            err instanceof Error &&
+            err.message.startsWith("[E_DUPLICATE_EDIT]")
+          ) {
             return {
               content: [{ type: "text", text: err.message }],
               details: {},
@@ -398,8 +431,8 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           if (section.op === "noop") {
             parts.push(
               `No changes to ${section.path}. ` +
-              `The body rows are byte-identical to the file at the target lines — ` +
-              `re-read the file with \`read\` to verify line numbers and latest content, then try again.`,
+                `The body rows are byte-identical to the file at the target lines — ` +
+                `re-read the file with \`read\` to verify line numbers and latest content, then try again.`,
             );
             continue;
           }
@@ -407,9 +440,11 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           allNoop = false;
           parts.push(section.header);
           const verb =
-            section.op === "create" ? "created" :
-            section.op === "delete" ? "deleted" :
-            "updated";
+            section.op === "create"
+              ? "created"
+              : section.op === "delete"
+                ? "deleted"
+                : "updated";
           parts.push(`${verb}: ${section.path}`);
 
           // ── Phase 2.1 Warnings 透出 ─────────────────────────────
@@ -422,7 +457,9 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           // ── Phase 2.2 块解析回显 ────────────────────────────────
           // "block N → lines start.=end"，让模型核对 tree-sitter 选中的范围。
           for (const br of section.blockResolutions ?? []) {
-            parts.push(`block ${br.anchorLine} → lines ${br.start}.=${br.end} (${br.op})`);
+            parts.push(
+              `block ${br.anchorLine} → lines ${br.start}.=${br.end} (${br.op})`,
+            );
           }
 
           // ── Phase 2.3 Diff 回显 ─────────────────────────────────
@@ -445,7 +482,7 @@ export default function hashlineExtension(pi: ExtensionAPI) {
                   .join(", ");
                 parts.push(
                   `[WARN] HTML structure may be broken in ${section.path}: ${detail}. ` +
-                  `This edit introduced the imbalance — verify no closing tag was dropped or element duplicated.`,
+                    `This edit introduced the imbalance — verify no closing tag was dropped or element duplicated.`,
                 );
               }
             }
@@ -457,7 +494,11 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           const normalized = await readNormalized(absolutePath);
           if (normalized !== null) {
             store.record(canonicalSnapshotKey(absolutePath), normalized);
-            editGuard.recordApplied(absolutePath, payloadKey, computeFileHash(normalized));
+            editGuard.recordApplied(
+              absolutePath,
+              payloadKey,
+              computeFileHash(normalized),
+            );
           }
         }
 
@@ -466,19 +507,24 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           let maxCount = 0;
           let escalate = false;
           for (const section of result.sections) {
-            const r = editGuard.recordNoop(path.resolve(cwd, section.path), payloadKey);
+            const r = editGuard.recordNoop(
+              path.resolve(cwd, section.path),
+              payloadKey,
+            );
             if (r.count > maxCount) maxCount = r.count;
             if (r.escalate) escalate = true;
           }
           if (escalate) {
             return {
-              content: [{
-                type: "text",
-                text:
-                  `[E_NOOP_LOOP] Edit was a byte-identical no-op ${maxCount} times in a row. ` +
-                  `STOP re-sending this payload. Re-read the file — the content you are ` +
-                  `trying to write already exists, or your anchors point at the wrong lines.`,
-              }],
+              content: [
+                {
+                  type: "text",
+                  text:
+                    `[E_NOOP_LOOP] Edit was a byte-identical no-op ${maxCount} times in a row. ` +
+                    `STOP re-sending this payload. Re-read the file — the content you are ` +
+                    `trying to write already exists, or your anchors point at the wrong lines.`,
+                },
+              ],
               details: {},
             };
           }
@@ -491,21 +537,25 @@ export default function hashlineExtension(pi: ExtensionAPI) {
       } catch (err: unknown) {
         if (err instanceof MismatchError) {
           return {
-            content: [{
-              type: "text",
-              text:
-                `Tag mismatch on ${err.path}: the file has changed since you last read it. ` +
-                `Expected tag #${err.expectedFileHash}, got #${err.actualFileHash}. ` +
-                `Re-read the file with \`read\` to get a fresh tag, then re-issue the edit.`,
-            }],
+            content: [
+              {
+                type: "text",
+                text:
+                  `Tag mismatch on ${err.path}: the file has changed since you last read it. ` +
+                  `Expected tag #${err.expectedFileHash}, got #${err.actualFileHash}. ` +
+                  `Re-read the file with \`read\` to get a fresh tag, then re-issue the edit.`,
+              },
+            ],
             details: {},
           };
         }
         return {
-          content: [{
-            type: "text",
-            text: `Error applying edit: ${err instanceof Error ? err.message : String(err)}`,
-          }],
+          content: [
+            {
+              type: "text",
+              text: `Error applying edit: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           details: {},
         };
       }

@@ -12,7 +12,9 @@ let seq = 0;
 
 function write(msg) {
   const body = JSON.stringify(msg);
-  process.stdout.write(`Content-Length: ${Buffer.byteLength(body, "utf-8")}\r\n\r\n${body}`);
+  process.stdout.write(
+    `Content-Length: ${Buffer.byteLength(body, "utf-8")}\r\n\r\n${body}`,
+  );
 }
 
 function publishDiags(uri, text) {

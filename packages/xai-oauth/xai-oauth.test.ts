@@ -14,23 +14,39 @@ import {
 
 describe("validateXAIEndpoint", () => {
   test("accepts https x.ai hosts", () => {
-    expect(validateXAIEndpoint("https://auth.x.ai/oauth2/token", "token_endpoint")).toBe(
-      "https://auth.x.ai/oauth2/token",
+    expect(
+      validateXAIEndpoint("https://auth.x.ai/oauth2/token", "token_endpoint"),
+    ).toBe("https://auth.x.ai/oauth2/token");
+    expect(validateXAIEndpoint("https://x.ai/device", "verification_uri")).toBe(
+      "https://x.ai/device",
     );
-    expect(validateXAIEndpoint("https://x.ai/device", "verification_uri")).toBe("https://x.ai/device");
   });
 
   test("rejects non-https", () => {
-    expect(() => validateXAIEndpoint("http://auth.x.ai/oauth2/token", "token_endpoint")).toThrow(OAuthError);
+    expect(() =>
+      validateXAIEndpoint("http://auth.x.ai/oauth2/token", "token_endpoint"),
+    ).toThrow(OAuthError);
   });
 
   test("rejects non-x.ai hosts", () => {
-    expect(() => validateXAIEndpoint("https://evil.example/oauth2/token", "token_endpoint")).toThrow(OAuthError);
-    expect(() => validateXAIEndpoint("https://x.ai.evil.com/oauth2/token", "token_endpoint")).toThrow(OAuthError);
+    expect(() =>
+      validateXAIEndpoint(
+        "https://evil.example/oauth2/token",
+        "token_endpoint",
+      ),
+    ).toThrow(OAuthError);
+    expect(() =>
+      validateXAIEndpoint(
+        "https://x.ai.evil.com/oauth2/token",
+        "token_endpoint",
+      ),
+    ).toThrow(OAuthError);
   });
 
   test("rejects invalid URL", () => {
-    expect(() => validateXAIEndpoint("not-a-url", "token_endpoint")).toThrow(OAuthError);
+    expect(() => validateXAIEndpoint("not-a-url", "token_endpoint")).toThrow(
+      OAuthError,
+    );
   });
 });
 
@@ -78,7 +94,9 @@ describe("parseXAITokenResponse", () => {
   });
 
   test("rejects missing fields", () => {
-    expect(() => parseXAITokenResponse({}, "test")).toThrow(/missing access_token/);
+    expect(() => parseXAITokenResponse({}, "test")).toThrow(
+      /missing access_token/,
+    );
     expect(() =>
       parseXAITokenResponse({ access_token: "a", expires_in: 10 }, "test"),
     ).toThrow(/missing refresh_token/);
@@ -91,12 +109,20 @@ describe("parseXAITokenResponse", () => {
 describe("formatOAuthErrorDetail", () => {
   test("prefers error_description from JSON", () => {
     expect(
-      formatOAuthErrorDetail(JSON.stringify({ error: "invalid_grant", error_description: "token expired" }), 400),
+      formatOAuthErrorDetail(
+        JSON.stringify({
+          error: "invalid_grant",
+          error_description: "token expired",
+        }),
+        400,
+      ),
     ).toBe("token expired");
   });
 
   test("falls back to error code", () => {
-    expect(formatOAuthErrorDetail(JSON.stringify({ error: "slow_down" }), 400)).toBe("slow_down");
+    expect(
+      formatOAuthErrorDetail(JSON.stringify({ error: "slow_down" }), 400),
+    ).toBe("slow_down");
   });
 
   test("truncates long non-JSON bodies", () => {

@@ -40,7 +40,10 @@ export default function btwExtension(pi: ExtensionAPI) {
         { deliverAs: "followUp" },
       );
 
-      pi.appendEntry("btw-mode", { active: true, questionCount: btwQuestionCount });
+      pi.appendEntry("btw-mode", {
+        active: true,
+        questionCount: btwQuestionCount,
+      });
     },
   });
 
@@ -83,7 +86,11 @@ The question is the last user message. Just answer it.`,
       const role = String(msg.role ?? "");
       const content = msg.content;
 
-      if (role === "user" && typeof content === "string" && (content as string).startsWith("[BTW]")) {
+      if (
+        role === "user" &&
+        typeof content === "string" &&
+        (content as string).startsWith("[BTW]")
+      ) {
         skipNextAssistant = true;
         continue;
       }
@@ -106,7 +113,10 @@ The question is the last user message. Just answer it.`,
     if (!btwActive) return;
 
     btwActive = false;
-    pi.appendEntry("btw-mode", { active: false, questionCount: btwQuestionCount });
+    pi.appendEntry("btw-mode", {
+      active: false,
+      questionCount: btwQuestionCount,
+    });
     ctx.ui.setStatus("btw-mode", undefined);
   });
 
@@ -116,7 +126,11 @@ The question is the last user message. Just answer it.`,
     const entries = ctx.sessionManager.getEntries();
 
     const btwEntry = (
-      entries as Array<{ type: string; customType?: string; data?: { active: boolean; questionCount: number } }>
+      entries as Array<{
+        type: string;
+        customType?: string;
+        data?: { active: boolean; questionCount: number };
+      }>
     )
       .filter((e) => e.type === "custom" && e.customType === "btw-mode")
       .pop();

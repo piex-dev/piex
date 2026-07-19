@@ -8,7 +8,10 @@
  * compaction protection.
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { Key } from "@earendil-works/pi-tui";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@earendil-works/pi-ai";
@@ -46,10 +49,22 @@ const PLAN_MANAGED = new Set([...PLAN_MODE_TOOLS, ...NORMAL_MODE_TOOLS]);
 // ══════════════════════════════════════════════════════════════════════════
 
 const DESTRUCTIVE_PATTERNS: RegExp[] = [
-  /\brm\b/i, /\brmdir\b/i, /\bmv\b/i, /\bcp\b/i, /\bmkdir\b/i,
-  /\btouch\b/i, /\bchmod\b/i, /\bchown\b/i, /\bchgrp\b/i, /\bln\b/i,
-  /\btee\b/i, /\btruncate\b/i, /\bdd\b/i, /\bshred\b/i,
-  /(^|[^<])>(?!>)/, />>/,
+  /\brm\b/i,
+  /\brmdir\b/i,
+  /\bmv\b/i,
+  /\bcp\b/i,
+  /\bmkdir\b/i,
+  /\btouch\b/i,
+  /\bchmod\b/i,
+  /\bchown\b/i,
+  /\bchgrp\b/i,
+  /\bln\b/i,
+  /\btee\b/i,
+  /\btruncate\b/i,
+  /\bdd\b/i,
+  /\bshred\b/i,
+  /(^|[^<])>(?!>)/,
+  />>/,
   /\bnpm\s+(install|uninstall|update|ci|link|publish)/i,
   /\byarn\s+(add|remove|install|publish)/i,
   /\bpnpm\s+(add|remove|install|publish)/i,
@@ -57,8 +72,13 @@ const DESTRUCTIVE_PATTERNS: RegExp[] = [
   /\bapt(-get)?\s+(install|remove|purge|update|upgrade)/i,
   /\bbrew\s+(install|uninstall|upgrade)/i,
   /\bgit\s+(add|commit|push|pull|merge|rebase|reset|checkout|branch\s+-[dD]|stash|cherry-pick|revert|tag|init|clone)/i,
-  /\bsudo\b/i, /\bsu\b/i, /\bkill\b/i, /\bpkill\b/i, /\bkillall\b/i,
-  /\breboot\b/i, /\bshutdown\b/i,
+  /\bsudo\b/i,
+  /\bsu\b/i,
+  /\bkill\b/i,
+  /\bpkill\b/i,
+  /\bkillall\b/i,
+  /\breboot\b/i,
+  /\bshutdown\b/i,
   /\bsystemctl\s+(start|stop|restart|enable|disable)/i,
   /\bservice\s+\S+\s+(start|stop|restart)/i,
   /\b(vim?|nano|emacs|code|subl)\b/i,
@@ -76,9 +96,14 @@ function cleanStepText(text: string): string {
   let cleaned = text
     .replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1")
     .replace(/`([^`]+)`/g, "$1")
-    .replace(/^(Use|Run|Execute|Create|Write|Read|Check|Verify|Update|Modify|Add|Remove|Delete|Install)\s+(the\s+)?/i, "")
-    .replace(/\s+/g, " ").trim();
-  if (cleaned.length > 0) cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+    .replace(
+      /^(Use|Run|Execute|Create|Write|Read|Check|Verify|Update|Modify|Add|Remove|Delete|Install)\s+(the\s+)?/i,
+      "",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length > 0)
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   if (cleaned.length > 50) cleaned = `${cleaned.slice(0, 47)}...`;
   return cleaned;
 }
@@ -88,12 +113,25 @@ function extractTodoItems(message: string): TodoItem[] {
   const headerMatch = message.match(/\*{0,2}Plan:\*{0,2}\s*\n/i);
   if (!headerMatch) return items;
 
-  const planSection = message.slice(message.indexOf(headerMatch[0]) + headerMatch[0].length);
-  for (const match of planSection.matchAll(/^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/gm)) {
-    const text = match[2].trim().replace(/\*{1,2}$/, "").trim();
-    if (text.length > 5 && !text.startsWith("`") && !text.startsWith("/") && !text.startsWith("-")) {
+  const planSection = message.slice(
+    message.indexOf(headerMatch[0]) + headerMatch[0].length,
+  );
+  for (const match of planSection.matchAll(
+    /^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/gm,
+  )) {
+    const text = match[2]
+      .trim()
+      .replace(/\*{1,2}$/, "")
+      .trim();
+    if (
+      text.length > 5 &&
+      !text.startsWith("`") &&
+      !text.startsWith("/") &&
+      !text.startsWith("-")
+    ) {
       const cleaned = cleanStepText(text);
-      if (cleaned.length > 3) items.push({ step: items.length + 1, text: cleaned, completed: false });
+      if (cleaned.length > 3)
+        items.push({ step: items.length + 1, text: cleaned, completed: false });
     }
   }
   return items;
@@ -132,14 +170,22 @@ function getTextContent(msg: AssistantMessage): string {
     .join("\n");
 }
 
-function unique(arr: string[]): string[] { return [...new Set(arr)]; }
+function unique(arr: string[]): string[] {
+  return [...new Set(arr)];
+}
 
 function getPlanTools(active: string[]): string[] {
-  return unique([...active.filter((n) => !PLAN_DISABLED.has(n)), ...PLAN_MODE_TOOLS]);
+  return unique([
+    ...active.filter((n) => !PLAN_DISABLED.has(n)),
+    ...PLAN_MODE_TOOLS,
+  ]);
 }
 
 function getNormalTools(active: string[]): string[] {
-  return unique([...NORMAL_MODE_TOOLS, ...active.filter((n) => !PLAN_MANAGED.has(n))]);
+  return unique([
+    ...NORMAL_MODE_TOOLS,
+    ...active.filter((n) => !PLAN_MANAGED.has(n)),
+  ]);
 }
 
 const PLAN_FILE = "PLAN.md";
@@ -167,7 +213,9 @@ export default function planExtension(pi: ExtensionAPI) {
   function buildTodoWidgetLines(): ((ctx: ExtensionContext) => string)[] {
     return todoItems.map((item) =>
       item.completed
-        ? (ctx) => ctx.ui.theme.fg("success", "☑ ") + ctx.ui.theme.fg("muted", ctx.ui.theme.strikethrough(item.text))
+        ? (ctx) =>
+            ctx.ui.theme.fg("success", "☑ ") +
+            ctx.ui.theme.fg("muted", ctx.ui.theme.strikethrough(item.text))
         : (ctx) => ctx.ui.theme.fg("muted", "☐ ") + item.text,
     );
   }
@@ -184,7 +232,10 @@ export default function planExtension(pi: ExtensionAPI) {
   function updateStatus(ctx: ExtensionContext) {
     if (executionMode && todoItems.length > 0) {
       const completed = todoItems.filter((t) => t.completed).length;
-      ctx.ui.setStatus("plan-mode", ctx.ui.theme.fg("accent", `📋 ${completed}/${todoItems.length}`));
+      ctx.ui.setStatus(
+        "plan-mode",
+        ctx.ui.theme.fg("accent", `📋 ${completed}/${todoItems.length}`),
+      );
     } else if (planModeEnabled) {
       ctx.ui.setStatus("plan-mode", ctx.ui.theme.fg("warning", "⏸ plan"));
     } else {
@@ -218,7 +269,9 @@ export default function planExtension(pi: ExtensionAPI) {
       pi.setActiveTools(getPlanTools(toolsBeforePlanMode));
       ctx.ui.notify("Plan mode enabled. Built-in write tools disabled.");
     } else {
-      pi.setActiveTools(toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()));
+      pi.setActiveTools(
+        toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()),
+      );
       toolsBeforePlanMode = undefined;
       ctx.ui.notify("Plan mode disabled. Full access restored.");
     }
@@ -272,9 +325,14 @@ export default function planExtension(pi: ExtensionAPI) {
         const msg = m as AgentMessage & { customType?: string };
         if (msg.customType === "plan-mode-context") return false;
         if (msg.role !== "user") return true;
-        if (typeof msg.content === "string") return !msg.content.includes("[PLAN MODE ACTIVE]");
+        if (typeof msg.content === "string")
+          return !msg.content.includes("[PLAN MODE ACTIVE]");
         if (Array.isArray(msg.content)) {
-          return !msg.content.some((c) => c.type === "text" && (c as TextContent).text?.includes("[PLAN MODE ACTIVE]"));
+          return !msg.content.some(
+            (c) =>
+              c.type === "text" &&
+              (c as TextContent).text?.includes("[PLAN MODE ACTIVE]"),
+          );
         }
         return true;
       }),
@@ -347,11 +405,14 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
       turnsWithoutProgress++;
       if (turnsWithoutProgress >= 2) {
         const remaining = todoItems.filter((t) => !t.completed);
-        pi.sendMessage({
-          customType: "plan-done-reminder",
-          content: `⚠️ You have not included any [DONE:n] tags for ${turnsWithoutProgress} consecutive turns. Remaining steps: ${remaining.map((t) => t.step).join(", ")}. End your next response with [DONE:n] for each completed step.`,
-          display: false,
-        }, { triggerTurn: false });
+        pi.sendMessage(
+          {
+            customType: "plan-done-reminder",
+            content: `⚠️ You have not included any [DONE:n] tags for ${turnsWithoutProgress} consecutive turns. Remaining steps: ${remaining.map((t) => t.step).join(", ")}. End your next response with [DONE:n] for each completed step.`,
+            display: false,
+          },
+          { triggerTurn: false },
+        );
       }
     }
     persistState();
@@ -365,7 +426,11 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
       if (todoItems.every((t) => t.completed)) {
         const completedList = todoItems.map((t) => `~~${t.text}~~`).join("\n");
         pi.sendMessage(
-          { customType: "plan-complete", content: `**Plan Complete!** ✓\n\n${completedList}`, display: true },
+          {
+            customType: "plan-complete",
+            content: `**Plan Complete!** ✓\n\n${completedList}`,
+            display: true,
+          },
           { triggerTurn: false },
         );
         executionMode = false;
@@ -381,7 +446,9 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
     if (!planModeEnabled || !ctx.hasUI) return;
 
     // Extract todos from last assistant message
-    const lastAssistant = [...event.messages].reverse().find(isAssistantMessage);
+    const lastAssistant = [...event.messages]
+      .reverse()
+      .find(isAssistantMessage);
     if (lastAssistant) {
       const extracted = extractTodoItems(getTextContent(lastAssistant));
       if (extracted.length > 0) todoItems = extracted;
@@ -391,7 +458,9 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
     persistState();
 
     // Show plan and ask what next
-    const todoListText = todoItems.map((t, i) => `${i + 1}. ☐ ${t.text}`).join("\n");
+    const todoListText = todoItems
+      .map((t, i) => `${i + 1}. ☐ ${t.text}`)
+      .join("\n");
     const planTodoListMsg = {
       customType: "plan-todo-list",
       content: `**Plan Steps (${todoItems.length}):**\n\n${todoListText}`,
@@ -412,7 +481,9 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
       executionMode = true;
       turnsWithoutProgress = 0;
       todosWidgetVisible = true;
-      pi.setActiveTools(toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()));
+      pi.setActiveTools(
+        toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()),
+      );
       toolsBeforePlanMode = undefined;
       updateStatus(ctx);
       persistState();
@@ -447,16 +518,22 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
 
     // Restore persisted state
     const planModeEntry = entries
-      .filter((e: { type: string; customType?: string }) => e.type === "custom" && e.customType === "plan-mode")
-      .pop() as { data?: PlanModeState & { planFilePath?: string } } | undefined;
+      .filter(
+        (e: { type: string; customType?: string }) =>
+          e.type === "custom" && e.customType === "plan-mode",
+      )
+      .pop() as
+      { data?: PlanModeState & { planFilePath?: string } } | undefined;
 
     if (planModeEntry?.data) {
       planModeEnabled = planModeEntry.data.enabled ?? planModeEnabled;
       todoItems = planModeEntry.data.todos ?? todoItems;
       executionMode = planModeEntry.data.executing ?? executionMode;
-      toolsBeforePlanMode = planModeEntry.data.toolsBeforePlanMode ?? toolsBeforePlanMode;
+      toolsBeforePlanMode =
+        planModeEntry.data.toolsBeforePlanMode ?? toolsBeforePlanMode;
       planFilePath = planModeEntry.data.planFilePath ?? planFilePath;
-      todosWidgetVisible = planModeEntry.data.todosWidgetVisible ?? todosWidgetVisible;
+      todosWidgetVisible =
+        planModeEntry.data.todosWidgetVisible ?? todosWidgetVisible;
     }
 
     // On resume: rebuild completion state from messages after last execute
@@ -464,13 +541,20 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
       let executeIndex = -1;
       for (let i = entries.length - 1; i >= 0; i--) {
         const entry = entries[i] as { type: string; customType?: string };
-        if (entry.customType === "plan-mode-execute") { executeIndex = i; break; }
+        if (entry.customType === "plan-mode-execute") {
+          executeIndex = i;
+          break;
+        }
       }
 
       const messages: AssistantMessage[] = [];
       for (let i = executeIndex + 1; i < entries.length; i++) {
         const entry = entries[i];
-        if (entry.type === "message" && "message" in entry && isAssistantMessage(entry.message as AgentMessage)) {
+        if (
+          entry.type === "message" &&
+          "message" in entry &&
+          isAssistantMessage(entry.message as AgentMessage)
+        ) {
           messages.push(entry.message as AssistantMessage);
         }
       }
@@ -478,7 +562,9 @@ CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY 
     }
 
     if (planModeEnabled) {
-      pi.setActiveTools(getPlanTools(toolsBeforePlanMode ?? pi.getActiveTools()));
+      pi.setActiveTools(
+        getPlanTools(toolsBeforePlanMode ?? pi.getActiveTools()),
+      );
     }
     updateStatus(ctx);
   });

@@ -22,7 +22,9 @@
     "edit"
   ],
   "pi": {
-    "extensions": ["./extensions/hashline.ts"]
+    "extensions": [
+      "./extensions/hashline.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/hashline.ts"

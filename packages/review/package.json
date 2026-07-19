@@ -22,7 +22,9 @@
     "diff"
   ],
   "pi": {
-    "extensions": ["./extensions/review.ts"]
+    "extensions": [
+      "./extensions/review.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/review.ts"

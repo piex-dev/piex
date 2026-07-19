@@ -21,10 +21,19 @@ export interface XaiModelConfig {
   name: string;
   reasoning: boolean;
   input: ("text" | "image")[];
-  cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
+  cost: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
   contextWindow: number;
   maxTokens: number;
-  compat: { supportsStore: boolean; supportsDeveloperRole: boolean; supportsReasoningEffort: boolean };
+  compat: {
+    supportsStore: boolean;
+    supportsDeveloperRole: boolean;
+    supportsReasoningEffort: boolean;
+  };
   /** Override base URL — set for proxy-only models. */
   baseUrl?: string;
   /** Extra headers — set alongside baseUrl for proxy routing. */
@@ -68,7 +77,12 @@ const COST_420 = { input: 2, output: 6, cacheRead: 0.2, cacheWrite: 0 };
 const COST_45 = { input: 2, output: 6, cacheRead: 0.5, cacheWrite: 0 };
 const COST_3 = { input: 3, output: 15, cacheRead: 0.75, cacheWrite: 0 };
 const COST_3_FAST = { input: 5, output: 25, cacheRead: 1.25, cacheWrite: 0 };
-const COST_CODE_FAST = { input: 0.2, output: 1.5, cacheRead: 0.02, cacheWrite: 0 };
+const COST_CODE_FAST = {
+  input: 0.2,
+  output: 1.5,
+  cacheRead: 0.02,
+  cacheWrite: 0,
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Fallback model list
@@ -208,21 +222,25 @@ export function envModelIds(): string[] {
  * defaults so env can pre-declare models not yet in the fallback catalog.
  * Empty `envIds` returns `models` unchanged.
  */
-export function filterModelsByEnv(models: XaiModelConfig[], envIds: string[]): XaiModelConfig[] {
+export function filterModelsByEnv(
+  models: XaiModelConfig[],
+  envIds: string[],
+): XaiModelConfig[] {
   if (envIds.length === 0) return models;
 
   const byId = new Map(models.map((m) => [m.id, m]));
-  return envIds.map((id) =>
-    byId.get(id) ?? {
-      id,
-      name: id,
-      reasoning: true,
-      input: ["text"] as ("text" | "image")[],
-      cost: COST_BUILD,
-      contextWindow: 1_000_000,
-      maxTokens: 30000,
-      compat: DEFAULT_COMPAT,
-    },
+  return envIds.map(
+    (id) =>
+      byId.get(id) ?? {
+        id,
+        name: id,
+        reasoning: true,
+        input: ["text"] as ("text" | "image")[],
+        cost: COST_BUILD,
+        contextWindow: 1_000_000,
+        maxTokens: 30000,
+        compat: DEFAULT_COMPAT,
+      },
   );
 }
 
@@ -344,8 +362,12 @@ let discoveredProxyIds: Set<string> = new Set();
 let discoveryInFlight: Promise<void> | null = null;
 
 /** Merge the cached discovery into a base list.  Returns base unchanged when no fetch has run yet. */
-export function mergeDiscoveredModels(base: XaiModelConfig[]): XaiModelConfig[] {
-  return discoveredBody ? mergeLiveModels(base, discoveredBody, discoveredProxyIds) : base;
+export function mergeDiscoveredModels(
+  base: XaiModelConfig[],
+): XaiModelConfig[] {
+  return discoveredBody
+    ? mergeLiveModels(base, discoveredBody, discoveredProxyIds)
+    : base;
 }
 
 /** Pure helper: merge discovery + re-apply env filter. */
@@ -409,10 +431,16 @@ export function rebuildModelsForOAuth(
   const ours = allModels.filter((m) => m.provider === provider);
   const template = ours[0] as Record<string, unknown> | undefined;
 
-  const merged = applyDiscoveredModels(ours as unknown as XaiModelConfig[], envIds).map((m) => {
+  const merged = applyDiscoveredModels(
+    ours as unknown as XaiModelConfig[],
+    envIds,
+  ).map((m) => {
     return {
       ...m,
-      api: (m as Record<string, unknown>).api ?? (template?.api as string | undefined) ?? "openai-completions",
+      api:
+        (m as Record<string, unknown>).api ??
+        (template?.api as string | undefined) ??
+        "openai-completions",
       provider: (m as Record<string, unknown>).provider ?? provider,
       baseUrl: m.baseUrl ?? effectiveBaseUrl,
     } as Record<string, unknown>;

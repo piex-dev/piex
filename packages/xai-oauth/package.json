@@ -24,7 +24,9 @@
     "x-premium"
   ],
   "pi": {
-    "extensions": ["./extensions/xai-oauth.ts"]
+    "extensions": [
+      "./extensions/xai-oauth.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/xai-oauth.ts"

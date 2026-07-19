@@ -51,12 +51,16 @@ describe("worsenedImbalances", () => {
   });
 
   test("newly introduced imbalance is reported", () => {
-    expect(worsenedImbalances({}, { section: [2, 1] })).toEqual({ section: [2, 1] });
+    expect(worsenedImbalances({}, { section: [2, 1] })).toEqual({
+      section: [2, 1],
+    });
   });
 
   test("worsened imbalance is reported, improved is not", () => {
     const before = { div: [3, 1] as [number, number] };
-    expect(worsenedImbalances(before, { div: [4, 1] })).toEqual({ div: [4, 1] });
+    expect(worsenedImbalances(before, { div: [4, 1] })).toEqual({
+      div: [4, 1],
+    });
     expect(worsenedImbalances(before, { div: [3, 2] })).toEqual({});
   });
 });

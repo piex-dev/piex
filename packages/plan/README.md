@@ -47,16 +47,16 @@ plan.ts                        # pi 扩展入口 (348 行)
 
 ## pi API 使用
 
-| 功能 | pi API |
-|------|--------|
-| /plan 命令 | `pi.registerCommand("plan", ...)` |
-| 快捷键 | `pi.registerShortcut(Key.altShift("p"), ...)` |
-| 只读工具限制 | `pi.setActiveTools([...])` |
-| 危险 bash 拦截 | `pi.on("tool_call", ...)` → block |
-| 注入计划上下文 | `pi.on("before_agent_start", ...)` |
-| 进度追踪 | `pi.on("turn_end", ...)` |
-| 交互弹窗 | `ctx.ui.select(...)`, `ctx.ui.editor(...)` |
-| 状态持久化 | `pi.appendEntry("plan-mode", ...)` |
+| 功能           | pi API                                        |
+| -------------- | --------------------------------------------- |
+| /plan 命令     | `pi.registerCommand("plan", ...)`             |
+| 快捷键         | `pi.registerShortcut(Key.altShift("p"), ...)` |
+| 只读工具限制   | `pi.setActiveTools([...])`                    |
+| 危险 bash 拦截 | `pi.on("tool_call", ...)` → block             |
+| 注入计划上下文 | `pi.on("before_agent_start", ...)`            |
+| 进度追踪       | `pi.on("turn_end", ...)`                      |
+| 交互弹窗       | `ctx.ui.select(...)`, `ctx.ui.editor(...)`    |
+| 状态持久化     | `pi.appendEntry("plan-mode", ...)`            |
 
 ## 安装
 
@@ -66,12 +66,12 @@ pi install npm:@piex-dev/plan
 
 ## 与 omp 实现差异
 
-| omp | plan |
-|-----|----------|
-| 全屏 plan-review-overlay 审批计划 | `ctx.ui.select` 3 选项弹窗 |
-| Plan TOC 侧栏（目录导航 + 删除段落） | 无（pi API 不支持） |
-| 子 agent 计划传递（plan-handoff） | 无（依赖 subagent） |
-| plan mode 下 write 工具禁用 | ✅ 保持一致 |
+| omp                                  | plan                       |
+| ------------------------------------ | -------------------------- |
+| 全屏 plan-review-overlay 审批计划    | `ctx.ui.select` 3 选项弹窗 |
+| Plan TOC 侧栏（目录导航 + 删除段落） | 无（pi API 不支持）        |
+| 子 agent 计划传递（plan-handoff）    | 无（依赖 subagent）        |
+| plan mode 下 write 工具禁用          | ✅ 保持一致                |
 
 ## 来源
 

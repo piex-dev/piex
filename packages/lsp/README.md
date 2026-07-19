@@ -21,10 +21,10 @@ LSP（Language Server Protocol）扩展：注册 `lsp` 工具，并在 `edit`/`w
 
 `edit` / `write`（含 hashline 覆盖的 edit）成功后，扩展会：
 
-1. 解析改动路径  
-2. 同步磁盘内容到 language server（didOpen / didChange）  
-3. 等待 publishDiagnostics  
-4. 将 **ERROR** 诊断（每文件最多 20 条）附在 tool 结果末尾  
+1. 解析改动路径
+2. 同步磁盘内容到 language server（didOpen / didChange）
+3. 等待 publishDiagnostics
+4. 将 **ERROR** 诊断（每文件最多 20 条）附在 tool 结果末尾
 
 关闭：
 
@@ -43,12 +43,12 @@ rename, code_actions, format
 
 ### rename / code_actions
 
-| 参数 | 说明 |
-|------|------|
-| `apply` | 默认 `false`（preview）；`true` 才写盘 |
-| `new_name` / `symbol` | rename 新名称 |
-| `index` | code_actions 应用时的 1-based 序号 |
-| `query` | code_actions 按 title/kind 过滤 |
+| 参数                  | 说明                                   |
+| --------------------- | -------------------------------------- |
+| `apply`               | 默认 `false`（preview）；`true` 才写盘 |
+| `new_name` / `symbol` | rename 新名称                          |
+| `index`               | code_actions 应用时的 1-based 序号     |
+| `query`               | code_actions 按 title/kind 过滤        |
 
 写盘后请 **re-read** 再继续 hashline 编辑（tag 会失效）。
 
@@ -85,15 +85,15 @@ go install golang.org/x/tools/gopls@latest
 
 ## 与 omp / OpenCode 的差异
 
-| 能力 | omp | OpenCode | piex lsp |
-|------|-----|----------|----------|
-| 显式 lsp tool | 14 action | 实验 flag | 13 action（默认开） |
-| 写后诊断 | writethrough + deferred | edit/write 注入 ERROR | tool_result 附 ERROR（可关） |
-| rename / codeAction | ✅ | ❌ | ✅ preview 默认 |
-| 多 server 诊断 | ✅ | ✅ | ✅ |
-| isLinter 分流 | ✅ | 多 client | ✅ |
-| TUI 渲染 | ✅ | 侧栏 status | 纯文本 |
-| 项目级 lsp 配置 | 多层 | config.lsp | 暂仅 defaults（后续） |
-| lspmux / 自动下载 | 有 | 有 | ❌ |
+| 能力                | omp                     | OpenCode              | piex lsp                     |
+| ------------------- | ----------------------- | --------------------- | ---------------------------- |
+| 显式 lsp tool       | 14 action               | 实验 flag             | 13 action（默认开）          |
+| 写后诊断            | writethrough + deferred | edit/write 注入 ERROR | tool_result 附 ERROR（可关） |
+| rename / codeAction | ✅                      | ❌                    | ✅ preview 默认              |
+| 多 server 诊断      | ✅                      | ✅                    | ✅                           |
+| isLinter 分流       | ✅                      | 多 client             | ✅                           |
+| TUI 渲染            | ✅                      | 侧栏 status           | 纯文本                       |
+| 项目级 lsp 配置     | 多层                    | config.lsp            | 暂仅 defaults（后续）        |
+| lspmux / 自动下载   | 有                      | 有                    | ❌                           |
 
 功能参考 [oh-my-pi](https://github.com/can1357/oh-my-pi) `packages/coding-agent/src/lsp` 与 OpenCode 写后诊断闭环。

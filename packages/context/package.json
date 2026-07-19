@@ -23,7 +23,9 @@
     "session-stats"
   ],
   "pi": {
-    "extensions": ["./extensions/context.ts"]
+    "extensions": [
+      "./extensions/context.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/context.ts"

@@ -23,7 +23,9 @@
     "ephemeral"
   ],
   "pi": {
-    "extensions": ["./extensions/btw.ts"]
+    "extensions": [
+      "./extensions/btw.ts"
+    ]
   },
   "exports": {
     ".": "./extensions/btw.ts"

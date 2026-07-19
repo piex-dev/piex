@@ -58,7 +58,10 @@ export class EditGuard {
    * 记录一次 noop 编辑。payloadKey 变化时自动重置计数（模型换了 payload = 在尝试别的）。
    * 返回当前计数 + 是否触发硬限制。
    */
-  recordNoop(path: string, payloadKey: string): {
+  recordNoop(
+    path: string,
+    payloadKey: string,
+  ): {
     count: number;
     escalate: boolean;
   } {
