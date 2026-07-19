@@ -117,9 +117,17 @@ defaults.json    # ~50 server（command / fileTypes / rootMarkers / initOptions 
 1. edit（hashline）→ 自动 ERROR 诊断  
 2. 需要导航/重构时显式 `lsp`  
 3. 运行时问题 → dap  
-
 ---
 
+## 设计参考
+
+| 项目 | 机制 | piex 取舍 |
+|------|------|-----------|
+| **oh-my-pi lsp** | 完整 LSP 客户端：多 server 路由、didChange、完整 action 面、诊断聚合 | **采纳**：JSON-RPC client、defaults.json 驱动、按需启动/会话复用、多 server 诊断聚合。**不采纳**：Bun 运行时（改 Node/child_process）、大面铺满 action（按需暴露） |
+| **OpenCode 写后诊断** | `tool_result` hook 拦截 edit/write → 等 publishDiagnostics → 仅 ERROR 附在结果末尾、每文件 cap | **采纳**这一整套模式：sync → wait → only ERROR → cap 20 → 干净文件不附加。`PI_LSP_DIAGNOSTICS_ON_EDIT=0` 可关 |
+| **VS Code LSP** | initialize + settings/didChangeConfiguration + workspace/configuration | **借鉴**：initOptions/settings 正确下发路径；full-text didChange 避免 server 读到旧 buffer；`which` 查 node_modules/.bin 和 .venv |
+
+核心取舍：优先写后 ERROR 闭环（学 OpenCode），诊断优于导航暴露；linter 不抢 primary server 的导航角色。
 ## 优化计划
 
 | 状态 | 项 |

@@ -93,7 +93,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,16 @@
         <p>
           约 350 行单文件。交互 select 菜单后 <code>sendUserMessage</code> followUp。是 omp review 轻量版：无多 agent 并行与 TUI overlay。
         </p>
-        <h2 id="roadmap">优化计划</h2>
+        
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi review</strong></td><td>/review 命令 + review 工具；多 agent 并行评审 + TUI overlay；diff 引擎 + 噪声过滤</td><td><strong>采纳</strong>：diff 引擎、噪声过滤、多模式、人机共用 buildReviewPrompt。<strong>不采纳</strong>：多 agent（依赖 subagent）、TUI overlay（改 sendUserMessage followUp）</td></tr>
+<tr><td><strong>OpenCode /review</strong></td><td>内置 /review 命令，review 未提交或指定 commit/branch</td><td><strong>借鉴</strong>：交互菜单模式选择、统一 prompt 模板、多 source 评审</td></tr>
+</tbody></table></div>
+<p>核心取舍：完整保留 diff 引擎与噪声过滤，放弃并行与视觉 overlay。等 subagent 成熟再迁多 agent 版。</p>
+
+<h2 id="roadmap">优化计划</h2>
         <p>
           findings JSON；与 lsp/dap 联动；项目级 ignore；多 pass；远期 subagent 版。
         </p>
@@ -160,7 +170,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
       </nav>
     </aside>
   </div>

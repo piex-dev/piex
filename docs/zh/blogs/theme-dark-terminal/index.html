@@ -93,7 +93,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,16 @@
         <p>
           自 opencode-themes/dark-terminal 映射到 pi schema。全局安装注意绝对路径，避免 reload 丢主题。零 hook、零网络。
         </p>
-        <h2 id="roadmap">优化计划</h2>
+        
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>opencode-themes dark-terminal</strong></td><td>51 color token 高对比暗终端配色；bg: #050505、green/blue/red 强调色系</td><td><strong>采纳</strong>：色彩角色与语义映射。<strong>适配</strong>：pi 额外 token（thinking gradient 强度色 #ff0088 为 pi 侧增量）</td></tr>
+<tr><td><strong>pi theme schema</strong></td><td>vars → colors 两层映射；pi.themes JSON 分发；零代码热加载</td><td><strong>完全遵循</strong>：只提供静态 JSON，不写 TS、不走 hook</td></tr>
+</tbody></table></div>
+<p>核心取舍：不做代码、不改行为、不绑宿主终端；只把 opencode-themes 的色板翻译到 pi 的 token 名上。</p>
+
+<h2 id="roadmap">优化计划</h2>
         <p>
           soft / 色弱变体；token 对照表；视觉回归；批量从 opencode-themes 导入。
         </p>
@@ -160,7 +170,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
       </nav>
     </aside>
   </div>

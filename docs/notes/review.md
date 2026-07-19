@@ -128,9 +128,16 @@ pi install npm:@piex-dev/review
 | Diff + 噪声过滤 | ✅ |
 | 多模式 | ✅（轻量集合） |
 | 结构化 prompt | ✅ 精简版 |
-
 ---
 
+## 设计参考
+
+| 项目 | 机制 | piex 取舍 |
+|------|------|-----------|
+| **oh-my-pi review** | `/review` 命令 + review 工具；多 agent 并行评审 + TUI overlay；diff 引擎 + 噪声过滤 + 结构化 prompt | **采纳**：diff 引擎（`parseDiff`）、噪声过滤（`EXCLUDED_PATTERNS`）、多模式（uncommitted/staged/branch/commit/custom）、人机共用 `buildReviewPrompt`。**不采纳**：多 agent 并行（依赖 subagent）、TUI overlay（改 `sendUserMessage` followUp） |
+| **OpenCode /review** | 内置 `/review` 命令，review 未提交或指定 commit/branch | **借鉴**：交互菜单模式选择、统一 prompt 模板、ci/commit/pr 等多 source 评审 |
+
+核心取舍：完整保留 diff 引擎与噪声过滤（让模型吃饱干净的上下文），放弃并行与视觉 overlay。等 subagent 成熟再迁多 agent 版。
 ## 优化计划
 
 轻量版有意不做多 agent 大舞台，因此短板也集中、可预期：

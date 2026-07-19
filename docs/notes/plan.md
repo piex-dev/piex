@@ -140,9 +140,16 @@ Plan:
 | write 禁用 | 一致 |
 
 轻量的好处是：依赖面小、行为可预测、和上游 pi 示例同源好维护。
-
 ---
 
+## 设计参考
+
+| 项目 | 机制 | piex 取舍 |
+|------|------|-----------|
+| **pi 官方 plan-mode 示例** | `registerCommand("plan")` + `setActiveTools` + `tool_call` 拦截 bash | **采纳**核心 API 方案：工具切换、bash 拦截、`[DONE:n]` 标记解析、`before_agent_start` 注入。**增强**：`appendEntry` 跨 turn 持久化 + PLAN.md 落盘 + UI widget |
+| **oh-my-pi plan** | 全屏 plan-review overlay + TOC 侧栏 + 子 agent handoff | **不采纳**：pi API 不支持全屏 overlay，且子 agent 未就绪。**借鉴**：步骤审批（改为 `select` 交互）、工具白名单可配置、与 `/review` 联动 |
+
+核心取舍：坚持 pi 示例同源路线（轻、可预测、好维护），放弃 omp 式重 UI；用 `appendEntry` 扛 compaction 而不是 TUI 持久化。
 ## 优化计划
 
 Plan Mode 解决的是制度，不是魔法；边界清楚，后续也围绕这些边界加厚：

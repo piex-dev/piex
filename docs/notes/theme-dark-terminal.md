@@ -132,9 +132,16 @@ JSON 按 pi theme schema 填齐必需 color token（数十个），包括：
 - 不依赖 Node API  
 
 因此它是 piex 七包里风险面最小、也最适合当「扩展分发机制」示例的一员：证明 piex 不只是工具插件，也是 pi 包生态的一部分。
-
 ---
 
+## 设计参考
+
+| 项目 | 机制 | piex 取舍 |
+|------|------|-----------|
+| **opencode-themes dark-terminal** | 51 color token 的高对比暗终端配色；`bg: #050505`、green/blue/red 强调色系 | **采纳**：色彩角色与语义映射（accent → 绿、error → 红、diff 加行 → 绿）。**适配**pi 的额外 token（thinking gradient 强度色 `#ff0088` 为 pi 侧增量） |
+| **pi theme schema** | `vars` → `colors` 两层映射；`pi.themes` JSON 分发；零代码热加载 | **完全遵循**：只提供静态 JSON，不写 TS、不走 hook |
+
+核心取舍：不做代码、不改行为、不绑宿主终端；只把 opencode-themes 的色板翻译到 pi 的 token 名上。
 ## 优化计划
 
 主题包风险面小，迭代也该小步、可验证：

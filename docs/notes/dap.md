@@ -139,9 +139,16 @@ debug(action=evaluate, expression="user.id")
 ```
 
 和人在 IDE 里点的是同一条协议链路，只是 UI 换成了工具调用。
-
 ---
 
+## 设计参考
+
+| 项目 | 机制 | piex 取舍 |
+|------|------|-----------|
+| **oh-my-pi dap** | 完整 DAP 客户端：stdio + TCP + WebSocket；14+ adapter；结构化输出；TUI variable explorer | **采纳**：14 adapter 配置、JSON-RPC 帧协议、断点队列、输出缓冲上限、空闲回收。**不采纳**：TCP/WebSocket（本机够用，省 socket 生命周期）、TUI overlay（pi API 限制） |
+| **VS Code DAP** | 协议规范三层模型（editor / client / adapter） | **借鉴**：三层分工理念（agent 决策 → client 翻译 → adapter 执行）、capabilities 检查、stop 状态后自动附上下文摘要 |
+
+核心取舍：只做 stdio（简单安全），不做远程 attach；先文本输出（快速落地），暂缓 TUI；capabilities 驱动能力面，不一次铺满所有 action。
 ## 优化计划
 
 相对 omp 与完整 DAP，当前仍有明显缺口，也正好标出优先级：

@@ -93,7 +93,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,16 @@
         <p>
           Single-file lightweight port of omp review without multi-agent overlays.
         </p>
-        <h2 id="roadmap">Roadmap</h2>
+        
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi review</strong></td><td>/review command + review tool; multi-agent parallel review + TUI overlay; diff engine + noise filters</td><td><strong>Adopted</strong>: diff engine, noise filters, multi-mode, shared buildReviewPrompt for humans and models. <strong>Dropped</strong>: multi-agent (depends on subagent), TUI overlay (sendUserMessage followUp)</td></tr>
+<tr><td><strong>OpenCode /review</strong></td><td>Built-in /review command, review uncommitted or specific commit/branch</td><td><strong>Borrowed</strong>: interactive menu mode selection, unified prompt template, multi-source review</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: full diff engine and noise filter preservation, drop parallelism and visual overlay. Multi-agent once subagents mature.</p>
+
+<h2 id="roadmap">Roadmap</h2>
         <p>
           Structured findings, LSP/DAP hooks, project ignores, multi-pass, later subagents.
         </p>
@@ -160,7 +170,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
   </div>

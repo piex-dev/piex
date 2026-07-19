@@ -180,10 +180,17 @@ payloadKey / fileHash 均用 xxHash32 的紧凑 hex，避免存整份 DSL。
 | Stale anchor 自动恢复 | Recovery 模块 | ❌ 目前要求 re-read |
 | 多版本快照 LRU | 视版本 | ❌ 单版本内存 store |
 
-README 若仍写「noop 未实现」，以源码 Phase 1 注释与 `patches.ts` 为准（文档滞后时以代码为准）。
-
 ---
 
+## 设计参考
+
+| 项目 | 机制 | piex 取舍 |
+|------|------|-----------|
+| **oh-my-pi hashline** | 全文件 tag + tree-sitter 块语法 + boundary repair 引擎 | **采纳**：封装 `@oh-my-pi/hashline`，继承 tag、SWAP.BLK、REM/MV 与引擎。**不采纳**：内建集成、Bun FS、LSP writethrough；改为 Node + 外层 EditGuard |
+| **pi-hashline-edit** | 逐行上下文哈希 + 3-way merge 恢复 + JSON DSL | **不采纳**核心算法（路线分歧，整体 tag vs 逐行），**借鉴**容错意图（noop/dup guard，本包另做）。ADR 方案留作未来 Phase 2 Stale 恢复参考 |
+| **pi-hashline-edit-pro** | 逐行内容哈希 + stable mapping | **不采纳**算法，**借鉴**「尽量少 re-read」的设计目标，作为远期优化方向 |
+
+核心取舍：选择整体文件 tag（严格简单），放弃逐行 tag（局部可用），用封装层补容错。三个阶段明确：Phase 1 容错（done）→ Phase 2 恢复 → Phase 3 undo/LSP 联动。
 ## 优化计划
 
 选择整体文件 tag，换来的是严格与简单，也带来固定税：

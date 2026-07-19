@@ -93,7 +93,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,16 @@
         <p>
           单文件扩展，重度使用 registerCommand/Shortcut、setActiveTools、tool_call 拦截、before_agent_start 注入、turn_end 解析、UI status/widget。相对 omp 全屏 overlay 有意做轻。
         </p>
-        <h2 id="roadmap">优化计划</h2>
+        
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>pi 官方 plan-mode 示例</strong></td><td>registerCommand + setActiveTools + tool_call 拦截 bash</td><td><strong>采纳</strong>核心 API 方案：工具切换、bash 拦截、DONE 标记解析。 <strong>增强</strong>：appendEntry 跨 turn 持久化 + PLAN.md 落盘 + UI widget</td></tr>
+<tr><td><strong>oh-my-pi plan</strong></td><td>全屏 plan-review overlay + TOC 侧栏 + 子 agent handoff</td><td><strong>不采纳</strong>：pi API 不支持全屏 overlay，子 agent 未就绪。<strong>借鉴</strong>：步骤审批（改 select 交互）、工具白名单可配置、与 review 联动</td></tr>
+</tbody></table></div>
+<p>核心取舍：坚持 pi 示例同源路线（轻、可预测、好维护），放弃 omp 式重 UI；用 appendEntry 扛 compaction。</p>
+
+<h2 id="roadmap">优化计划</h2>
         <p>
           更稳计划 IR（可选 JSON）；DONE 弱验证；与 /review 收尾联动；PLAN.md frontmatter；工具白名单可配置。黑名单不是沙箱。
         </p>
@@ -160,7 +170,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
       </nav>
     </aside>
   </div>

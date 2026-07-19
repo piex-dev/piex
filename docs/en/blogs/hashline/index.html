@@ -93,7 +93,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         <a href="#appendix">Appendix</a>
         </nav>
       </div>
@@ -151,7 +152,17 @@ SWAP 2.=2:
             </tbody>
           </table>
         </div>
-        <h2 id="roadmap">Roadmap</h2>
+        
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi hashline</strong></td><td>Full-file tag + tree-sitter block syntax + boundary repair engine</td><td><strong>Adopted</strong>: wrapping <code>@oh-my-pi/hashline</code>, inheriting tags, SWAP.BLK, REM/MV and engine. <strong>Dropped</strong>: built-in integration, Bun FS, LSP writethrough; replaced with Node + outer EditGuard</td></tr>
+<tr><td><strong>pi-hashline-edit</strong></td><td>Per-line context hashing + 3-way merge recovery + JSON DSL</td><td><strong>Dropped</strong> core algorithm (divergent route), <strong>borrowed</strong> fault-tolerance intent (noop/dup guard). ADRs kept as Phase 2 stale recovery references</td></tr>
+<tr><td><strong>pi-hashline-edit-pro</strong></td><td>Per-line content hashing + stable mapping</td><td><strong>Dropped</strong> algorithm, <strong>borrowed</strong> "minimize re-read" as long-term target</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: whole-file tag (strict &amp; simple) over per-line (local resilience), fault-tolerance in wrapping layer. Three phases: Phase 1 guards (done) → Phase 2 recovery → Phase 3 undo/LSP integration.</p>
+
+<h2 id="roadmap">Roadmap</h2>
         <p>
           Prefer merge over pure reject when safe; multi-version snapshots + anchored grep; finer duplicate keys; wrapper tests and optional LSP refresh.
         </p>
@@ -184,7 +195,8 @@ SWAP 2.=2:
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         <a href="#appendix">Appendix</a>
       </nav>
     </aside>

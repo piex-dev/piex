@@ -93,7 +93,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,17 @@
         <p>
           initOptions/settings wired correctly; multi-server diagnostics with linter vs primary routing; rename defaults to preview; WorkspaceEdit confined to cwd. Disable post-edit with <code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code>.
         </p>
-        <h2 id="roadmap">Roadmap</h2>
+        
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi lsp</strong></td><td>Full LSP client: multi-server routing, didChange, full action surface, diagnostics aggregation</td><td><strong>Adopted</strong>: JSON-RPC client, defaults.json driver, on-demand startup/session reuse, multi-server aggregation. <strong>Dropped</strong>: Bun runtime (switched to Node), full action surface</td></tr>
+<tr><td><strong>OpenCode post-edit diagnostics</strong></td><td>tool_result hook intercepts edit/write → waits for publishDiagnostics → ERROR only, per-file cap</td><td><strong>Adopted</strong> the full pattern: sync → wait → only ERROR → cap 20 → skip on clean files</td></tr>
+<tr><td><strong>VS Code LSP</strong></td><td>initialize + settings/didChangeConfiguration + workspace/configuration</td><td><strong>Borrowed</strong>: initOptions/settings correct delivery path; full-text didChange; which lookup in node_modules/.bin and .venv</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: post-edit ERROR loop first (from OpenCode), diagnostics over navigation surface; linters do not steal the primary's navigation role.</p>
+
+<h2 id="roadmap">Roadmap</h2>
         <p>
           Done: correctness, post-edit diagnostics, rename/code_actions. Tests: <code>bun test packages/lsp</code>. Next: project <code>.lsp.json</code>, module split, fake-server tests, indexing readiness. Deferred: lspmux, auto-download, completion.
         </p>
@@ -160,7 +171,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
   </div>

@@ -124,9 +124,17 @@ piex 里**少数带单测**的包之一：`bun test packages/xai-oauth/...`。
 - 模型发现思路：stnly/pi-grok（MIT）  
 
 PieX 的原则是：**可追溯、可替换、不绑死 fork**。
-
 ---
 
+## 设计参考
+
+| 项目 | 机制 | piex 取舍 |
+|------|------|-----------|
+| **oh-my-pi xai-oauth** | Device Authorization Grant（RFC 8628）完整流程；双 endpoint 模型发现；pi 标准 OAuth provider 注册 | **采纳**：OAuth 流程链路（device code → 轮询 → token 存储）、client_id（同源 public client）、端点校验、错误截断与 skew 处理。**不采纳**：Bun 运行时细节（改 Node） |
+| **stnly/pi-grok** | 模型发现思路：拉取 `/v1/models` + 合并进 provider 表 | **借鉴**：实时发现的理念（`/reload` 即可拿到新模型），但发现实现与路由逻辑独立重写 |
+| **pi 内置 xai** | API Key 认证、固定模型集 | **并存**：同一 pi 实例可同时用内置 xai（Key/CI）+ xai-oauth（订阅/交互），不冲突 |
+
+核心取舍：订阅 token 存 pi 标准存储（扩展层不落盘），模型发现 best-effort（失败回退 fallback），安全姿态「宁可少报不错报」。
 ## 优化计划
 
 OAuth 扩展活在别人的策略之上，局限要和应对一起看：

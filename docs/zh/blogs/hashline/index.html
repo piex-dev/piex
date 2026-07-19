@@ -93,7 +93,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         <a href="#appendix">附录</a>
         </nav>
       </div>
@@ -151,7 +152,17 @@ SWAP 2.=2:
             </tbody>
           </table>
         </div>
-        <h2 id="roadmap">优化计划</h2>
+        
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi hashline</strong></td><td>全文件 tag + tree-sitter 块语法 + boundary repair 引擎</td><td><strong>采纳</strong>：封装 <code>@oh-my-pi/hashline</code>，继承 tag、SWAP.BLK、REM/MV 与引擎。<strong>不采纳</strong>：内建集成、Bun FS、LSP writethrough；改为 Node + 外层 EditGuard</td></tr>
+<tr><td><strong>pi-hashline-edit</strong></td><td>逐行上下文哈希 + 3-way merge 恢复 + JSON DSL</td><td><strong>不采纳</strong>核心算法（路线分歧），<strong>借鉴</strong>容错意图（noop/dup guard）。ADR 留作 Phase 2 Stale 恢复参考</td></tr>
+<tr><td><strong>pi-hashline-edit-pro</strong></td><td>逐行内容哈希 + stable mapping</td><td><strong>不采纳</strong>算法，<strong>借鉴</strong>「尽量少 re-read」作为远期目标</td></tr>
+</tbody></table></div>
+<p>核心取舍：选择整体文件 tag（严格简单），放弃逐行 tag（局部可用），用封装层补容错。三个阶段：Phase 1 容错（done）→ Phase 2 恢复 → Phase 3 undo/LSP 联动。</p>
+
+<h2 id="roadmap">优化计划</h2>
         <p>
           冲突策略偏拒绝（安全但贵）→ 接 3-way merge / Recovery；快照偏薄 → 多版本 LRU + 锚点 Grep；duplicate 按 section 细化；封装层单测与可选 LSP 联动。
         </p>
@@ -187,7 +198,8 @@ SWAP 2.=2:
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         <a href="#appendix">附录</a>
       </nav>
     </aside>

@@ -93,7 +93,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,17 @@
         <p>
           OAuth + models modules, safe error formatting, endpoint checks, env allowlists, unit tests without the network.
         </p>
-        <h2 id="roadmap">Roadmap</h2>
+        
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi xai-oauth</strong></td><td>Device Authorization Grant full flow; dual-endpoint model discovery; pi standard OAuth provider registration</td><td><strong>Adopted</strong>: OAuth flow chain, client_id, endpoint validation, error truncation and skew. <strong>Dropped</strong>: Bun runtime details (switched to Node)</td></tr>
+<tr><td><strong>stnly/pi-grok</strong></td><td>Model discovery: fetch /v1/models + merge into provider table</td><td><strong>Borrowed</strong>: live discovery concept (/reload for new models), but discovery and routing reimplemented independently</td></tr>
+<tr><td><strong>pi built-in xai</strong></td><td>API Key auth, fixed model set</td><td><strong>Coexisting</strong>: same instance can use built-in xai (Key/CI) + xai-oauth (subscription/interactive)</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: subscription tokens in pi standard storage (extension layer never persists), best-effort model discovery (fallback on failure), safety: "err on the side of silence".</p>
+
+<h2 id="roadmap">Roadmap</h2>
         <p>
           Observable discovery sources, clearer quota/auth errors, stronger provider labeling, contract tests.
         </p>
@@ -160,7 +171,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
   </div>

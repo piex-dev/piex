@@ -93,7 +93,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,16 @@
         <p>
           Ported from opencode-themes/dark-terminal. Prefer absolute paths for global installs so reload keeps the theme. Zero hooks.
         </p>
-        <h2 id="roadmap">Roadmap</h2>
+        
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
+<tbody>
+<tr><td><strong>opencode-themes dark-terminal</strong></td><td>51 color token high-contrast dark terminal palette; bg: #050505, green/blue/red accent family</td><td><strong>Adopted</strong>: color roles and semantic mapping. <strong>Adapted</strong>: pi extra tokens (thinking gradient #ff0088 is pi-side addition)</td></tr>
+<tr><td><strong>pi theme schema</strong></td><td>vars → colors two-layer mapping; pi.themes JSON distribution; zero-code hot-reload</td><td><strong>Fully followed</strong>: static JSON only, no TS, no hooks</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: zero code, zero behavior change, zero host-terminal coupling; just translate opencode-themes palette to pi token names.</p>
+
+<h2 id="roadmap">Roadmap</h2>
         <p>
           Soft and color-blind variants, token docs, visual fixtures, bulk import pipeline.
         </p>
@@ -160,7 +170,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
   </div>

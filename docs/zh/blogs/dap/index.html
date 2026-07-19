@@ -93,7 +93,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -145,7 +146,16 @@
             </tbody>
           </table>
         </div>
-        <h2 id="roadmap">优化计划</h2>
+        
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi dap</strong></td><td>完整 DAP 客户端：stdio + TCP + WebSocket；14+ adapter；结构化输出；TUI variable explorer</td><td><strong>采纳</strong>：14 adapter 配置、JSON-RPC 帧协议、断点队列、输出缓冲上限、空闲回收。<strong>不采纳</strong>：TCP/WebSocket（本机够用）、TUI overlay（pi API 限制）</td></tr>
+<tr><td><strong>VS Code DAP</strong></td><td>协议规范三层模型（editor / client / adapter）</td><td><strong>借鉴</strong>：三层分工理念、capabilities 检查、stop 后自动附上下文摘要</td></tr>
+</tbody></table></div>
+<p>核心取舍：只做 stdio（简单安全），不做远程 attach；先文本输出（快速落地），暂缓 TUI。</p>
+
+<h2 id="roadmap">优化计划</h2>
         <p>
           补数据/异常断点暴露；stop 后默认附栈顶+局部变量；读 <code>launch.json</code>；可选 TCP；eval 挂钩 <code>debug_success</code>。
         </p>
@@ -174,7 +184,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
       </nav>
     </aside>
   </div>

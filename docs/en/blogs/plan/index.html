@@ -93,7 +93,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,16 @@
         <p>
           One extension file exercising the full Extension API surface. Lighter than omp’s overlay, intentionally.
         </p>
-        <h2 id="roadmap">Roadmap</h2>
+        
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
+<tbody>
+<tr><td><strong>pi official plan-mode example</strong></td><td>registerCommand + setActiveTools + tool_call bash interception</td><td><strong>Adopted</strong> core API approach: tool switching, bash interception, DONE marker parsing. <strong>Enhanced</strong>: appendEntry cross-turn persistence + PLAN.md file + UI widget</td></tr>
+<tr><td><strong>oh-my-pi plan</strong></td><td>Full-screen plan-review overlay + TOC sidebar + sub-agent handoff</td><td><strong>Dropped</strong>: pi API lacks full-screen overlay support, sub-agent not ready. <strong>Borrowed</strong>: step approval (replaced with select), configurable tool whitelist, review integration</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: stay close to pi example (light, predictable, maintainable), drop omp heavy UI; use appendEntry for compaction resistance.</p>
+
+<h2 id="roadmap">Roadmap</h2>
         <p>
           Sturdier plan IR, weak DONE checks, review handoff, PLAN.md frontmatter, configurable allowlists. Not a sandbox.
         </p>
@@ -160,7 +170,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
   </div>

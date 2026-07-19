@@ -93,7 +93,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,16 @@
         <p>
           Framed client, session manager with breakpoint queues, output caps, idle cleanup, capability checks, and non-interactive env defaults.
         </p>
-        <h2 id="roadmap">Roadmap</h2>
+        
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choices</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi dap</strong></td><td>Full DAP client: stdio + TCP + WebSocket; 14+ adapters; structured output; TUI variable explorer</td><td><strong>Adopted</strong>: 14 adapter configs, JSON-RPC framing, breakpoint queue, output cap, idle cleanup. <strong>Dropped</strong>: TCP/WebSocket (stdio sufficient), TUI overlay (pi API limitation)</td></tr>
+<tr><td><strong>VS Code DAP</strong></td><td>Spec three-layer model (editor / client / adapter)</td><td><strong>Borrowed</strong>: three-layer division, capabilities checks, auto context summary after stop</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: stdio-only (simple &amp; safe), no remote attach; text-first output (fast shipping), TUI deferred.</p>
+
+<h2 id="roadmap">Roadmap</h2>
         <p>
           Richer breakpoints, stop-default context packs, project launch configs, optional TCP, and eval metrics for real debug success.
         </p>
@@ -160,7 +170,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-        <a href="#roadmap">Roadmap</a>
+                <a href="#design">Design notes</a>
+<a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
   </div>

@@ -93,7 +93,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -131,7 +132,17 @@
         <p>
           <code>xai-oauth.ts</code> + <code>models.ts</code>；错误体截断、端点校验、token skew；<code>PI_XAI_OAUTH_MODELS</code> 过滤。piex 少数带单测的包。
         </p>
-        <h2 id="roadmap">优化计划</h2>
+        
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi xai-oauth</strong></td><td>Device Authorization Grant 完整流程；双 endpoint 模型发现；pi 标准 OAuth provider 注册</td><td><strong>采纳</strong>：OAuth 流程链路、client_id、端点校验、错误截断与 skew。<strong>不采纳</strong>：Bun 运行时细节（改 Node）</td></tr>
+<tr><td><strong>stnly/pi-grok</strong></td><td>模型发现：拉取 /v1/models + 合并进 provider 表</td><td><strong>借鉴</strong>：实时发现理念（/reload 即可），但发现实现与路由独立重写</td></tr>
+<tr><td><strong>pi 内置 xai</strong></td><td>API Key 认证、固定模型集</td><td><strong>并存</strong>：同一实例可同时用内置 xai（Key/CI）+ xai-oauth（订阅/交互）</td></tr>
+</tbody></table></div>
+<p>核心取舍：订阅 token 存 pi 标准存储（扩展层不落盘），模型发现 best-effort（失败回退），安全姿态「宁可少报不错报」。</p>
+
+<h2 id="roadmap">优化计划</h2>
         <p>
           发现来源可观察；错误分类动作化；与 Key provider 区分更醒目；契约测试跟 xAI 变更。
         </p>
@@ -160,7 +171,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
       </nav>
     </aside>
   </div>

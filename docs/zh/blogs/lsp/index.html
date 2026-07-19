@@ -93,7 +93,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -134,7 +135,17 @@
         <p>
           闭环：hashline edit → 自动 ERROR → 需要时显式 lsp 导航/重构 → 运行时问题上 dap。
         </p>
-        <h2 id="roadmap">优化计划</h2>
+        
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi lsp</strong></td><td>完整 LSP 客户端：多 server 路由、didChange、完整 action 面、诊断聚合</td><td><strong>采纳</strong>：JSON-RPC client、defaults.json 驱动、按需启动/会话复用、多 server 聚合。<strong>不采纳</strong>：Bun 运行时（改 Node）、大面铺满 action</td></tr>
+<tr><td><strong>OpenCode 写后诊断</strong></td><td>tool_result hook 拦 edit/write → 等 publishDiagnostics → 仅 ERROR、每文件 cap</td><td><strong>采纳</strong>整套模式：sync → wait → only ERROR → cap 20 → 干净文件不附加</td></tr>
+<tr><td><strong>VS Code LSP</strong></td><td>initialize + settings/didChangeConfiguration + workspace/configuration</td><td><strong>借鉴</strong>：initOptions/settings 正确下发路径；full-text didChange；which 查 node_modules/.bin 和 .venv</td></tr>
+</tbody></table></div>
+<p>核心取舍：优先写后 ERROR 闭环（学 OpenCode），诊断优于导航暴露；linter 不抢 primary server 的导航角色。</p>
+
+<h2 id="roadmap">优化计划</h2>
         <p>
           已完成正确性、写后诊断、rename/code_actions。单测：<code>bun test packages/lsp</code>。下一步：项目级 <code>.lsp.json</code>、模块拆分、假 server 单测、indexing ready。暂缓 lspmux/自动下载/completion。
         </p>
@@ -163,7 +174,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
-        <a href="#roadmap">优化计划</a>
+                <a href="#design">设计参考</a>
+<a href="#roadmap">优化计划</a>
       </nav>
     </aside>
   </div>
