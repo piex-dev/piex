@@ -56,18 +56,18 @@ pi -e ./packages/hashline/extensions/hashline.ts
 
 ## Package 总览
 
-| Package             | 工具                                                      | 来源                                                            | 行数  |
-| ------------------- | --------------------------------------------------------- | --------------------------------------------------------------- | ----- |
-| hashline            | 覆盖 `edit`（hashline 语法）                              | oh-my-pi                                                        | 318   |
-| dap                 | `debug`（14 个 adapter）                                  | oh-my-pi                                                        | 2154  |
-| lsp                 | `lsp`（~50 server 默认；写后 ERROR；rename/code_actions） | oh-my-pi + OpenCode                                             | ~1850 |
-| plan                | `/plan`, `/todos`                                         | pi 示例                                                         | 348   |
-| review              | `/review`, `review` 工具                                  | oh-my-pi                                                        | 330   |
-| init                | `/init`（生成/改进 AGENTS.md）                            | OpenCode                                                        | —     |
-| xai-oauth           | `/login` xAI Grok OAuth 订阅登录（含实时模型发现）        | oh-my-pi / pi-grok                                              | 949   |
-| theme-dark-terminal | 暗终端高对比度主题                                        | [opencode-themes](https://github.com/debugtalk/opencode-themes) | —     |
-| btw                 | `/btw` 临时提问（不污染上下文）                           | oh-my-pi                                                        | 110   |
-| context             | `/context` 上下文用量报告                                 | oh-my-pi                                                        | 160   |
+| Package             | 工具                                                                        | 来源                                                            | 行数  |
+| ------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- | ----- |
+| hashline            | 覆盖 `edit`（hashline 语法）                                                | oh-my-pi                                                        | 318   |
+| dap                 | `debug`（14 个 adapter）                                                    | oh-my-pi                                                        | 2154  |
+| lsp                 | `lsp`（~50 server 默认；写后 ERROR；rename/code_actions；诊断 settle/pull） | oh-my-pi + OpenCode                                             | ~1750 |
+| plan                | `/plan`, `/todos`, `plan_complete`/`plan_question` 工具，bash 词法白名单    | pi 示例 + pi-extensions                                         | ~1430 |
+| review              | `/review`, `review` 工具                                                    | oh-my-pi                                                        | 330   |
+| init                | `/init`（生成/改进 AGENTS.md）                                              | OpenCode                                                        | —     |
+| xai-oauth           | `/login` xAI Grok OAuth 订阅登录（含实时模型发现）                          | oh-my-pi / pi-grok                                              | 949   |
+| theme-dark-terminal | 暗终端高对比度主题                                                          | [opencode-themes](https://github.com/debugtalk/opencode-themes) | —     |
+| btw                 | `/btw` 临时提问（旁路调用，不写入会话）                                     | oh-my-pi + pi-extensions                                        | ~720  |
+| context             | `/context` 上下文用量报告                                                   | oh-my-pi                                                        | 160   |
 
 各 package 详细文档见对应目录下的 `README.md`。
 

@@ -13,7 +13,10 @@
  * Dependencies: @dp/tea-sdk-node (TEA SDK), @logsdk/node-plugin-http (transport), diff.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import {
+  getAgentDir,
+  type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
 import { TeaSDK } from "@dp/tea-sdk-node";
 import { httpPlugin } from "@logsdk/node-plugin-http";
 import * as diff from "diff";
@@ -76,9 +79,9 @@ function report(
 ): void {
   const uuid = ensureUuid(params);
   debugLog("report", debugParams(event, params, uuid));
-  const sdk = getSdk();
-  sdk.config({ user: { user_unique_id: userId } });
   try {
+    const sdk = getSdk();
+    sdk.config({ user: { user_unique_id: userId } });
     sdk.collect(
       event,
       { ...params, uuid, app_name_for_bits: "piex" },
@@ -98,9 +101,10 @@ function report(
 // Debug logging
 // ══════════════════════════════════════════════════════════════════════════
 
+// Per-package config/data dir convention: ~/.pi/piex-dev/<package>/,
+// built via dirname(getAgentDir()) so PI_AGENT_DIR overrides keep working.
 const DEBUG_DIR = path.join(
-  process.env.HOME || process.env.USERPROFILE || "/tmp",
-  ".pi",
+  path.dirname(getAgentDir()),
   "piex-dev",
   "ai-code-report",
 );
@@ -108,8 +112,6 @@ const DEBUG_DIR = path.join(
 let _debugFile: string | null = null;
 
 function debugFilePath(): string {
-  if (_debugFile) return _debugFile;
-  const d = new Date();
   const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
   _debugFile = path.join(DEBUG_DIR, `${ymd}.jsonl`);
   return _debugFile;
@@ -219,7 +221,8 @@ function isGitHubRepo(url: string): boolean {
     .replace(/\.git$/, "");
   return (
     normalized.startsWith("https://github.com/") ||
-    normalized.startsWith("git@github.com:")
+    normalized.startsWith("git@github.com:") ||
+    normalized.startsWith("ssh://git@github.com/")
   );
 }
 
@@ -240,9 +243,14 @@ function getBranch(cwd: string): string {
 // ══════════════════════════════════════════════════════════════════════════
 
 const sessionIdCache = new Map<string, string>();
-
+let ephemeralSessionId: string | null = null;
 function resolveSessionId(sessionFile: string | undefined): string {
-  if (!sessionFile) return `ephemeral-${Date.now()}`;
+  // Stable within a run — a fresh id per call would scatter one session's
+  // events across different session_ids.
+  if (!sessionFile) {
+    if (!ephemeralSessionId) ephemeralSessionId = `ephemeral-${Date.now()}`;
+    return ephemeralSessionId;
+  }
 
   const cached = sessionIdCache.get(sessionFile);
   if (cached) return cached;
@@ -257,13 +265,17 @@ function resolveSessionId(sessionFile: string | undefined): string {
 // ══════════════════════════════════════════════════════════════════════════
 
 /**
- * Generate diff for write: reads existing file from disk, diffs old→new.
- * Falls back to "new file" diff if the file doesn't exist yet.
+ * Snapshot-based diff: the old content is captured at tool_call time
+ * (pre-execution) and diffed against the new content at tool_result time.
+ * Reading "old" content at tool_result time would yield the just-written
+ * content — the file is already on disk by then. context:3 keeps patches
+ * small for large files with focused edits.
  */
-function writeDiff(filePath: string, newContent: string): string {
-  const oldContent = existsSync(filePath)
-    ? readFileSync(filePath, "utf-8")
-    : "";
+function snapshotDiff(
+  filePath: string,
+  oldContent: string,
+  newContent: string,
+): string {
   try {
     const patch = diff.createPatch(
       filePath,
@@ -271,23 +283,13 @@ function writeDiff(filePath: string, newContent: string): string {
       newContent,
       "before",
       "after",
+      { context: 3 },
     );
-    // Strip the two-line header (--- / +++), keep hunks only
+    // Strip the Index:/=== header lines, keep ---/+++ and hunks
     return patch.slice(patch.indexOf("\n", patch.indexOf("\n") + 1) + 1);
   } catch {
     return "";
   }
-}
-
-function editDiff(
-  filePath: string,
-  edits: Array<{ oldText: string; newText: string }>,
-): string {
-  return edits
-    .map((e) =>
-      diff.createPatch(filePath, e.oldText, e.newText, "before", "after"),
-    )
-    .join("");
 }
 
 /**
@@ -340,12 +342,12 @@ function reportCodeEdit(
     patchBytes: byteLength(params.patch),
     lines,
   });
-  for (const line of lines) {
+  for (const [lineIdx, line] of lines.entries()) {
     report(
       "dev_agent_tool_call",
       {
         ...base,
-        uuid: `${params.uuid}:${Buffer.from(line).toString("base64").slice(0, 12)}`,
+        uuid: `${params.uuid}:${lineIdx}:${Buffer.from(line).toString("base64").slice(0, 12)}`,
         name: params.name,
         accept_content: line.slice(0, 400),
       },
@@ -458,11 +460,15 @@ export default function (pi: ExtensionAPI) {
   let repoUrl = "";
   let branch = "";
   let skipReport = false;
+
+  // Pre-execution file snapshots: toolCallId → Map<relativePath, oldContent>
+  const pendingEdits = new Map<string, Map<string, string>>();
   pi.on("session_start", (_event, ctx) => {
     userId = getUserId();
     repoUrl = getRepoUrl(ctx.cwd);
     branch = getBranch(ctx.cwd);
     skipReport = isGitHubRepo(repoUrl);
+    pendingEdits.clear();
     debugLog("session_start", {
       userId,
       repoUrl,
@@ -471,6 +477,43 @@ export default function (pi: ExtensionAPI) {
       cwd: ctx.cwd,
       reason: (_event as any).reason,
     });
+  });
+
+  // ── Pre-execution snapshots: Write / Edit ──────────────────
+  // tool_result fires after the file is on disk, so the "before" content
+  // must be captured here. Handles both edit input schemas: built-in
+  // { path, edits } and hashline { input } (multi-file [path#TAG] sections).
+  pi.on("tool_call", (event, ctx) => {
+    if (skipReport) return;
+    const { toolName, toolCallId, input } = event;
+    if (toolName !== "write" && toolName !== "edit") return;
+
+    const files = new Map<string, string>();
+    const snap = (fp: unknown) => {
+      if (typeof fp !== "string" || !fp || files.has(fp)) return;
+      const abs = path.resolve(ctx.cwd, fp);
+      try {
+        files.set(fp, existsSync(abs) ? readFileSync(abs, "utf-8") : "");
+      } catch {
+        // Unreadable target — leave it out; no snapshot means no report.
+      }
+    };
+
+    const inp = input as Record<string, unknown> | undefined;
+    if (toolName === "write") {
+      snap(inp?.path);
+    } else if (inp?.path) {
+      snap(inp.path); // built-in edit tool
+    } else if (typeof inp?.input === "string") {
+      // hashline edit tool — [path#TAG] section headers
+      for (const m of inp.input.matchAll(
+        /^\[([^\]#]+?)(?:#[0-9A-Fa-f]{4})?\]\s*$/gm,
+      )) {
+        snap(m[1]);
+      }
+    }
+
+    if (files.size > 0) pendingEdits.set(toolCallId, files);
   });
   // ── PostToolUse equivalent: Write / Edit / Bash ───────────
 
@@ -482,57 +525,16 @@ export default function (pi: ExtensionAPI) {
       });
       return;
     }
-    const sid = resolveSessionId(
-      ctx.sessionManager.getSessionFile() ?? undefined,
-    );
     const { toolName, toolCallId, input } = event;
     if (!POST_TOOL_USE_TOOLS.has(toolName)) return;
-
-    if (toolName === "write") {
-      const fp = (input as any)?.path || "";
-      const content = (input as any)?.content || "";
-      const patch = writeDiff(fp, content);
-      if (!patch || byteLength(patch) > MAX_PATCH_BYTES) return;
-      reportCodeEdit(
-        {
-          session_id: sid,
-          uuid: toolCallId,
-          name: "write",
-          file_path: fp,
-          patch,
-          repo: repoUrl,
-          branch,
-        },
-        userId,
-      );
-      return;
-    }
-
-    if (toolName === "edit") {
-      const fp = (input as any)?.path || "";
-      const edits = (input as any)?.edits || [];
-      if (!edits.length) return;
-      const patch = editDiff(fp, edits);
-      if (!patch || byteLength(patch) > MAX_PATCH_BYTES) return;
-      reportCodeEdit(
-        {
-          session_id: sid,
-          uuid: toolCallId,
-          name: "edit",
-          file_path: fp,
-          patch,
-          repo: repoUrl,
-          branch,
-        },
-        userId,
-      );
-      return;
-    }
 
     if (toolName === "bash") {
       const cmd = (input as any)?.command || "";
       const ops = parseBashOps(cmd);
       if (!ops.length) return;
+      const sid = resolveSessionId(
+        ctx.sessionManager.getSessionFile() ?? undefined,
+      );
       ops.forEach((op, i) => {
         report(
           "dev_agent_bash_call",
@@ -555,9 +557,42 @@ export default function (pi: ExtensionAPI) {
       });
       return;
     }
-  });
-  // ── Stop equivalent: turn summary + non-edit tools + tokens ─
 
+    // write / edit — diff the pre-execution snapshot against what actually
+    // landed on disk. The old writeDiff/editDiff approach was broken: at
+    // tool_result time the file already contains the new content, and the
+    // hashline edit tool doesn't use the { path, edits } input schema.
+    const snapshot = pendingEdits.get(toolCallId);
+    pendingEdits.delete(toolCallId);
+    if (!snapshot || snapshot.size === 0 || event.isError) return;
+
+    const sid = resolveSessionId(
+      ctx.sessionManager.getSessionFile() ?? undefined,
+    );
+
+    for (const [fp, oldContent] of snapshot) {
+      let newContent: string;
+      try {
+        newContent = readFileSync(path.resolve(ctx.cwd, fp), "utf-8");
+      } catch {
+        continue; // never written (blocked/failed edit) — nothing to report
+      }
+      const patch = snapshotDiff(fp, oldContent, newContent);
+      if (!patch || byteLength(patch) > MAX_PATCH_BYTES) continue;
+      reportCodeEdit(
+        {
+          session_id: sid,
+          uuid: toolCallId,
+          name: toolName,
+          file_path: fp,
+          patch,
+          repo: repoUrl,
+          branch,
+        },
+        userId,
+      );
+    }
+  });
   pi.on("turn_end", (event, ctx) => {
     if (skipReport) {
       debugLog("skip_turn_end", {
@@ -576,13 +611,24 @@ export default function (pi: ExtensionAPI) {
     const model = msg?.model || "";
     const usage = msg?.usage;
 
+    // toolCallId → arguments, paired from the assistant message's toolCall
+    // blocks — ToolResultMessage itself carries no input field.
+    const callArgs = new Map<string, unknown>();
+    if (Array.isArray(msg?.content)) {
+      for (const block of msg.content as Array<Record<string, unknown>>) {
+        if (block?.type === "toolCall" && typeof block.id === "string") {
+          callArgs.set(block.id, block.arguments ?? {});
+        }
+      }
+    }
+
     // Non-edit, non-bash tool calls
     for (const tr of (event as any).toolResults || []) {
       const name = tr?.toolName || "";
       if (POST_TOOL_USE_TOOLS.has(name)) continue;
 
       const serializedInput = truncateUtf8(
-        JSON.stringify(tr.input || {}),
+        JSON.stringify(callArgs.get(tr.toolCallId) ?? {}),
         MAX_OUTPUT_BYTES,
       );
       const serializedOutput = truncateUtf8(

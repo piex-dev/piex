@@ -35,7 +35,7 @@ Options:
 
 Prerequisites: pi CLI (https://pi.dev), Node.js >= 18
 EOF
-  exit 0
+  exit "${1:-0}"
 }
 
 LOCAL_FLAG=""
@@ -46,7 +46,7 @@ for arg in "$@"; do
     -l|--local) LOCAL_FLAG="-l" ;;
     --dev) USE_DEV=true ;;
     -h|--help) usage ;;
-    *) echo -e "${RED}Unknown option: $arg${RESET}"; usage ;;
+    *) echo -e "${RED}Unknown option: $arg${RESET}" >&2; usage 1 ;;
   esac
 done
 
@@ -141,14 +141,15 @@ TOTAL=${#PACKAGES[@]}
 SUCCESS=0
 FAILED=()
 
-for pkg in "${PACKAGES[@]}"; do
+for i in "${!PACKAGES[@]}"; do
+  pkg="${PACKAGES[$i]}"
   if [[ "$USE_DEV" == true ]]; then
     SOURCE="$PACKAGES_DIR/$pkg"
   else
     SOURCE="npm:@piex-dev/$pkg"
   fi
 
-  printf "  [%2d/%2d] %-25s " "$((SUCCESS + 1))" "$TOTAL" "$SOURCE"
+  printf "  [%2d/%2d] %-25s " "$((i + 1))" "$TOTAL" "$SOURCE"
 
   if pi install ${LOCAL_FLAG:+"$LOCAL_FLAG"} "$SOURCE" >/dev/null 2>&1; then
     echo -e "${GREEN}✓${RESET}"
@@ -158,7 +159,6 @@ for pkg in "${PACKAGES[@]}"; do
     FAILED+=("$pkg")
   fi
 done
-
 # ── Summary ────────────────────────────────────────────
 echo ""
 echo -e "${DIM}──────────────────────${RESET}"

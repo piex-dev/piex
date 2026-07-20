@@ -178,13 +178,14 @@ def check_mainjs_symmetry(c: Counter) -> None:
 
     dicts: dict[str, list[str]] = {}
     current: str | None = None
+    dict_indent = ""
     for line in js.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"^    (en|zh): \{$", line)
+        m = re.match(r"^(\s+)(en|zh): \{$", line)
         if m:
-            current = m.group(1)
+            dict_indent, current = m.group(1), m.group(2)
             dicts[current] = []
             continue
-        if current and re.match(r"^    \},?$", line):
+        if current and re.match(re.escape(dict_indent) + r"\},?$", line):
             current = None
             continue
         if current:

@@ -6,10 +6,14 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)/packages"
-FAILED=()
-ROOT="$(cd "$(dirname "$0")/.." && pwd)/packages"
 PACKAGES=(hashline dap lsp plan review init theme-dark-terminal xai-oauth btw context)
 
+if ! npm whoami >/dev/null 2>&1; then
+  echo "Not logged in to npm. Run: npm login"
+  exit 1
+fi
+
+FAILED=()
 for p in "${PACKAGES[@]}"; do
   echo ">>> Publishing @piex-dev/$p ..."
   if (cd "$ROOT/$p" && npm publish); then
@@ -27,12 +31,3 @@ else
   echo "Published with ${#FAILED[@]} failure(s): ${FAILED[*]}"
   exit 1
 fi
-
-for p in "${PACKAGES[@]}"; do
-  echo ">>> Publishing @piex-dev/$p ..."
-  (cd "$ROOT/$p" && npm publish)
-  echo ">>> OK @piex-dev/$p"
-  echo
-done
-
-echo "All packages published."

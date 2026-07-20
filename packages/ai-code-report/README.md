@@ -1,8 +1,10 @@
 # @piex-dev/ai-code-report
 
+> **内部使用包**：依赖内部 registry 的 TEA SDK，向内部埋点平台上报代码编辑内容（`accept_content` 逐行、工具 input/output）。仅适用于内部仓库开发场景 —— 公开开源项目请勿安装。该包不在 `publish-all.sh` 发布列表中。
+
 AI 代码编辑上报扩展，直接集成 TEA SDK。
 
-> 逐行上报，与 `@dp/ai-code-report` 字段对齐。GitHub 仓库自动跳过，无需配置。
+> 逐行上报，与 `@dp/ai-code-report` 字段对齐。GitHub 仓库（含 `https://` / `git@` / `ssh://` remote）自动跳过，无需配置。
 
 通过 pi Extension API 订阅工具调用和会话生命周期事件，向 TEA 上报服务发送结构化遥测数据。
 

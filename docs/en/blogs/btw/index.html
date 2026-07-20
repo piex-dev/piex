@@ -97,6 +97,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
+        <a href="#design">Design references</a>
+        <a href="#versions">Version history</a>
         <a href="#roadmap">Roadmap</a>
         </nav>
       </div>
@@ -122,20 +124,38 @@
 
         <h2 id="bg">Background</h2>
         <p>
-          The classic dilemma: you want to ask something related to the task but don't want the agent to treat it as task context. Opening another session is slow; asking inline pollutes context. oh-my-pi's <code>/btw</code> solved this with an engine-level bypass; @piex-dev/btw achieves the same via context hooks.
+          The classic dilemma: you want to ask something related to the task but don't want the agent to treat it as task context. Opening another session is slow; asking inline pollutes context. @piex-dev/btw's answer: the question never reaches the agent — the extension takes a snapshot of the conversation and calls the model out-of-band, leaving nothing in the session.
         </p>
         <h2 id="theory">How it works</h2>
         <p>
-          Three components: <code>btwActive</code> flag → <code>before_agent_start</code> injects a compact instruction (no tools, short answer) → <code>context</code> hook filters all <code>[BTW]</code> messages post-turn. Session restore via <code>session_start</code> ensures clean startup after interruptions.
+          A direct <code>completeSimple</code> call carries a ≤40K-char conversation snapshot (user/assistant + tool-call summaries, truncated from the head), and the answer renders in an abortable, scrollable Markdown pager. Question and answer never enter the session — pollution-freedom is architectural, not a runtime filter.
+        </p>
+        <p>
+          <code>~/.pi/piex-dev/btw/btw.json</code> can pin a dedicated <code>model</code> (provider/model-id) and <code>thinkingLevel</code>; credentials resolve via <code>modelRegistry.getApiKeyAndHeaders</code>, falling back to the current model with a warning — cheap model for side questions, strong model for the main conversation.
         </p>
         <h2 id="impl">Implementation</h2>
         <p>
-          ~110-line single file. Context filter uses a three-pass strategy: skip btw system messages (customType), skip <code>[BTW]</code> user messages, skip the following assistant reply. Compared to omp btw: engine bypass replaced with context hook filtering; messages are written then filtered, rather than never written at all.
+          ~700-line single file. Core modules: <code>loadCompleteSimple</code> (pi-ai 0.79/0.80 compat loading), <code>resolveBtwModel</code> (configured → current model fallback chain), <code>buildConversationContext</code> (sessionManager.getBranch snapshot), <code>BtwAnswerPager</code> (j/k, PgUp/PgDn, Home/End, progress %). Keeps the interactive <code>ctx.ui.input</code> prompt when invoked without arguments.
         </p>
 
+        <h2 id="design">Design references</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>Adopted?</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi /btw</strong></td><td>Engine-level side-question bypass</td><td><strong>Adopted</strong> the target semantics: nothing is written to the session</td></tr>
+<tr><td><strong><a href="https://github.com/narumiruna/pi-extensions" target="_blank" rel="noopener">pi-extensions <code>pi-btw</code></a></strong></td><td>completeSimple bypass + conversation snapshot + settings file + loader/pager UI</td><td><strong>Adopted</strong> the whole architecture, keeping piex's interactive no-arg input; pi-ai 0.79/0.80 compat loading reused as-is</td></tr>
+</tbody></table></div>
+
+
+        <h2 id="versions">Version history</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Architecture</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>0.1.0</td><td>Inject + filter</td><td><code>[BTW]</code> question injected into the main agent loop; tools banned via prompt; <code>context</code> hook filtered the pair afterwards using a "skip the next assistant" heuristic</td></tr>
+<tr><td>0.2.0 (current)</td><td>Out-of-band call</td><td>One-shot <code>completeSimple</code> request with a ≤40K conversation snapshot; nothing enters the session. Adds <code>btw.json</code> model/thinkingLevel settings, abortable loader, Markdown pager</td></tr>
+</tbody></table></div>
+<p>The 0.1.0 lesson: "pollute first, clean up later" is hard to get right in an asynchronous message stream — toolCall sequences broke the filter heuristic, queued turns misaligned the marker, and the injected instruction message itself became another artifact to clean. 0.2.0 simply doesn't pollute, and the whole class of edge cases disappears.</p>
 <h2 id="roadmap">Roadmap</h2>
         <p>
-          The "next assistant = btw reply" heuristic can misalign in edge cases; switch to message-ID correlation once the API exposes it. Future: abstract the filter strategy into a reusable ephemeral message grouping pattern.
+          Relevance-aware snapshots (e.g. always keep the last toolResult in full); multi-turn follow-ups inside the pager (still session-free); a <code>/btw model</code> quick-config command.
         </p>
       </div>
 
@@ -162,6 +182,8 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
+        <a href="#design">Design references</a>
+        <a href="#versions">Version history</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
     </aside>

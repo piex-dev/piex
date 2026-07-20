@@ -97,6 +97,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#versions">版本迭代</a>
         <a href="#roadmap">优化计划</a>
         </nav>
       </div>
@@ -122,23 +124,40 @@
 
         <h2 id="bg">问题背景</h2>
         <p>
-          coding agent 的经典困境：想问跟任务有关但又不想它「当真」的问题。另开 session 太麻烦，直接问又污染上下文。oh-my-pi 的 <code>/btw</code> 用引擎级旁路机制解决了这个问题；@piex-dev/btw 用 context 钩子实现等效行为。
+          coding agent 的经典困境：想问跟任务有关但又不想它「当真」的问题。另开 session 太麻烦，直接问又污染上下文。@piex-dev/btw 的回答是：问题压根不发给 agent——扩展自己拿一份会话快照旁路调模型，session 里什么都不会留下。
         </p>
         <h2 id="theory">技术原理</h2>
         <p>
-          核心三件套：<code>btwActive</code> 标记 → <code>before_agent_start</code> 注入简洁指令（禁用工具、短回答）→ <code>context</code> 钩子过滤所有 <code>[BTW]</code> 消息。会话恢复时 <code>session_start</code> 清理状态防脏启动。
+          扩展绕开 agent loop，用 pi-ai 的 <code>completeSimple</code> 旁路调用：构建 ≤40K 字符的会话快照（user/assistant + tool call 摘要，头部截断），一次性请求模型，答案渲染进可中断、可滚动的 Markdown pager。问答从不写入 session，防污染是架构保证，而非运行时过滤。
+        </p>
+        <p>
+          <code>~/.pi/piex-dev/btw/btw.json</code> 可配独立 <code>model</code>（provider/model-id）与 <code>thinkingLevel</code>，凭据经 <code>modelRegistry.getApiKeyAndHeaders</code> 解析，失败回退当前模型并告警——临时提问可以用便宜模型，主对话继续用强模型。
         </p>
         <h2 id="impl">实现方案</h2>
         <p>
-          约 110 行单文件。context 钩子用三段式过滤：跳过 btw 系统消息（customType）、跳过 <code>[BTW]</code> user 消息、跳过紧随的 assistant 回复。与 omp btw 的差异：引擎级旁路改为 context 钩子过滤；写入带标记后过滤，而非完全不写。
+          约 700 行单文件。核心模块：<code>loadCompleteSimple</code>（pi-ai 0.79/0.80 兼容加载）、<code>resolveBtwModel</code>（设置模型→当前模型回退链）、<code>buildConversationContext</code>（sessionManager.getBranch 快照）、<code>BtwAnswerPager</code>（j/k、PgUp/PgDn、Home/End、进度百分比）。保留无参数时 <code>ctx.ui.input</code> 交互输入。
         </p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi /btw</strong></td><td>引擎级旁路提问</td><td><strong>采纳</strong>「不写入 session」的目标语义</td></tr>
+<tr><td><strong><a href="https://github.com/narumiruna/pi-extensions" target="_blank" rel="noopener">pi-extensions <code>pi-btw</code></a></strong></td><td>completeSimple 旁路 + 会话快照 + settings 文件 + loader/pager UI</td><td><strong>采纳</strong>整体架构，保留 piex 的无参交互输入；pi-ai 0.79/0.80 兼容加载直接复用</td></tr>
+</tbody></table></div>
+
+        <h2 id="versions">版本迭代</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>架构</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>0.1.0</td><td>注入 + 过滤</td><td><code>[BTW]</code> 问题注入主 agent loop，靠 prompt 禁工具，事后用 <code>context</code> 钩子按「跳过下一条 assistant」推断过滤</td></tr>
+<tr><td>0.2.0（当前）</td><td>旁路调用</td><td><code>completeSimple</code> 一次性请求 + ≤40K 会话快照，问答不写入 session；新增 <code>btw.json</code> 独立模型/thinking level、可中断 loader、Markdown pager</td></tr>
+</tbody></table></div>
+<p>0.1.0 的教训：「先污染、后治理」在异步消息流里很难做严——toolCall 序列让过滤推断错位漏滤，agent 忙时排队让 btw 标记盖错 turn，注入的指令消息本身也成了要清扫的制品。0.2.0 换成「不产生污染」，整类边界随之消失。</p>
 
 <h2 id="roadmap">优化计划</h2>
         <p>
-          「下一个 assistant 即 btw 回复」的推断在极端场景可能错位，等消息 ID 关联 API 就绪后切换；未来可将过滤策略抽象为通用临时消息分组模式。
+          快照可按问题相关性选择性携带（如始终保留最后一个 toolResult 全文）；pager 内支持多轮追问（仍不写入 session）；补 <code>/btw model</code> 快捷配置命令。
         </p>
       </div>
-
       <nav class="blog-footer-nav" aria-label="Post navigation">
         <a class="blog-nav-card" href="/#blog">
           <span class="blog-nav-label">← 全部文章</span>
@@ -162,6 +181,8 @@
         <a href="#bg">问题背景</a>
         <a href="#theory">技术原理</a>
         <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#versions">版本迭代</a>
         <a href="#roadmap">优化计划</a>
       </nav>
     </aside>

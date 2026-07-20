@@ -22,6 +22,7 @@ interface EntryStats {
   toolResultChars: number;
   customEntries: number;
   estimatedChars: number;
+  cjkChars: number;
 }
 
 interface RoleBreakdown {
@@ -42,10 +43,29 @@ function countChars(content: unknown): number {
     return content.reduce((sum: number, block: Record<string, unknown>) => {
       if (block.type === "text" && typeof block.text === "string")
         return sum + block.text.length;
+      if (block.type === "thinking" && typeof block.thinking === "string")
+        return sum + block.thinking.length;
       return sum;
     }, 0);
   }
   return 0;
+}
+
+const CJK_RE = /[一-鿿㐀-䶿豈-﫿]/g;
+
+/** Count CJK characters — they tokenize ~1 token/char, unlike latin text. */
+function countCjk(content: unknown): number {
+  const text =
+    typeof content === "string"
+      ? content
+      : Array.isArray(content)
+        ? content
+            .map((b: Record<string, unknown>) =>
+              b.type === "text" && typeof b.text === "string" ? b.text : "",
+            )
+            .join("")
+        : "";
+  return (text.match(CJK_RE) ?? []).length;
 }
 
 function analyzeEntries(entries: Array<Record<string, unknown>>): EntryStats {
@@ -61,6 +81,14 @@ function analyzeEntries(entries: Array<Record<string, unknown>>): EntryStats {
     toolResultChars: 0,
     customEntries: 0,
     estimatedChars: 0,
+    cjkChars: 0,
+  };
+
+  const addContent = (content: unknown): number => {
+    const chars = countChars(content);
+    stats.estimatedChars += chars;
+    stats.cjkChars += countCjk(content);
+    return chars;
   };
 
   for (const entry of entries) {
@@ -69,31 +97,40 @@ function analyzeEntries(entries: Array<Record<string, unknown>>): EntryStats {
     if (type === "message") {
       const msg = entry.message as Record<string, unknown> | undefined;
       const role = String(msg?.role ?? "");
-      const chars = countChars(msg?.content);
-
-      stats.estimatedChars += chars;
+      const chars = addContent(msg?.content);
 
       switch (role) {
         case "user":
           stats.userMessages++;
           stats.userChars += chars;
           break;
-        case "assistant":
+        case "assistant": {
           stats.assistantMessages++;
           stats.assistantChars += chars;
+          // Tool calls are content blocks inside assistant messages —
+          // pi has no standalone tool_call session entry type.
+          if (Array.isArray(msg?.content)) {
+            for (const block of msg.content as Array<Record<string, unknown>>) {
+              if (block.type !== "toolCall") continue;
+              stats.toolCalls++;
+              stats.estimatedChars += JSON.stringify(
+                block.arguments ?? {},
+              ).length;
+            }
+          }
           break;
+        }
         case "system":
           stats.systemMessages++;
           break;
+        case "toolResult":
+          stats.toolResults++;
+          stats.toolResultChars += chars;
+          break;
       }
-    } else if (type === "tool_call") {
-      stats.toolCalls++;
-      if (entry.input) stats.estimatedChars += countChars(entry.input);
-    } else if (type === "tool_result") {
-      stats.toolResults++;
-      const chars = entry.content ? countChars(entry.content) : 0;
-      stats.toolResultChars += chars;
-      stats.estimatedChars += chars;
+    } else if (type === "custom_message") {
+      stats.customEntries++;
+      addContent(entry.content);
     } else if (type === "custom") {
       stats.customEntries++;
       if (entry.data) stats.estimatedChars += JSON.stringify(entry.data).length;
@@ -112,19 +149,19 @@ function buildBar(pct: number, width: number): string {
   return "█".repeat(filled) + "░".repeat(width - filled);
 }
 
-function estimateTokens(chars: number): number {
-  return Math.round(chars / 3.5);
+function estimateTokens(chars: number, cjkChars: number): number {
+  // CJK chars tokenize at ~1 token/char; latin/code averages ~3.5 chars/token.
+  return Math.round(cjkChars + (chars - cjkChars) / 3.5);
 }
 
-function formatTokens(chars: number): string {
-  const tok = estimateTokens(chars);
-  if (tok >= 1000) return `${(tok / 1000).toFixed(1)}k`;
-  return String(tok);
+function formatTokens(tokens: number): string {
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}k`;
+  return String(tokens);
 }
 
 function buildReport(stats: EntryStats): string {
   const totalChars = stats.estimatedChars || 1;
-  const totalTokens = estimateTokens(totalChars);
+  const totalTokens = estimateTokens(totalChars, stats.cjkChars);
   const barWidth = 20;
 
   const breakdown: RoleBreakdown[] = [
@@ -166,9 +203,8 @@ function buildReport(stats: EntryStats): string {
 
   const customLine =
     stats.customEntries > 0
-      ? `| Custom entries   | ${String(stats.customEntries).padStart(6)} | ${"-".padStart(8)} |\n`
+      ? `| Custom entries | ${stats.customEntries} |\n`
       : "";
-
   const report = `## Context Usage Report
 
 ### Overview
@@ -176,7 +212,7 @@ function buildReport(stats: EntryStats): string {
 | Metric | Value |
 |--------|-------|
 | Total entries | ${stats.total} |
-| Estimated tokens | ~${formatTokens(totalChars)} |
+| Estimated tokens | ~${formatTokens(totalTokens)} |
 | User messages | ${stats.userMessages} |
 | Assistant messages | ${stats.assistantMessages} |
 | System messages | ${stats.systemMessages} |
@@ -191,7 +227,7 @@ ${breakdown[1].bar} ${breakdown[1].type.padEnd(14)} ${String(breakdown[1].pct).p
 ${breakdown[2].bar} ${breakdown[2].type.padEnd(14)} ${String(breakdown[2].pct).padStart(3)}%
 \`\`\`
 
-Estimated total: **~${formatTokens(totalChars)} tokens** (${totalChars.toLocaleString()} chars)`;
+Estimated total: **~${formatTokens(totalTokens)} tokens** (${totalChars.toLocaleString()} chars)`;
 
   return report;
 }

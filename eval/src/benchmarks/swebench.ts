@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Task } from "../types.ts";
@@ -60,7 +60,7 @@ async function readParquet(filepath: string): Promise<ParquetRow[]> {
   ].join("\n");
   writeFileSync(tmpScript, script);
   try {
-    const result = execSync(`python3.12 ${tmpScript}`, {
+    const result = execFileSync("python3.12", [tmpScript], {
       encoding: "utf-8",
       maxBuffer: 50 * 1024 * 1024,
       timeout: 30_000,
@@ -114,31 +114,41 @@ export function prepareSWERepo(task: Task): string {
 
   if (!existsSync(resolve(cacheDir, ".git"))) {
     console.log(`  Cloning ${sb.repo}...`);
-    execSync(`git clone https://github.com/${sb.repo}.git ${cacheDir}`, {
-      stdio: "pipe",
-      timeout: 300_000,
-    });
+    execFileSync(
+      "git",
+      ["clone", `https://github.com/${sb.repo}.git`, cacheDir],
+      { stdio: "pipe", timeout: 300_000 },
+    );
   }
 
   const workDir = `/tmp/piex-eval-swe-${Date.now()}`;
-  execSync(
-    `cd ${cacheDir} && git fetch origin ${sb.base_commit} --depth 1 2>/dev/null || true`,
-    { stdio: "pipe" },
-  );
-  execSync(
-    `cd ${cacheDir} && git checkout -f ${sb.base_commit} 2>/dev/null || true`,
-    { stdio: "pipe" },
-  );
-  execSync(`cp -r ${cacheDir} ${workDir}`);
+  try {
+    execFileSync("git", ["fetch", "origin", sb.base_commit, "--depth", "1"], {
+      cwd: cacheDir,
+      stdio: "pipe",
+    });
+  } catch {
+    // fetch failure is non-fatal — the object may already be in the cache
+  }
+  try {
+    execFileSync("git", ["checkout", "-f", sb.base_commit], {
+      cwd: cacheDir,
+      stdio: "pipe",
+    });
+  } catch {
+    // keep going — the worktree copy below may still be usable
+  }
+  execFileSync("cp", ["-r", cacheDir, workDir]);
 
   return workDir;
 }
 
 export function applyTestPatch(workDir: string, testPatch: string): void {
   try {
-    execSync(`cd ${workDir} && git apply --verbose 2>&1 || true`, {
+    execFileSync("git", ["apply", "--verbose"], {
+      cwd: workDir,
       input: testPatch,
-      stdio: "pipe",
+      encoding: "utf-8",
       timeout: 30_000,
     });
   } catch {
@@ -148,7 +158,8 @@ export function applyTestPatch(workDir: string, testPatch: string): void {
 
 export function getGitDiff(workDir: string): string {
   try {
-    return execSync(`cd ${workDir} && git diff`, {
+    return execFileSync("git", ["diff"], {
+      cwd: workDir,
       encoding: "utf-8",
       timeout: 10_000,
     }).trim();
@@ -156,7 +167,6 @@ export function getGitDiff(workDir: string): string {
     return "";
   }
 }
-
 export function cleanupWorktree(workDir: string): void {
   // keep workspace for debugging
 }
