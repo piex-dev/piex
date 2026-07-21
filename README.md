@@ -52,7 +52,7 @@ pi install -l extensions/hashline                   # 项目 .pi/settings.json
 pi -e ./extensions/hashline/src/hashline.ts
 ```
 
-主题包无 `extensions/*.ts`，请用 npm 或本地 `pi install`，见 [theme-dark-terminal](themes/theme-dark-terminal/README.md)。
+主题包无 `extensions/*.ts`，请用 npm 或本地 `pi install`，见 [theme-dark-terminal](themes/dark-terminal/README.md)。
 
 ## Package 总览
 

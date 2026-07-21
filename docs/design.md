@@ -126,33 +126,32 @@ export default async function myExtension(pi: ExtensionAPI) { ... }
 
 ### 主题 Package 模式
 
-主题 package 没有 TypeScript 扩展代码，而是通过静态 JSON 文件分发。pi 支持 `themes/` 约定目录或 `pi.themes` 显式文件数组；为兼容 `/settings` 预览与运行时加载，推荐用约定目录形式：
+主题 package 没有 TypeScript 扩展代码，而是通过静态 JSON 文件分发。pi 支持 `pi.themes` 指向目录或单个文件；piex 约定用单文件 `theme.json` 平铺在包根，省一层嵌套：
 
 ```json
 {
-  "pi": { "themes": ["./themes"] }
+  "pi": { "themes": ["./theme.json"] }
 }
 ```
 
 ```
 <name>/
-├── package.json          # npm 包，"pi": { "themes": ["./themes"] }
+├── package.json          # npm 包，"pi": { "themes": ["./theme.json"] }
 ├── README.md
-└── themes/
-    └── <name>.json       # pi theme JSON（51 color tokens）
+└── theme.json            # pi theme JSON（51 color tokens），name 字段即主题标识
 ```
 
-`package.json` 中的 `"pi": { "themes": ["./themes"] }` 告诉 pi 自动发现主题文件。
+`package.json` 中的 `"pi": { "themes": ["./theme.json"] }` 让 pi 加载该主题文件；主题标识取 JSON `name` 字段（与文件名无关）。
 
 **安装方式选择：**
 
 - **全局 settings**（`~/.pi/agent/settings.json`）：本地包路径必须传绝对路径，否则 `/reload` 后相对路径会按 settings 文件位置解析导致主题丢失。例：
   ```bash
-  pi install /abspath-to-piex/themes/theme-dark-terminal
+  pi install /abspath-to-piex/themes/dark-terminal
   ```
 - **项目级 settings**（`.pi/settings.json`）：可用相对路径，团队共享。例：
   ```bash
-  pi install -l ./themes/theme-dark-terminal
+  pi install -l ./themes/dark-terminal
   ```
 
 主题 JSON 包含 `name`（唯一主题名）、`vars`（可选色板变量）和 `colors`（51 个必需 token）。pi 启动时自动加载，`/settings` 切换。

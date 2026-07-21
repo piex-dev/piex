@@ -11,7 +11,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/piex-dev/piex.git",
-    "directory": "themes/theme-dark-terminal"
+    "directory": "themes/dark-terminal"
   },
   "keywords": [
     "pi",
@@ -23,11 +23,11 @@
   ],
   "pi": {
     "themes": [
-      "./themes"
+      "./theme.json"
     ]
   },
   "files": [
-    "themes",
+    "theme.json",
     "README.md"
   ],
   "peerDependencies": {

@@ -153,16 +153,16 @@
         </div>
         <p>写完提示 <code>/reload</code> 使当前会话生效。</p>
         <h3 id="config">配置</h3>
-        <p>纯 prompt 包，无 TypeScript、无 peer 依赖、无运行时代码。<code>package.json</code> 声明 <code>"pi": { "prompts": ["./prompts"] }</code>，<code>prompts/init.md</code> 即命令本体。</p>
+        <p>纯 prompt 包，无 TypeScript、无 peer 依赖、无运行时代码。<code>package.json</code> 声明 <code>"pi": { "prompts": ["./init.md"] }</code>，<code>prompts/init.md</code> 即命令本体。</p>
 
         <h2 id="impl">实现方案</h2>
         <p>本包是<strong>纯 prompt 包</strong>，无 <code>extensions/</code>、无 peer 依赖。</p>
         <div class="blog-code">
           <div class="blog-code-bar"><span>tree</span></div>
           <pre><code>prompts/init/
-├── package.json          # "pi": { "prompts": ["./prompts"] }
+├── package.json          # "pi": { "prompts": ["./init.md"] }
 ├── README.md
-└── prompts/init.md</code></pre>
+└── init.md</code></pre>
         </div>
         <p><code>init.md</code> 要求：优先读 README/manifest/构建测试 CI/既有 instruction/<code>.pi/settings.json</code>；只保留 agent 容易猜错的高信号事实；仓库答不上的才向用户提问；写到项目根 <code>AGENTS.md</code>，写完提示 <code>/reload</code>。刻意不做：全局 <code>~/.pi/agent/AGENTS.md</code> 自动写入、交互菜单、extension 包装。</p>
 

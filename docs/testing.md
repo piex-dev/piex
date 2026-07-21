@@ -16,7 +16,7 @@ pi -e ./extensions/review/src/review.ts  -p "what is 1+1" --no-session
 pi -e ./extensions/xai-oauth/src/xai-oauth.ts -p "what is 1+1" --no-session
 
 # init 为 prompt 包（无 extensions），用 --prompt-template 或 install 后测
-pi --prompt-template ./prompts/init/prompts/init.md -p "/init" --no-session
+pi --prompt-template ./prompts/init/init.md -p "/init" --no-session
 
 # 单元测试（不依赖真实外部服务）
 bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts
@@ -99,7 +99,7 @@ pi -e ./extensions/review/src/review.ts
 
 ```bash
 # 本地加载 prompt（不写 settings）
-pi --prompt-template ./prompts/init/prompts/init.md
+pi --prompt-template ./prompts/init/init.md
 # 交互输入 /init，或：
 pi install -l prompts/init
 pi -p "/init" --no-session   # 在目标项目目录执行，会创建/更新 AGENTS.md

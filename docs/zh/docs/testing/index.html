@@ -118,7 +118,7 @@ pi -e ./extensions/plan/src/plan.ts     -p &quot;what is 1+1&quot; --no-session
 pi -e ./extensions/review/src/review.ts  -p &quot;what is 1+1&quot; --no-session
 pi -e ./extensions/xai-oauth/src/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
 # init prompt package
-pi --prompt-template ./prompts/init/prompts/init.md -p &quot;/init&quot; --no-session
+pi --prompt-template ./prompts/init/init.md -p &quot;/init&quot; --no-session
 
 # 单元测试
 bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts
@@ -167,7 +167,7 @@ pi -e ./extensions/review/src/review.ts
 
 <h3 id="init">init</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 本地加载 prompt（不写 settings）
-pi --prompt-template ./prompts/init/prompts/init.md
+pi --prompt-template ./prompts/init/init.md
 # 或 install 后：
 pi install -l prompts/init
 pi -p &quot;/init&quot; --no-session</code></pre></div>

@@ -211,17 +211,17 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
 <div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
 ├── package.json          # &quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }
 ├── README.md
-└── themes/
+└── 
     └── &lt;name&gt;.json       # pi theme JSON (51 color tokens)</code></pre></div>
 <p><strong>Install path notes:</strong></p>
 <ul>
 <li><strong>Global settings</strong> (<code>~/.pi/agent/settings.json</code>): local package paths must be absolute, or <code>/reload</code> resolves relative paths against the settings file location and the theme disappears. Example:</li>
 </ul>
-<p>``<code>bash pi install /abspath-to-piex/themes/theme-dark-terminal </code>``</p>
+<p>``<code>bash pi install /abspath-to-piex/themes/dark-terminal </code>``</p>
 <ul>
 <li><strong>Project settings</strong> (<code>.pi/settings.json</code>): relative paths are fine and team-shareable:</li>
 </ul>
-<p>``<code>bash pi install -l ./themes/theme-dark-terminal </code>``</p>
+<p>``<code>bash pi install -l ./themes/dark-terminal </code>``</p>
 <p>Theme JSON includes <code>name</code> (unique), optional <code>vars</code>, and <code>colors</code> (51 required tokens). Pi loads themes at startup; switch via <code>/settings</code>.</p>
       </div>
 

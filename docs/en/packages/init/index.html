@@ -153,16 +153,16 @@
         </div>
         <p>After writing, it prompts <code>/reload</code> to activate in the current session.</p>
         <h3 id="config">Configuration</h3>
-        <p>Pure prompt package: no TypeScript, no peer deps, no runtime code. <code>package.json</code> declares <code>"pi": { "prompts": ["./prompts"] }</code>; <code>prompts/init.md</code> is the command body.</p>
+        <p>Pure prompt package: no TypeScript, no peer deps, no runtime code. <code>package.json</code> declares <code>"pi": { "prompts": ["./init.md"] }</code>; <code>prompts/init.md</code> is the command body.</p>
 
         <h2 id="impl">Implementation</h2>
         <p>A <strong>pure prompt package</strong> — no <code>extensions/</code>, no peer deps.</p>
         <div class="blog-code">
           <div class="blog-code-bar"><span>tree</span></div>
           <pre><code>prompts/init/
-├── package.json          # "pi": { "prompts": ["./prompts"] }
+├── package.json          # "pi": { "prompts": ["./init.md"] }
 ├── README.md
-└── prompts/init.md</code></pre>
+└── init.md</code></pre>
         </div>
         <p><code>init.md</code> requires: read README/manifest/build-test-CI/existing-instruction/<code>.pi/settings.json</code> first; keep only high-signal facts agents easily get wrong; ask the user only for conventions the repo can't answer; write to project-root <code>AGENTS.md</code> and prompt <code>/reload</code>. Deliberately not done: auto-writing global <code>~/.pi/agent/AGENTS.md</code>, interactive menus, extension wrapping.</p>
 

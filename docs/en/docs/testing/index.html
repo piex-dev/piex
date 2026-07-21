@@ -126,7 +126,7 @@ pi -e ./extensions/plan/src/plan.ts     -p &quot;what is 1+1&quot; --no-session
 pi -e ./extensions/review/src/review.ts  -p &quot;what is 1+1&quot; --no-session
 pi -e ./extensions/xai-oauth/src/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
 # init prompt package
-pi --prompt-template ./prompts/init/prompts/init.md -p &quot;/init&quot; --no-session
+pi --prompt-template ./prompts/init/init.md -p &quot;/init&quot; --no-session
 
 # xai-oauth unit tests (offline)
 bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts
@@ -175,7 +175,7 @@ pi -e ./extensions/review/src/review.ts
 
 <h3 id="init">init</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Load prompt without writing settings
-pi --prompt-template ./prompts/init/prompts/init.md
+pi --prompt-template ./prompts/init/init.md
 # Or after install:
 pi install -l prompts/init
 pi -p &quot;/init&quot; --no-session</code></pre></div>

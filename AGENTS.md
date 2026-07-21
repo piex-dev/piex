@@ -10,9 +10,8 @@ PieX — Pi 扩展集合 monorepo。按 pi package 类型分目录：`extensions
   - `extensions/hashline/` — `@oh-my-pi/hashline`，含 `node_modules/`
   - `extensions/ai-code-report/` — `@dp/tea-sdk-node` + `@logsdk/node-plugin-http` + `diff`，需内部 registry；**`private: true`，不发布**
   - `extensions/lsp/` — mock LSP server 依赖（单测用），见 `docs/testing.md`
-- **prompt 包** `prompts/init/` 无 TypeScript，`"pi": { "prompts": ["./prompts"] }` → `.md` 变成斜杠命令
-- **`extensions/plan/` 特殊依赖**：额外 peer dep `@earendil-works/pi-tui`、`@earendil-works/pi-agent-core`、`@earendil-works/pi-ai`（TUI 集成），不同于其他扩展仅需 `pi-coding-agent`
-- **主题包** `themes/theme-dark-terminal/` 无 TypeScript，`"pi": { "themes": ["./themes"] }` → 安装必须用绝对路径，否则 `/reload` 后丢失
+- **prompt 包** `prompts/<name>/` 无 TypeScript，`<name>.md` 平铺在包根，`"pi": { "prompts": ["./<name>.md"] }`。**斜杠命令名 = 文件名去 `.md`**（`init.md` → `/init`）；npm 包名 `@piex-dev/<name>`。命名约定见下方「prompts/themes 命名约定」
+- **主题包** `themes/<name>/` 无 TypeScript，`theme.json` 平铺在包根，`"pi": { "themes": ["./theme.json"] }` → 安装必须用绝对路径，否则 `/reload` 后丢失。theme 标识用 JSON `name` 字段（非文件名）
 - **package 自有配置/数据文件**：统一放 `~/.pi/piex-dev/<package>/`。代码里用 `join(dirname(getAgentDir()), "piex-dev", "<package>")` 构造。
 
 ## 开发命令
@@ -32,7 +31,7 @@ npx prettier --write .
 cd extensions/hashline && npm install && cd ../..   # hashline 运行时依赖；ai-code-report 需内部 registry
 pi install extensions/<name>                        # 全局（TS 扩展）
 pi install prompts/init                             # 全局（prompt 包）
-pi install themes/theme-dark-terminal               # 全局（theme 包，须绝对路径）
+pi install themes/dark-terminal               # 全局（theme 包，须绝对路径）
 pi install -l extensions/<name>                     # 项目级
 
 # 发布（发布前 bump 版本号；脚本遍历 extensions/ prompts/ themes/，自动跳过 private 包）
@@ -48,6 +47,23 @@ cd eval && npm run check   # 需要 tsgo
 ```
 
 **没有 CI 测试**。唯一工作流是 `pages.yml`（部署文档站）。没有自动化测试/lint/发布 CI，agent 不要假设 CI 会拦截问题。改动后自己跑冒烟测试。
+
+## prompts/themes 命名约定
+
+prompts 和 themes 包**去掉嵌套子目录**，资源文件平铺在包根：
+
+| 类型   | 目录              | 资源文件     | `package.json`                                                           | 标识/命令名                             |
+| ------ | ----------------- | ------------ | ------------------------------------------------------------------------ | --------------------------------------- |
+| prompt | `prompts/<name>/` | `<name>.md`  | `"pi": { "prompts": ["./<name>.md"] }`，`name: "@piex-dev/<name>"`       | 斜杠命令 = 文件名去 `.md` → `/<name>`   |
+| theme  | `themes/<name>/`  | `theme.json` | `"pi": { "themes": ["./theme.json"] }`，`name: "@piex-dev/theme-<name>"` | theme 名 = JSON `name` 字段（非文件名） |
+
+约定要点：
+
+- **去嵌套**：资源文件平铺在包根，`pi.prompts`/`pi.themes` 直接指向文件（pi 同时支持目录与单文件，单文件可省一层嵌套）
+- **prompt**：文件名即命令名（`init.md` → `/init`），故文件名用包语义名 `<name>.md`；npm 包名 `@piex-dev/<name>`
+- **theme**：资源文件统一叫 `theme.json`（theme 标识靠 JSON `name` 字段，与文件名无关）；目录名用去前缀的语义名（`dark-terminal`），npm 包名保留 `theme-` 前缀（`@piex-dev/theme-dark-terminal`）
+- **`files` 字段**：`["<name>.md", "README.md"]` / `["theme.json", "README.md"]`
+- **示例**：`prompts/init/init.md`（→ `/init`，`@piex-dev/init`）、`themes/dark-terminal/theme.json`（`name: "dark-terminal"`，`@piex-dev/theme-dark-terminal`）
 
 ## 代码约定
 

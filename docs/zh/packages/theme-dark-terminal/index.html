@@ -65,7 +65,7 @@
         <p>默认主题追求「通用好读」，但不一定符合所有人审美：暗光下看 diff 需要更高对比，有人习惯经典终端（黑底、荧光绿、警告纯红）。<code>@piex-dev/theme-dark-terminal</code> 不做任何 TypeScript 逻辑，只提供一份 pi 官方主题 schema 下的 JSON：把整套 UI token 映射成高对比「暗终端」调色板。来源是 <a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes/dark-terminal</a> 的色彩角色。</p>
 
         <h2 id="theory">技术原理</h2>
-        <p>pi 的主题是数据不是插件代码：主题包挂 <code>"pi": { "themes": ["./themes"] }</code>，pi 启动扫描 <code>themes/*.json</code> 校验 name + colors。<strong>零运行时、零 hook</strong>：换主题不改 agent 行为。Token 分层 <code>vars</code>（调色板原子色）→ <code>colors</code>（语义 token 指向 var），改一个 <code>green</code>，accent/success/diff added 一起变。</p>
+        <p>pi 的主题是数据不是插件代码：主题包挂 <code>"pi": { "themes": ["./theme.json"] }</code>，pi 启动扫描 <code>themes/*.json</code> 校验 name + colors。<strong>零运行时、零 hook</strong>：换主题不改 agent 行为。Token 分层 <code>vars</code>（调色板原子色）→ <code>colors</code>（语义 token 指向 var），改一个 <code>green</code>，accent/success/diff added 一起变。</p>
         <div class="blog-table-wrap"><table><thead><tr><th>角色</th><th>颜色</th><th>用在</th></tr></thead><tbody>
 <tr><td>主强调</td><td><code>#00ff00</code> 绿</td><td>accent、success、diff 加行</td></tr>
 <tr><td>结构</td><td><code>#00aaff</code> 蓝</td><td>border、链接、keyword</td></tr>
@@ -79,14 +79,14 @@
         <h3 id="install">安装</h3>
         <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/theme-dark-terminal
 # 然后 /settings → theme: dark-terminal</code></pre></div>
-        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/themes/theme-dark-terminal" target="_blank" rel="noopener"><code>themes/theme-dark-terminal</code></a></p>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/themes/dark-terminal" target="_blank" rel="noopener"><code>themes/dark-terminal</code></a></p>
         <h3 id="config">配置</h3>
-        <p><strong>全局安装请用绝对路径</strong>，否则 <code>/reload</code> 后相对路径按 settings 文件位置解析，主题可能「丢了」。项目级 <code>pi install -l ./themes/theme-dark-terminal</code> 更稳。npm 包安装走包管理路径，比手写相对路径省心。</p>
+        <p><strong>全局安装请用绝对路径</strong>，否则 <code>/reload</code> 后相对路径按 settings 文件位置解析，主题可能「丢了」。项目级 <code>pi install -l ./themes/dark-terminal</code> 更稳。npm 包安装走包管理路径，比手写相对路径省心。</p>
         <h3 id="switch">切换</h3>
         <p><code>/settings</code> → theme 选 <code>dark-terminal</code>，<code>/reload</code> 即生效。</p>
 
         <h2 id="impl">实现方案</h2>
-        <p>纯 JSON：<code>package.json</code> + <code>themes/dark-terminal.json</code>。填齐 pi theme schema 必需 color token（数十个）：通用（accent/border/success/error/warning/muted/text）、消息、工具（pending/success/error/diff 加减行）、Markdown（标题/列表/链接/引用）、Syntax（keyword/string/function/type）、Thinking gradient（off→max，最高档亮粉 <code>#ff0088</code>，pi 侧增量）。主题包<strong>刻意</strong>不做：不注册 tool/command、不读文件不碰网络、不依赖 Node API——风险面最小，也是「扩展分发机制」示例。</p>
+        <p>纯 JSON：<code>package.json</code> + <code>theme.json</code>。填齐 pi theme schema 必需 color token（数十个）：通用（accent/border/success/error/warning/muted/text）、消息、工具（pending/success/error/diff 加减行）、Markdown（标题/列表/链接/引用）、Syntax（keyword/string/function/type）、Thinking gradient（off→max，最高档亮粉 <code>#ff0088</code>，pi 侧增量）。主题包<strong>刻意</strong>不做：不注册 tool/command、不读文件不碰网络、不依赖 Node API——风险面最小，也是「扩展分发机制」示例。</p>
 
         <h2 id="design">设计参考</h2>
         <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead><tbody>

@@ -65,7 +65,7 @@
         <p>The default theme aims for "generic readable", but doesn't fit everyone: diffs in low light need higher contrast, some prefer the classic terminal (black bg, neon green, pure-red warnings). <code>@piex-dev/theme-dark-terminal</code> does no TypeScript logic — it only provides a JSON under Pi's official theme schema, mapping the whole UI token set to a high-contrast "dark terminal" palette. Sourced from <a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes/dark-terminal</a> color roles.</p>
 
         <h2 id="theory">How it works</h2>
-        <p>Pi themes are data, not plugin code: a theme package mounts <code>"pi": { "themes": ["./themes"] }</code>; Pi scans <code>themes/*.json</code> on startup, validating name + colors. <strong>Zero runtime, zero hooks</strong>: switching a theme never changes agent behavior. Tokens layer <code>vars</code> (palette atoms) → <code>colors</code> (semantic tokens pointing to vars) — change one <code>green</code> and accent/success/diff-added all shift together.</p>
+        <p>Pi themes are data, not plugin code: a theme package mounts <code>"pi": { "themes": ["./theme.json"] }</code>; Pi scans <code>themes/*.json</code> on startup, validating name + colors. <strong>Zero runtime, zero hooks</strong>: switching a theme never changes agent behavior. Tokens layer <code>vars</code> (palette atoms) → <code>colors</code> (semantic tokens pointing to vars) — change one <code>green</code> and accent/success/diff-added all shift together.</p>
         <div class="blog-table-wrap"><table><thead><tr><th>Role</th><th>Color</th><th>Used for</th></tr></thead><tbody>
 <tr><td>Accent</td><td><code>#00ff00</code> green</td><td>accent, success, diff added</td></tr>
 <tr><td>Structure</td><td><code>#00aaff</code> blue</td><td>border, links, keyword</td></tr>
@@ -79,14 +79,14 @@
         <h3 id="install">Install</h3>
         <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/theme-dark-terminal
 # then /settings → theme: dark-terminal</code></pre></div>
-        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/themes/theme-dark-terminal" target="_blank" rel="noopener"><code>themes/theme-dark-terminal</code></a></p>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/themes/dark-terminal" target="_blank" rel="noopener"><code>themes/dark-terminal</code></a></p>
         <h3 id="config">Configuration</h3>
-        <p><strong>Use an absolute path for global install</strong>, otherwise <code>/reload</code> resolves the relative path against the settings file location and the theme may "disappear". Project-level <code>pi install -l ./themes/theme-dark-terminal</code> is safer. npm install goes through the package path, easier than hand-writing relative paths.</p>
+        <p><strong>Use an absolute path for global install</strong>, otherwise <code>/reload</code> resolves the relative path against the settings file location and the theme may "disappear". Project-level <code>pi install -l ./themes/dark-terminal</code> is safer. npm install goes through the package path, easier than hand-writing relative paths.</p>
         <h3 id="switch">Switch</h3>
         <p><code>/settings</code> → theme pick <code>dark-terminal</code>, <code>/reload</code> to apply.</p>
 
         <h2 id="impl">Implementation</h2>
-        <p>Pure JSON: <code>package.json</code> + <code>themes/dark-terminal.json</code>. Fills all required Pi theme schema color tokens (dozens): general (accent/border/success/error/warning/muted/text), messages, tools (pending/success/error/diff add-remove), Markdown (headings/lists/links/quote), Syntax (keyword/string/function/type), Thinking gradient (off→max, top tier neon pink <code>#ff0088</code>, a Pi-side addition). The theme package <strong>deliberately</strong> does not: register tools/commands, read files or touch the network, depend on Node APIs — smallest risk surface, also an example of "extension distribution mechanism".</p>
+        <p>Pure JSON: <code>package.json</code> + <code>theme.json</code>. Fills all required Pi theme schema color tokens (dozens): general (accent/border/success/error/warning/muted/text), messages, tools (pending/success/error/diff add-remove), Markdown (headings/lists/links/quote), Syntax (keyword/string/function/type), Thinking gradient (off→max, top tier neon pink <code>#ff0088</code>, a Pi-side addition). The theme package <strong>deliberately</strong> does not: register tools/commands, read files or touch the network, depend on Node APIs — smallest risk surface, also an example of "extension distribution mechanism".</p>
 
         <h2 id="design">Design notes</h2>
         <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead><tbody>

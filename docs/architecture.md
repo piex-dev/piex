@@ -46,16 +46,14 @@ piex/                                  # monorepo
 │   └── ai-code-report/              # src/ai-code-report.ts（private，未发布）
 ├── prompts/                          # 📝 pi prompt 包（走 pi.prompts）
 │   └── init/
+│       ├── init.md                # → /init
 │       ├── README.md
-│       ├── package.json             # pi.prompts
-│       └── prompts/
-│           └── init.md               # → /init
+│       └── package.json             # pi.prompts: ["./init.md"]
 └── themes/                          # 🎨 pi theme 包（走 pi.themes）
-    └── theme-dark-terminal/
+    └── dark-terminal/
+        ├── theme.json               # name: "dark-terminal"
         ├── README.md
-        ├── package.json
-        └── themes/
-            └── dark-terminal.json
+        └── package.json             # pi.themes: ["./theme.json"]
 ```
 
 ## Package 总览
@@ -96,21 +94,21 @@ piex/                                  # monorepo
 
 ## pi Extension API 映射
 
-| 原功能概念              | 来源     | piex 实现              | pi API                                               |
-| ----------------------- | -------- | ---------------------- | ---------------------------------------------------- |
-| 覆盖 edit 工具          | omp      | hashline.ts            | `pi.registerTool({ name: "edit" })`                  |
-| Hook read 追加 header   | omp      | hashline.ts            | `pi.on("tool_result", ...)`                          |
-| 注册 debug 工具         | omp      | dap.ts                 | `pi.registerTool({ name: "debug" })`                 |
-| 会话清理 DAP 进程       | omp      | dap.ts                 | `pi.on("session_shutdown", ...)`                     |
-| 注册 lsp 工具           | omp      | lsp.ts                 | `pi.registerTool({ name: "lsp" })`                   |
-| 写后诊断 hook           | OpenCode | lsp.ts                 | `pi.on("tool_result")` on edit/write                 |
-| 计划模式 /plan          | pi 示例  | plan.ts                | `pi.registerCommand("plan", ...)`                    |
-| 只读工具切换            | pi 示例  | plan.ts                | `pi.setActiveTools([...])`                           |
-| 危险命令拦截            | pi 示例  | plan.ts                | `pi.on("tool_call", ...)` → block                    |
-| 进度追踪 [DONE:n]       | pi 示例  | plan.ts                | `pi.on("turn_end", ...)`                             |
-| 交互评审菜单            | omp      | review.ts              | `pi.registerCommand("review", ...)`                  |
-| 注册 review 工具        | omp      | review.ts              | `pi.registerTool({ name: "review" })`                |
-| 引导生成 AGENTS.md      | OpenCode | init `prompts/init.md` | `pi.prompts` → `/init`                               |
-| 状态持久化              | pi       | plan.ts                | `pi.appendEntry("plan-mode", ...)`                   |
-| Footer/Widge            | pi       | plan.ts                | `ctx.ui.setStatus/setWidget(...)`                    |
-| 注册 xAI OAuth provider | omp      | xai-oauth.ts           | `pi.registerProvider("xai-oauth", { oauth: {...} })` |
+| 原功能概念              | 来源     | piex 实现                   | pi API                                               |
+| ----------------------- | -------- | --------------------------- | ---------------------------------------------------- |
+| 覆盖 edit 工具          | omp      | hashline.ts                 | `pi.registerTool({ name: "edit" })`                  |
+| Hook read 追加 header   | omp      | hashline.ts                 | `pi.on("tool_result", ...)`                          |
+| 注册 debug 工具         | omp      | dap.ts                      | `pi.registerTool({ name: "debug" })`                 |
+| 会话清理 DAP 进程       | omp      | dap.ts                      | `pi.on("session_shutdown", ...)`                     |
+| 注册 lsp 工具           | omp      | lsp.ts                      | `pi.registerTool({ name: "lsp" })`                   |
+| 写后诊断 hook           | OpenCode | lsp.ts                      | `pi.on("tool_result")` on edit/write                 |
+| 计划模式 /plan          | pi 示例  | plan.ts                     | `pi.registerCommand("plan", ...)`                    |
+| 只读工具切换            | pi 示例  | plan.ts                     | `pi.setActiveTools([...])`                           |
+| 危险命令拦截            | pi 示例  | plan.ts                     | `pi.on("tool_call", ...)` → block                    |
+| 进度追踪 [DONE:n]       | pi 示例  | plan.ts                     | `pi.on("turn_end", ...)`                             |
+| 交互评审菜单            | omp      | review.ts                   | `pi.registerCommand("review", ...)`                  |
+| 注册 review 工具        | omp      | review.ts                   | `pi.registerTool({ name: "review" })`                |
+| 引导生成 AGENTS.md      | OpenCode | init `prompts/init/init.md` | `pi.prompts` → `/init`                               |
+| 状态持久化              | pi       | plan.ts                     | `pi.appendEntry("plan-mode", ...)`                   |
+| Footer/Widge            | pi       | plan.ts                     | `ctx.ui.setStatus/setWidget(...)`                    |
+| 注册 xAI OAuth provider | omp      | xai-oauth.ts                | `pi.registerProvider("xai-oauth", { oauth: {...} })` |

@@ -299,18 +299,18 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
         <div class="blog-code" data-lang="text"><div class="blog-code-bar"><span>text</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>&lt;name&gt;/
 ├── package.json          # npm 包，&quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }
 ├── README.md
-└── themes/
+└── 
     └── &lt;name&gt;.json       # pi theme JSON（51 color tokens）</code></pre></div>
         <p><code>package.json</code> 中的 <code>&quot;pi&quot;: { &quot;themes&quot;: [&quot;./themes&quot;] }</code> 告诉 pi 自动发现主题文件。</p>
         <p><strong>安装方式选择：</strong></p>
         <ul>
 <li><strong>全局 settings</strong>（<code>~/.pi/agent/settings.json</code>）：本地包路径必须传绝对路径，否则 <code>/reload</code> 后相对路径会按 settings 文件位置解析导致主题丢失。例：</li>
 </ul>
-        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install /abspath-to-piex/themes/theme-dark-terminal</code></pre></div>
+        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install /abspath-to-piex/themes/dark-terminal</code></pre></div>
         <ul>
 <li><strong>项目级 settings</strong>（<code>.pi/settings.json</code>）：可用相对路径，团队共享。例：</li>
 </ul>
-        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install -l ./themes/theme-dark-terminal</code></pre></div>
+        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install -l ./themes/dark-terminal</code></pre></div>
         <p>主题 JSON 包含 <code>name</code>（唯一主题名）、<code>vars</code>（可选色板变量）和 <code>colors</code>（51 个必需 token）。pi 启动时自动加载，<code>/settings</code> 切换。</p>
       </div>
 

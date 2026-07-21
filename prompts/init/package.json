@@ -23,11 +23,11 @@
   ],
   "pi": {
     "prompts": [
-      "./prompts"
+      "./init.md"
     ]
   },
   "files": [
-    "prompts",
+    "init.md",
     "README.md"
   ]
 }

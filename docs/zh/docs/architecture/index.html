@@ -145,16 +145,14 @@
     └── ai-code-report/              # src/ai-code-report.ts（private，未发布）
 ├── prompts/                          # 📝 pi prompt 包（走 pi.prompts）
     └── init/
+        ├── init.md                # → /init
         ├── README.md
-        ├── package.json             # pi.prompts
-        └── prompts/
-            └── init.md               # → /init
+        └── package.json             # pi.prompts: ["./init.md"]
 └── themes/                          # 🎨 pi theme 包（走 pi.themes）
-    └── theme-dark-terminal/
+    └── dark-terminal/
+        ├── theme.json               # name: "dark-terminal"
         ├── README.md
-        ├── package.json
-        └── themes/
-            └── dark-terminal.json</code></pre></div>
+        └── package.json             # pi.themes: ["./theme.json"]</code></pre></div>
 <h2 id="package-总览">Package 总览</h2>
 <div class="blog-table-wrap"><table><thead><tr>
 <th>Package</th>
@@ -224,7 +222,7 @@
 <tr><td>进度追踪 [DONE:n]</td><td>pi 示例</td><td>plan.ts</td><td><code>pi.on(&quot;turn_end&quot;, ...)</code></td></tr>
 <tr><td>交互评审菜单</td><td>omp</td><td>review.ts</td><td><code>pi.registerCommand(&quot;review&quot;, ...)</code></td></tr>
 <tr><td>注册 review 工具</td><td>omp</td><td>review.ts</td><td><code>pi.registerTool({ name: &quot;review&quot; })</code></td></tr>
-<tr><td>引导生成 AGENTS.md</td><td>OpenCode</td><td>init <code>prompts/init.md</code></td><td><code>pi.prompts</code> → <code>/init</code></td></tr>
+<tr><td>引导生成 AGENTS.md</td><td>OpenCode</td><td>init <code>prompts/init/init.md</code></td><td><code>pi.prompts</code> → <code>/init</code></td></tr>
 <tr><td>状态持久化</td><td>pi</td><td>plan.ts</td><td><code>pi.appendEntry(&quot;plan-mode&quot;, ...)</code></td></tr>
 <tr><td>Footer/Widge</td><td>pi</td><td>plan.ts</td><td><code>ctx.ui.setStatus/setWidget(...)</code></td></tr>
 <tr><td>注册 xAI OAuth provider</td><td>omp</td><td>xai-oauth.ts</td><td><code>pi.registerProvider(&quot;xai-oauth&quot;, { oauth: {...} })</code></td></tr>
