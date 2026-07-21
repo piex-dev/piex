@@ -4,8 +4,8 @@
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/init/
-- 源稿：[`docs/notes/init.md`](../../docs/notes/init.md)
+- 介绍：https://piex.dev/zh/packages/init/
+- 源稿：[`docs/packages/init.md`](../../docs/packages/init.md)
 
 ## 功能
 

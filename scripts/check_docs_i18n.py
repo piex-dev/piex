@@ -68,6 +68,10 @@ def catalog() -> list[tuple[str, str, Path]]:
     if notes.is_dir():
         for p in sorted(notes.glob("*.md")):
             items.append(("blogs", p.stem, p))
+    packages = docs / "packages"
+    if packages.is_dir():
+        for p in sorted(packages.glob("*.md")):
+            items.append(("packages", p.stem, p))
     return items
 
 
@@ -113,6 +117,17 @@ def lang_ratio(html_text: str) -> tuple[int, int, int, float]:
     total = cjk + latin
     ratio = (cjk / total) if total else 0.0
     return cjk, latin, total, ratio
+
+
+def is_redirect_stub(html_path: Path) -> bool:
+    """A legacy URL stub that only redirects (no content) — skip i18n checks."""
+    try:
+        html = html_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    if 'class="blog-prose"' in html:
+        return False
+    return "location.replace(" in html or "<meta http-equiv=\"refresh\"" in html
 
 
 def h2_count(html_text: str) -> int:
@@ -346,14 +361,21 @@ def main() -> int:
 
     # orphan English HTML without Chinese md
     print("\n── orphan scan")
-    for kind in ("docs", "blogs"):
+    for kind in ("docs", "blogs", "packages"):
         base = ROOT / "docs" / "en" / kind
         if not base.is_dir():
             continue
         for d in sorted(p for p in base.iterdir() if p.is_dir()):
             slug = d.name
+            en_html = d / "index.html"
+            # Legacy URL redirect stubs (e.g. /blogs/<pkg>/ → /packages/<pkg>/)
+            # carry no content and no md — skip them.
+            if en_html.is_file() and is_redirect_stub(en_html):
+                continue
             if kind == "blogs":
                 md = ROOT / "docs" / "notes" / f"{slug}.md"
+            elif kind == "packages":
+                md = ROOT / "docs" / "packages" / f"{slug}.md"
             else:
                 md = ROOT / "docs" / f"{slug}.md"
             if not md.is_file():

@@ -4,8 +4,8 @@
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/context/
-- 源稿：[`docs/notes/context.md`](../../docs/notes/context.md)
+- 介绍：https://piex.dev/zh/packages/context/
+- 源稿：[`docs/packages/context.md`](../../docs/packages/context.md)
 
 ## 功能
 

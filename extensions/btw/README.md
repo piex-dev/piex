@@ -4,8 +4,8 @@
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/btw/
-- 源稿：[`docs/notes/btw.md`](../../docs/notes/btw.md)
+- 介绍：https://piex.dev/zh/packages/btw/
+- 源稿：[`docs/packages/btw.md`](../../docs/packages/btw.md)
 
 ## 功能
 

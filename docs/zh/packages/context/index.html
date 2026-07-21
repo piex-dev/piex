@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>context — 看清 Session 到底吃了多少 Token — PieX</title>
+  <meta name="description" content="/context 一眼看清当前 session 内容分布：谁在占用上下文、哪些条目膨胀最快、token 预算花在哪。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/context/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/context/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/context/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/context/" />
+  <meta property="og:title" content="context — 看清 Session 到底吃了多少 Token — PieX" />
+  <meta property="og:description" content="/context 一眼看清当前 session 内容分布：谁在占用上下文、哪些条目膨胀最快、token 预算花在哪。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/context/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="false" role="radio">EN</button><button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/" class="is-active">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/" class="is-active">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>本页目录</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Extension</span><span class="blog-tag">Session</span><code class="pkg-tag">@piex-dev/context</code></div><h1>context — 看清 Session 到底吃了多少 Token</h1><p class="blog-lede">一眼看清当前 session 内容分布：谁在占用上下文、哪些条目膨胀最快。</p></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">导语</p><p><code>/context</code> 一眼看清当前 session 的内容分布：谁在占用上下文、哪些条目膨胀最快、你的 token 预算都花在哪了。</p></div></div>
+
+        <h2 id="intro">简介</h2>
+        <p>coding agent 用久了，上下文窗口是最大的隐形成本。你感觉「越聊越慢」「回答变浅」，但很难定位根源——是 tool results 膨胀？某次 read 拉了冗余内容？还是对话历史本身过长？pi 内置的 <code>/session</code> 只展示 session 列表，缺少单 session 内容分布分析。<code>@piex-dev/context</code> 填补这个缺口：一次性输出结构化条目分析、角色占比和 token 估算。</p>
+
+        <h2 id="theory">技术原理</h2>
+        <p><strong>Token 估算</strong>：不做精确 token counting（精确计数需调模型 tokenizer，成本太高），用业界通用的「字符数 / 3.5」经验公式。对中英混合偏保守但不失为有用的相对比较。<strong>分析维度</strong>：按 role（user/assistant/system）+ type（message/tool_call/tool_result/custom）分类统计字符数，三个角色为分析主轴——Assistant（模型回答，通常大头）、User（你的指令）、Tool Results（最容易意外膨胀，如 read 大文件、grep 结果过多）。</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>session entries → 按 role 分类 → 按 type 分类
+→ 按角色统计字符数 → ASCII bar chart + 结构化表格</code></pre></div>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/context</code></pre></div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/context" target="_blank" rel="noopener"><code>extensions/context</code></a></p>
+        <h3 id="example">用法</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>/context</code></pre></div>
+        <p>输出 Overview 表格 + Distribution ASCII 柱状图 + token 估算。</p>
+        <h3 id="config">配置</h3>
+        <p>无配置项，开箱即用。token 估算固定用 chars / 3.5 系数。</p>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi -e ./extensions/context/src/context.ts -p "what is 1+1" --no-session</code></pre></div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>约 160 行单文件。核心函数：<code>analyzeEntries()</code>（遍历 entries 按 role/type 统计）、<code>countChars()</code>（适配 string 与 content block 数组）、<code>buildReport()</code>（Markdown 表格 + ASCII 柱状图）、<code>estimateTokens()</code>（chars/3.5）、<code>buildBar()</code>（█/░ 柱状图）。</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>report</span></div><pre><code>## Context Usage Report
+
+### Overview
+| Metric            | Value |
+| Total entries     | 42    |
+| Estimated tokens  | ~3.2k |
+
+### Distribution
+████████████░░░░░░░░ Assistant     62%
+██████░░░░░░░░░░░░░░ User          28%
+██░░░░░░░░░░░░░░░░░░ Tool Results  10%</code></pre></div>
+        <div class="blog-table-wrap"><table><thead><tr><th>pi /session</th><th>context (piex)</th></tr></thead><tbody>
+<tr><td>展示 session 列表</td><td>展示当前 session 内容分布</td></tr>
+<tr><td>无分布图表</td><td>ASCII bar chart</td></tr>
+<tr><td>无 token 估算</td><td>chars → tokens 估算</td></tr>
+<tr><td>无条目分类</td><td>按 role/type 详细分类</td></tr>
+</tbody></table></div>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead><tbody>
+<tr><td><strong>pi 内置 /session</strong></td><td>展示 session 列表，无单 session 内容分布</td><td><strong>并存</strong>：context 补齐分布分析、token 估算、role/type 分类，不替换 /session</td></tr>
+<tr><td><strong>业界 token 估算</strong></td><td>字符数 / 3.5 经验公式</td><td><strong>采纳</strong>：相对比较够用且零成本，偏保守但适合定位「谁在膨胀」</td></tr>
+</tbody></table></div>
+<p>核心取舍：相对比较优先于精确计数（零成本、定位问题够用），静态快照优先于时序分析（先解决「现在谁占得多」）。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>方向</th><th>打算</th></tr></thead><tbody>
+<tr><td>精确 token 计数</td><td>chars/3.5 对中英混合偏差较大；pi 暴露 tokenizer 接口后切换精确计算</td></tr>
+<tr><td>时序分析</td><td>当前只做静态快照；加「token 消耗随 turn 增长」时序图定位哪个 turn 膨胀最快</td></tr>
+<tr><td>异常检测</td><td>自动标记 tool results 超阈值（如 50K chars）的条目，提示检查是否拉了多余内容</td></tr>
+<tr><td>可配置度量</td><td>按项目自定义估算系数，甚至接入外部 tokenizer</td></tr>
+</tbody></table></div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-07-19</td><td>初始版本：<code>/context</code> 输出 session 内容分布报告；<code>analyzeEntries</code> 按 role（user/assistant/system）+ type（message/tool_call/tool_result/custom）分类统计；<code>estimateTokens</code>（chars/3.5）；ASCII bar chart 分布可视化；与 pi <code>/session</code> 并存（补分布分析 + token 估算 + 分类）</td></tr>
+</tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/btw/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">btw</span></a><a class="blog-nav-card is-next" href="/#packages"><span class="blog-nav-label">← 全部</span><span class="blog-nav-title">回到 Packages 列表</span></a></nav>
+      <p class="blog-source-link">源稿 Markdown：<a href="https://github.com/piex-dev/piex/blob/main/docs/packages/context.md" target="_blank" rel="noopener">docs/packages/context.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">本页目录</p><nav><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

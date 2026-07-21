@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>lsp — 给 Agent 一双「语言服务器」的眼睛 — PieX</title>
+  <meta name="description" content="把 LSP 做成 pi 工具：诊断、导航、重构、格式化；edit 之后自动看到 ERROR，形成改→验→再改闭环。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/lsp/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/lsp/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/lsp/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/lsp/" />
+  <meta property="og:title" content="lsp — 给 Agent 一双「语言服务器」的眼睛 — PieX" />
+  <meta property="og:description" content="把 LSP 做成 pi 工具：诊断、导航、重构、格式化；edit 之后自动看到 ERROR，形成改→验→再改闭环。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/lsp/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="false" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/" class="is-active">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/" class="is-active">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+        <a href="#appendix">附录</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Diagnostics</span>
+          <code class="pkg-tag">@piex-dev/lsp</code>
+        </div>
+        <h1>lsp — 给 Agent 一双「语言服务器」的眼睛</h1>
+        <p class="blog-lede">让 agent 能问 IDE 同一类问题；edit 之后自动看到 ERROR，不必靠模型记得再调诊断。</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">导语</p>
+            <p><code>@piex-dev/lsp</code> 让 agent 能问 IDE 同一类问题；更关键的是 <strong>edit 之后自动看到 ERROR</strong>，不必靠模型记得再调诊断。</p>
+          </div>
+        </div>
+
+        <h2 id="intro">简介</h2>
+        <p>
+          没有 LSP 时，agent 理解代码主要靠 <code>read</code>、<code>grep</code>、模型脑补类型与引用。文件一多、重构一深就翻车：改了函数签名漏改调用点、类型错误要手动跑 <code>tsc</code>/<code>cargo check</code>、「符号定义在哪」全靠猜。<code>@piex-dev/lsp</code> 把 LSP 能力做成 pi 工具，让模型在改代码前后<strong>主动问语言服务器</strong>。
+        </p>
+
+        <h2 id="theory">技术原理</h2>
+        <p>
+          最值钱的能力：diagnostics（有哪些 error/warning）、definition/references（改一处影响哪里）、hover（符号类型）、symbols（结构大纲）、format（统一风格）。按文件后缀在 <code>defaults.json</code> 匹配 server，用 root markers 找 workspace root，spawn 子进程跑 stdio JSON-RPC，同一 root + server 会话内缓存避免冷启动。诊断靠 server 主动推 <code>publishDiagnostics</code>，客户端按 URI 缓存——edit 后立刻能问「还有没有红线」，形成改→验→再改闭环。
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>LSP flow</span></div>
+          <pre><code>编辑器/Agent          Language Server
+     |                        |
+     |  initialize            |
+     |  textDocument/*        |
+     | ---------------------> |
+     |  publishDiagnostics    |
+     | &lt;--------------------- |</code></pre>
+        </div>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/lsp</code></pre>
+        </div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/lsp" target="_blank" rel="noopener"><code>extensions/lsp</code></a></p>
+        <h3 id="prereq">前提条件</h3>
+        <p>扩展是客户端，不是 server 分发器。语言服务器本体要本机可执行（如 <code>typescript-language-server</code>、<code>rust-analyzer</code>、<code>pyright</code>、<code>gopls</code>）。<code>defaults.json</code> 已为约 50 个 server 写好启动命令与参数。</p>
+        <h3 id="config">配置</h3>
+        <p>默认配置在 <code>extensions/lsp/defaults.json</code>，每个 server 含 <code>command</code> / <code>fileTypes</code> / <code>rootMarkers</code> / <code>initOptions</code> / <code>settings</code> / <code>isLinter</code>。单 server 命令可用环境变量 <code>PI_&lt;NAME&gt;_LSP_COMMAND</code> 覆盖；写后诊断可用 <code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code> 关闭。</p>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>cd extensions/lsp &amp;&amp; npm install &amp;&amp; bun test   # mock server 单测
+pi -e ./extensions/lsp/src/lsp.ts -p "what is 1+1" --no-session  # 冒烟</code></pre>
+        </div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>
+          <code>lsp.ts</code> 是客户端 + 路由 + 工具 + 写后诊断 hook；<code>defaults.json</code> 配约 50 个 server。写后诊断钩住 <code>edit</code>/<code>write</code>（含 hashline）：sync 磁盘 → 等 publishDiagnostics → 仅 ERROR、每文件 cap 20，附结果末尾。
+        </p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>action</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>diagnostics</code></td><td>匹配多 server，聚合诊断</td></tr>
+              <tr><td><code>definition</code>/<code>type_definition</code>/<code>implementation</code></td><td>导航</td></tr>
+              <tr><td><code>references</code>/<code>hover</code>/<code>symbols</code>/<code>workspace_symbols</code></td><td>读智能</td></tr>
+              <tr><td><code>rename</code></td><td>默认 preview；<code>apply=true</code> 写盘</td></tr>
+              <tr><td><code>code_actions</code></td><td>列表或按 index apply</td></tr>
+              <tr><td><code>format</code></td><td>TextEdit 写回</td></tr>
+              <tr><td><code>status</code>/<code>reload</code></td><td>运维</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>正确性要点：诊断 settle（最后一条 publish 后静默 N ms，默认 800ms）；LSP 3.17 pull 诊断（<code>diagnosticProvider</code> 声明才拉）；<code>resolveProvider</code> 门控；重叠 TextEdit 区间相交拒绝；stderr 捕获进错误消息（cap 16KB）；<code>which</code> 含 <code>node_modules/.bin</code>、<code>.venv/bin</code>；Windows <code>.bat/.cmd</code> 经 <code>cmd.exe /d /s /c</code> 包装。</p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi lsp</strong></td><td>完整 LSP 客户端：多 server 路由、didChange、完整 action 面、诊断聚合</td><td><strong>采纳</strong>：JSON-RPC client、defaults.json 驱动、按需启动/会话复用。<strong>不采纳</strong>：Bun 运行时、大面铺满 action</td></tr>
+<tr><td><strong>OpenCode 写后诊断</strong></td><td><code>tool_result</code> hook edit/write → 等 publishDiagnostics → 仅 ERROR、每文件 cap</td><td><strong>采纳</strong>整套模式：sync → wait → only ERROR → cap 20。<code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code> 可关</td></tr>
+<tr><td><strong>VS Code LSP</strong></td><td>initialize + settings/didChangeConfiguration + workspace/configuration</td><td><strong>借鉴</strong>：initOptions/settings 下发路径；full-text didChange；<code>which</code> 查 .bin/.venv</td></tr>
+<tr><td><strong>pi-extensions pi-lsp</strong></td><td>诊断 settle、pull 诊断、stderr 捕获、门控、重叠 edit 检测、cmd.exe 包装、命令覆盖</td><td><strong>采纳</strong>全部协议细节（融入常驻进程架构）；<strong>不采纳</strong>：spawn-per-call、仅两工具</td></tr>
+</tbody></table></div>
+<p>核心取舍：优先写后 ERROR 闭环（学 OpenCode），诊断优于导航暴露；linter 不抢 primary server 的导航角色。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>状态</th><th>项</th></tr></thead>
+            <tbody>
+              <tr><td>✅</td><td>init/settings、didChange、多 server、写后 ERROR、rename/code_actions</td></tr>
+              <tr><td>✅</td><td>诊断 settle、pull 诊断、resolveProvider 门控、重叠 edit 防护、stderr 捕获</td></tr>
+              <tr><td>✅</td><td>mock server 单测</td></tr>
+              <tr><td>下一步</td><td>项目级 <code>.lsp.json</code> 覆盖；模块拆分（client/config/edits）</td></tr>
+              <tr><td>下一步</td><td>indexing/ready 状态，避免冷启动假阴性；目录级批量诊断</td></tr>
+              <tr><td>暂缓</td><td>lspmux、自动下载 LS、completion、TUI、整仓 CLI diagnostics</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
+            <tbody>
+              <tr><td>0.2.0</td><td>2026-07-19</td><td>早期版本：多 server 路由、didChange、诊断聚合；push 诊断到即返；盲调 <code>codeAction/resolve</code>；server 退出只给 exit code，stderr 丢失</td></tr>
+              <tr><td>0.3.0</td><td>2026-07-19</td><td>push settle 静默期 + LSP 3.17 pull 诊断双轨；<code>resolveProvider</code>/<code>diagnosticProvider</code> 声明才调；stderr 捕获进超时/退出错误；<code>.bat/.cmd</code> 经 <code>cmd.exe</code> 包装；<code>PI_&lt;NAME&gt;_LSP_COMMAND</code> 覆盖；重叠 TextEdit 检测防写坏文件</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>0.2.0 教训：intelephense 这类 server 先推空再推真，到即返把有错文件报成干净；server 崩溃只有 exit code，排障全靠猜。0.3.0 补齐协议细节。</p>
+
+        <h2 id="appendix">附录：pi LSP 生态能力逐项对比</h2>
+        <p>四个项目（omp / OpenCode / pi-extensions <code>pi-lsp</code> / piex lsp）的客观能力差异。</p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>能力</th><th>omp</th><th>OpenCode</th><th>pi-extensions</th><th>piex</th></tr></thead>
+            <tbody>
+              <tr><td>工具面</td><td>14 action</td><td>实验性，默认关</td><td>2（diagnostics+fix）</td><td>13 action</td></tr>
+              <tr><td>进程模型</td><td>会话内复用</td><td>会话内复用</td><td>spawn-per-call</td><td>会话内复用</td></tr>
+              <tr><td>push settle 静默期</td><td>❌</td><td>❌</td><td>✅</td><td>✅（800ms）</td></tr>
+              <tr><td>LSP 3.17 pull 诊断</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td></tr>
+              <tr><td>写后诊断</td><td>writethrough</td><td>edit 注入 ERROR</td><td>❌</td><td>tool_result 附 ERROR</td></tr>
+              <tr><td>stderr 捕获</td><td>❌</td><td>❌</td><td>✅</td><td>✅（cap 16KB）</td></tr>
+              <tr><td>重叠 TextEdit 防护</td><td>❌</td><td>❌</td><td>✅</td><td>✅（限 cwd）</td></tr>
+              <tr><td>Windows .bat/.cmd</td><td>—</td><td>—</td><td>✅ cmd.exe</td><td>✅</td></tr>
+              <tr><td>rename / format</td><td>✅</td><td>❌</td><td>❌</td><td>✅（preview 默认）</td></tr>
+              <tr><td>单测</td><td>—</td><td>—</td><td>❌</td><td>✅（mock server）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/zh/packages/dap/">
+          <span class="blog-nav-label">← 上一个</span>
+          <span class="blog-nav-title">dap</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/zh/packages/plan/">
+          <span class="blog-nav-label">下一个 →</span>
+          <span class="blog-nav-title">plan</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/lsp.md" target="_blank" rel="noopener">docs/packages/lsp.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+        <a href="#appendix">附录</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

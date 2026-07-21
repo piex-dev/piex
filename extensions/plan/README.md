@@ -4,8 +4,8 @@
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/plan/
-- 源稿：[`docs/notes/plan.md`](../../docs/notes/plan.md)
+- 介绍：https://piex.dev/zh/packages/plan/
+- 源稿：[`docs/packages/plan.md`](../../docs/packages/plan.md)
 
 ## 功能
 

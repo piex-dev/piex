@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>context — See How Much Token a Session Eats — PieX</title>
+  <meta name="description" content="/context shows the current session content distribution at a glance: who holds context, which entries bloat, where the token budget goes." />
+  <link rel="canonical" href="https://piex.dev/en/packages/context/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/context/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/context/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/context/" />
+  <meta property="og:title" content="context — See How Much Token a Session Eats — PieX" />
+  <meta property="og:description" content="/context shows the current session content distribution at a glance: who holds context, which entries bloat, where the token budget goes." />
+  <meta property="og:url" content="https://piex.dev/en/packages/context/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="true" class="active" role="radio">EN</button><button data-lang="zh" aria-checked="false" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/" class="is-active">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/" class="is-active">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Extension</span><span class="blog-tag">Session</span><code class="pkg-tag">@piex-dev/context</code></div><h1>context — See How Much Token a Session Eats</h1><p class="blog-lede">See the current session content distribution at a glance: who holds context, which entries bloat.</p></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p><code>/context</code> shows the current session content distribution at a glance: who holds context, which entries bloat fastest, where your token budget goes.</p></div></div>
+
+        <h2 id="intro">Overview</h2>
+        <p>As a coding agent runs long, the context window is the biggest hidden cost. You feel "slower", "shallower", but can't pinpoint the cause — bloated tool results? a read that pulled redundant content? or just long history? Pi's built-in <code>/session</code> only lists sessions, lacking per-session content distribution. <code>@piex-dev/context</code> fills the gap: a one-shot structured entry analysis, role share, and token estimate.</p>
+
+        <h2 id="theory">How it works</h2>
+        <p><strong>Token estimate</strong>: no precise counting (that needs the model tokenizer, too costly) — uses the industry "chars / 3.5" heuristic. Conservative for mixed CJK/Latin but a useful relative comparison. <strong>Dimensions</strong>: classify by role (user/assistant/system) + type (message/tool_call/tool_result/custom) and count chars; three roles are the main axis — Assistant (model answers, usually the bulk), User (your instructions), Tool Results (most prone to accidental bloat, e.g. read big files, verbose grep).</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>session entries → by role → by type
+→ count chars per role → ASCII bar chart + structured table</code></pre></div>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/context</code></pre></div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/context" target="_blank" rel="noopener"><code>extensions/context</code></a></p>
+        <h3 id="example">Usage</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>/context</code></pre></div>
+        <p>Outputs an Overview table + Distribution ASCII bar chart + token estimate.</p>
+        <h3 id="config">Configuration</h3>
+        <p>No config, works out of the box. Token estimate fixed at chars / 3.5.</p>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi -e ./extensions/context/src/context.ts -p "what is 1+1" --no-session</code></pre></div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>~160 lines, single file. Core functions: <code>analyzeEntries()</code> (walk entries, count by role/type), <code>countChars()</code> (handles both string and content-block array), <code>buildReport()</code> (Markdown table + ASCII bar chart), <code>estimateTokens()</code> (chars/3.5), <code>buildBar()</code> (█/░ bars).</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>report</span></div><pre><code>## Context Usage Report
+
+### Overview
+| Metric            | Value |
+| Total entries     | 42    |
+| Estimated tokens  | ~3.2k |
+
+### Distribution
+████████████░░░░░░░░ Assistant     62%
+██████░░░░░░░░░░░░░░ User          28%
+██░░░░░░░░░░░░░░░░░░ Tool Results  10%</code></pre></div>
+        <div class="blog-table-wrap"><table><thead><tr><th>pi /session</th><th>context (piex)</th></tr></thead><tbody>
+<tr><td>lists sessions</td><td>shows current session content distribution</td></tr>
+<tr><td>no distribution chart</td><td>ASCII bar chart</td></tr>
+<tr><td>no token estimate</td><td>chars → tokens estimate</td></tr>
+<tr><td>no entry classification</td><td>detailed by role/type</td></tr>
+</tbody></table></div>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead><tbody>
+<tr><td><strong>pi built-in /session</strong></td><td>lists sessions, no per-session distribution</td><td><strong>Coexist</strong>: context adds distribution analysis, token estimate, role/type classification, doesn't replace /session</td></tr>
+<tr><td><strong>industry token estimate</strong></td><td>chars / 3.5 heuristic</td><td><strong>Adopted</strong>: relative comparison is enough at zero cost, conservative but good for "who's bloating"</td></tr>
+</tbody></table></div>
+<p>Core trade-off: relative comparison over precise counting (zero cost, enough for locating problems); static snapshot over time-series (solve "who's big now" first).</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Direction</th><th>Plan</th></tr></thead><tbody>
+<tr><td>Precise token counting</td><td>chars/3.5 deviates for mixed CJK; switch to precise once Pi exposes a tokenizer interface</td></tr>
+<tr><td>Time-series analysis</td><td>currently static snapshot; add "token growth per turn" to find the fastest-bloating turn</td></tr>
+<tr><td>Anomaly detection</td><td>auto-flag tool results above a threshold (e.g. 50K chars), prompt to check for redundant pulls</td></tr>
+<tr><td>Configurable metric</td><td>per-project custom coefficient, or external tokenizer</td></tr>
+</tbody></table></div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-07-19</td><td>Initial release: <code>/context</code> outputs session content distribution report; <code>analyzeEntries</code> by role (user/assistant/system) + type (message/tool_call/tool_result/custom); <code>estimateTokens</code> (chars/3.5); ASCII bar chart; coexists with pi <code>/session</code> (adds distribution + token estimate + classification)</td></tr>
+</tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/en/packages/btw/"><span class="blog-nav-label">← Previous</span><span class="blog-nav-title">btw</span></a><a class="blog-nav-card is-next" href="/#packages"><span class="blog-nav-label">← All</span><span class="blog-nav-title">Back to Packages list</span></a></nav>
+      <p class="blog-source-link">Source Markdown: <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/context.md" target="_blank" rel="noopener">docs/packages/context.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">On this page</p><nav><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

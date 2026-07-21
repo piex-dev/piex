@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>init — One-Shot Project AGENTS.md — PieX</title>
+  <meta name="description" content="/init turns scan-repo→write-rules into a repeatable prompt, so every new project establishes agent conventions on day one." />
+  <link rel="canonical" href="https://piex.dev/en/packages/init/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/init/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/init/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/init/" />
+  <meta property="og:title" content="init — One-Shot Project AGENTS.md — PieX" />
+  <meta property="og:description" content="/init turns scan-repo→write-rules into a repeatable prompt, so every new project establishes agent conventions on day one." />
+  <meta property="og:url" content="https://piex.dev/en/packages/init/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/" class="is-active">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/" class="is-active">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Prompt</span>
+          <span class="blog-tag">AGENTS.md</span>
+          <code class="pkg-tag">@piex-dev/init</code>
+        </div>
+        <h1>init — One-Shot Project AGENTS.md</h1>
+        <p class="blog-lede">Turns "scan repo → write rules" into a repeatable prompt, establishing agent conventions on day one.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">TL;DR</p>
+            <p><code>/init</code> invents no new protocol: it turns "scan repo → write rules" into a repeatable prompt so every new project establishes agent conventions on day one.</p>
+          </div>
+        </div>
+
+        <h2 id="intro">Overview</h2>
+        <p>
+          An agent's first step in a repo should be reading project rules, but reality is: no rules, stale rules, high migration cost, inconsistent entry points. Without high-signal rules the agent guesses wrong test commands, breaks package boundaries, repeats environment pitfalls. <code>@piex-dev/init</code> fixes it: <code>pi install</code> once, then <code>/init</code>.
+        </p>
+
+        <h2 id="theory">How it works</h2>
+        <p>
+          Pi only loads rules, never generates them: the core walks up from <code>~/.pi/agent</code> and cwd to discover <code>AGENTS.md</code>/<code>CLAUDE.md</code> and inject into the system prompt, but has no built-in <code>/init</code>. <strong>Prompt template = zero-code slash command</strong>: <code>prompts/init.md</code>'s filename is the command name, supports <code>$ARGUMENTS</code>, and Pi expands it into a full user message for the current session model.
+        </p>
+        <p>
+          The value is the investigation checklist, not template length: a good init prompt specifies three things — what to read first, what to extract, what to write/not write. Executable sources (package.json scripts, CI, lockfile) beat prose README; existing rules are improved in place, not blindly overwritten.
+        </p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/init</code></pre>
+        </div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/prompts/init" target="_blank" rel="noopener"><code>prompts/init</code></a></p>
+        <h3 id="example">Usage</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>/init           # scan the repo and generate/improve AGENTS.md
+/init &lt;notes&gt;    # with extra notes</code></pre>
+        </div>
+        <p>After writing, it prompts <code>/reload</code> to activate in the current session.</p>
+        <h3 id="config">Configuration</h3>
+        <p>Pure prompt package: no TypeScript, no peer deps, no runtime code. <code>package.json</code> declares <code>"pi": { "prompts": ["./prompts"] }</code>; <code>prompts/init.md</code> is the command body.</p>
+
+        <h2 id="impl">Implementation</h2>
+        <p>A <strong>pure prompt package</strong> — no <code>extensions/</code>, no peer deps.</p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>tree</span></div>
+          <pre><code>prompts/init/
+├── package.json          # "pi": { "prompts": ["./prompts"] }
+├── README.md
+└── prompts/init.md</code></pre>
+        </div>
+        <p><code>init.md</code> requires: read README/manifest/build-test-CI/existing-instruction/<code>.pi/settings.json</code> first; keep only high-signal facts agents easily get wrong; ask the user only for conventions the repo can't answer; write to project-root <code>AGENTS.md</code> and prompt <code>/reload</code>. Deliberately not done: auto-writing global <code>~/.pi/agent/AGENTS.md</code>, interactive menus, extension wrapping.</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
+<tbody>
+<tr><td><strong>OpenCode /init</strong></td><td>built-in slash, template injected; can ask question; in-place improve <code>AGENTS.md</code></td><td><strong>Adopted</strong> checklist, writing rules, <code>$ARGUMENTS</code>, in-place improvement. <strong>Not adopted</strong> built-in core, opencode-specific config; instead a pi <code>prompts/</code> package</td></tr>
+<tr><td><strong>oh-my-pi</strong></td><td>multi-provider discover/load rules; no generating <code>/init</code></td><td><strong>Not redone</strong> the load layer (pi already walks up). <strong>Borrowed</strong> "rules are first-class context", fills the generation side</td></tr>
+<tr><td><strong>pi native</strong></td><td><code>loadProjectContextFiles</code> read-only; <code>prompts/*.md</code> as slash</td><td><strong>Built directly on</strong> prompt template, zero runtime, upgrades with pi</td></tr>
+</tbody></table></div>
+<p>Conclusion: generation logic should be a "distributable prompt", not a second agent-core feature.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Current</th><th>Impact</th><th>Plan</th></tr></thead>
+            <tbody>
+              <tr><td>Single-file prompt, relies on model honesty</td><td>no structured quality check</td><td>optional thin extension injecting absolute paths &amp; "exists → prompt update"</td></tr>
+              <tr><td>—</td><td>complex monorepos may miss per-package commands; manual <code>/reload</code></td><td>post-gen checklist (test/lint present?); <code>/init global</code> for user-level rules</td></tr>
+              <tr><td>—</td><td>rules can't accumulate in session</td><td>link with learning extensions (sediment rules in-session, merge into AGENTS.md)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.0</td><td>2026-07-19</td><td>Initial release: pure prompt package (<code>pi.prompts</code>); <code>/init</code> scans the repo to generate/improve <code>AGENTS.md</code>; checklist (README/manifest/CI/lockfile over prose); in-place improvement without blind overwrite; prompts <code>/reload</code> after writing</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/en/packages/review/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">review</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/packages/xai-oauth/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">xai-oauth</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/init.md" target="_blank" rel="noopener">docs/packages/init.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

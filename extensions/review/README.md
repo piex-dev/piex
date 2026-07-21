@@ -4,8 +4,8 @@
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/review/
-- 源稿：[`docs/notes/review.md`](../../docs/notes/review.md)
+- 介绍：https://piex.dev/zh/packages/review/
+- 源稿：[`docs/packages/review.md`](../../docs/packages/review.md)
 
 ## 功能
 

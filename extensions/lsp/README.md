@@ -4,8 +4,8 @@ LSP（Language Server Protocol）扩展：注册 `lsp` 工具，并在 `edit`/`w
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/lsp/
-- 源稿：[`docs/notes/lsp.md`](../../docs/notes/lsp.md)
+- 介绍：https://piex.dev/zh/packages/lsp/
+- 源稿：[`docs/packages/lsp.md`](../../docs/packages/lsp.md)
 
 ## 功能
 

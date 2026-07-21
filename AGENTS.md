@@ -100,22 +100,25 @@ cd eval && npm run check   # 需要 tsgo
 - em-dash（`—`）仅用于：表格空值（`| — |`）、标题分隔（`设计理念 — PieX`）、引用原文
 - 中文正文**禁止**用破折号：解释用 `：`，转折用「但/而」，补充用逗号/句号。禁止全局替换 `——`/`—`
 
-### Package 博客
+### Package 介绍页
 
-每个 `extensions/<name>/`、`prompts/<name>/`、`themes/<name>/` 必须有对应博客源稿 `docs/notes/<name>.md`（slug = 目录名），frontmatter 必填 `title` / `date` / `tags`，各 package `README.md` 须有「深度解读」回链。正文结构：
+每个 `extensions/<name>/`、`prompts/<name>/`、`themes/<name>/`（`ai-code-report` 为 private 不发布，不纳入）必须有对应 package 介绍页源稿 `docs/packages/<name>.md`（slug = 目录名），frontmatter 必填 `title` / `date` / `tags` / `package` / `npm` / `type` / `install` / `source`，各 package `README.md` 须有「深度解读」回链。正文结构：
 
-1. **问题背景** — 要解决的痛点
+1. **简介** — 要解决的痛点（一句话价值主张）
 2. **技术原理** — 核心机制
-3. **实现方案** — 本仓库实现与取舍
-4. **设计参考**（可选）— 借鉴项目及采纳/不采纳原因
-5. **优化计划** — 不足与下一步（合并写，不要拆成问题+路线图）
+3. **使用说明** — 安装 + 配置 + 验证
+4. **实现方案** — 本仓库实现与取舍
+5. **设计参考**（可选）— 借鉴项目及采纳/不采纳原因
+6. **迭代记录** — 路线图/优化计划 + 版本记录（**版本号与 `package.json` 一致**）
 
-文首 frontmatter 后用 blockquote 导语（一句话价值主张）。新增/实质改动 package 时同步写/改博客 md，并按文档站流程补中英 HTML。
+文首 frontmatter 后用 blockquote 导语（一句话价值主张）。新增/实质改动 package 时同步写/改 `docs/packages/<name>.md`，并按文档站流程补中英 HTML（`docs/{zh,en}/packages/<name>/index.html`）。首页 `#packages` 卡片链接指向 `/en/packages/<name>/`。
+
+> Blog（`docs/notes/<slug>.md`）只用于项目级、通用能力介绍（如 `pi-extension-mechanism`），不再承载单个 package 的介绍。
 
 ### 新 package 要求
 
-- `README.md`：安装说明、支持的 action、上游差异表、「深度解读」回链到 `https://piex.dev/zh/blogs/<name>/`
-- `docs/notes/<name>.md`：package 博客
+- `README.md`：安装说明、支持的 action、上游差异表、「深度解读」回链到 `https://piex.dev/zh/packages/<name>/`
+- `docs/packages/<name>.md`：package 介绍页源稿（中文唯一源）
 - 发布前完成冒烟测试
 - 主题包须含合法 `themes/*.json`（`name` + 全部必需 color token）
 - 同步：`scripts/publish-all.sh` PACKAGES、根 `README.md` 表格、`docs/install.sh` PACKAGES、首页 `index.html` 卡片。详见 `docs/site.md`
@@ -123,11 +126,12 @@ cd eval && npm run check   # 需要 tsgo
 ### 同步检查清单
 
 新增/修改 package 或网站功能时，以下项目必须全部同步，缺一不可：
+| 新增 package | `scripts/publish-all.sh` PACKAGES 数组、根 `README.md` 表格、首页 `index.html` 卡片（链接指向 `/en/packages/<name>/`）、`docs/install.sh` PACKAGES 数组、`docs/packages/<name>.md` 源稿 + `docs/{zh,en}/packages/<name>/index.html` 中英 HTML + 全部 package 页侧栏 `.docs-nav`（中英各一份）+ 该 package `README.md`「深度解读」回链 |
 
 | 变更类型                       | 必须同步检查                                                                                                         |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | 新增 package                   | `scripts/publish-all.sh` PACKAGES 数组、根 `README.md` 表格、首页 `index.html` 卡片、`docs/install.sh` PACKAGES 数组 |
-| 新增博客                       | `docs/blogs/<slug>/` 重定向桩、首页 `index.html` blog-list、全部博客 HTML 侧栏 `.docs-nav`（中英各一份）             |
+| 新增博客                       | 首页 `index.html` blog-list、全部博客 HTML 侧栏 `.docs-nav`（中英各一份）                                            |
 | 新增 URL 路径（如 `/zh/xxx/`） | 对应目录 `index.html`（防 Directory listing）、上级目录 `index.html`（如有）                                         |
 | 修改首页布局                   | `docs/assets/main.js` en + zh 字典键必须对称，不要只加 en 不加 zh                                                    |
 | 修改包列表                     | 根 `README.md`、首页卡片、`docs/install.sh` PACKAGES、`scripts/publish-all.sh` PACKAGES                              |

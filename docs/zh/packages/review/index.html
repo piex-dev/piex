@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>review — 把 Code Review 做成 Agent 的一等公民 — PieX</title>
+  <meta name="description" content="/review 把贴 diff 让 AI 看收成可重复能力：范围清楚、噪声可控、人机同一套引擎。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/review/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/review/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/review/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/review/" />
+  <meta property="og:title" content="review — 把 Code Review 做成 Agent 的一等公民 — PieX" />
+  <meta property="og:description" content="/review 把贴 diff 让 AI 看收成可重复能力：范围清楚、噪声可控、人机同一套引擎。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/review/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="false" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/" class="is-active">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/" class="is-active">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Git</span>
+          <code class="pkg-tag">@piex-dev/review</code>
+        </div>
+        <h1>review — 把 Code Review 做成 Agent 的一等公民</h1>
+        <p class="blog-lede">把「贴一段 diff 让 AI 看看」收成可重复能力：范围清楚、噪声可控、人机同一套引擎。</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">导语</p>
+            <p><code>/review</code> 把「贴一段 diff 让 AI 看看」收成可重复能力：范围清楚、噪声可控、人机同一套引擎。</p>
+          </div>
+        </div>
+
+        <h2 id="intro">简介</h2>
+        <p>
+          「让 AI 看看这段代码」落地常卡住：diff 从哪来、噪声太大、提示词不稳、人和模型入口分裂。<code>@piex-dev/review</code> 收成一条产品线：人用 <code>/review</code>，模型用 <code>review</code> 工具，内核同一套 git diff 采集 + 噪声过滤 + 结构化 prompt。omp review 的<strong>轻量版</strong>：保留 diff 引擎与模式，不做多 agent 并行与 TUI overlay。
+        </p>
+
+        <h2 id="theory">技术原理</h2>
+        <p>
+          Review = 选范围 + 清噪声 + 喂结构化上下文。核心洞见：<strong>评审质量高度依赖喂给模型的 diff 是否干净</strong>——一半 token 是 <code>package-lock.json</code> 就在浪费。5 种模式对应真实开发动作：uncommitted / staged / vs base branch（含 fetch）/ commit / custom。
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>flow</span></div>
+          <pre><code>选择模式 → git diff/show → 解析 unified diff
+→ 噪声剔除(lock/min/build/vendor) → 生成 Markdown prompt
+→ 交给当前会话模型输出 findings</code></pre>
+        </div>
+        <p>人和模型共用引擎：<code>/review</code> 走 UI 菜单，<code>review</code> 工具走参数，两端最后都进 <code>parseDiff</code> + <code>buildReviewPrompt</code>。</p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/review</code></pre>
+        </div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/review" target="_blank" rel="noopener"><code>extensions/review</code></a></p>
+        <h3 id="prereq">前提条件</h3>
+        <p>当前目录是 git 仓库，本机有 <code>git</code>。</p>
+        <h3 id="example">用法</h3>
+        <p>人：<code>/review</code> 列出模式菜单。模型：调用 <code>review</code> 工具传 <code>action</code>（<code>diff</code>/<code>staged</code>/<code>commit</code>/<code>branch</code>）。选中后生成 prompt，经 <code>pi.sendUserMessage(..., { deliverAs: "followUp" })</code> 丢回会话由当前模型当 reviewer。</p>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session</code></pre>
+        </div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>
+          约 350 行单文件。<strong>噪声过滤（EXCLUDED_PATTERNS）</strong>自动排除 lock/构建产物/vendor/生成物/媒体二进制；被排除文件仍出现在「Excluded」小节（路径+原因+行数），模型知道有东西被滤掉但不吞全文。<strong>Diff 解析</strong>按 <code>diff --git</code> 切块统计 +/-。<strong>Prompt 生成</strong>：过大则不内嵌全文 diff（&gt;50k 字符或 &gt;20 文件时提示用 <code>read</code>），统一指令按 critical/warning/info 分级给文件行号。
+        </p>
+        <div class="blog-table-wrap"><table><thead><tr><th>omp</th><th>piex review</th></tr></thead>
+<tbody>
+<tr><td>多 agent 并行审</td><td>当前 agent 直接审</td></tr>
+<tr><td>TUI overlay 展示</td><td>文本输出</td></tr>
+<tr><td>Diff + 噪声过滤</td><td>✅</td></tr>
+<tr><td>多模式</td><td>✅（轻量集合）</td></tr>
+<tr><td>结构化 prompt</td><td>✅ 精简版</td></tr>
+</tbody></table></div>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi review</strong></td><td>命令 + 工具；多 agent 并行 + TUI overlay；diff 引擎 + 噪声过滤 + 结构化 prompt</td><td><strong>采纳</strong>：diff 引擎、噪声过滤、多模式、人机共用 prompt。<strong>不采纳</strong>：多 agent 并行（依赖 subagent）、TUI overlay</td></tr>
+<tr><td><strong>OpenCode /review</strong></td><td>内置命令，review 未提交或指定 commit/branch</td><td><strong>借鉴</strong>：交互菜单、统一 prompt 模板、多 source 评审</td></tr>
+</tbody></table></div>
+<p>核心取舍：完整保留 diff 引擎与噪声过滤（让模型吃饱干净的上下文），放弃并行与视觉 overlay。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>方向</th><th>打算</th></tr></thead>
+            <tbody>
+              <tr><td>单模型单线程</td><td>近期可选多 pass（先 critical 再 style）；远期等 subagent 迁 omp 多 agent 版</td></tr>
+              <tr><td>findings 与代码位置弱绑定</td><td>输出 findings JSON；联动 diagnostics，运行时嫌疑引向 dap</td></tr>
+              <tr><td>base branch 与噪声规则偏朴素</td><td>项目级 <code>.reviewignore</code>/pathspec；远端与默认分支可配置</td></tr>
+              <tr><td>结果主要是聊天文本</td><td>Markdown 报告外附机器可读块，先服务本地工作流再考虑门禁</td></tr>
+              <tr><td>极端 diff</td><td>解析器按真实 PR 样本补边界（rename/binary/submodule）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.1</td><td>2026-07-19</td><td>初始版本：diff 引擎（<code>parseDiff</code>）+ 噪声过滤（<code>EXCLUDED_PATTERNS</code>）；5 种模式；<code>buildReviewPrompt</code> 结构化 prompt（过大 diff 不内嵌）；人机共用引擎；omp 轻量版（不做多 agent 并行与 TUI overlay）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/zh/packages/plan/">
+          <span class="blog-nav-label">← 上一个</span>
+          <span class="blog-nav-title">plan</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/zh/packages/init/">
+          <span class="blog-nav-label">下一个 →</span>
+          <span class="blog-nav-title">init</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/review.md" target="_blank" rel="noopener">docs/packages/review.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

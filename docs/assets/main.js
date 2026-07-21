@@ -23,13 +23,16 @@
 
   var T = {
     en: {
-      "hero.badge": "Built on <span class=\"s1\">Pi Extension API</span> · MIT",
-      "hero.title": "<span class=\"accent\">PieX</span> — Extend Pi without forking",
-      "hero.lead": "Core capabilities extracted from oh-my-pi, Claude Code, OpenCode and other coding agents, packaged as independent <code>@piex-dev/*</code> npm packages. Install with <code>pi install</code>.",
+      "hero.badge": 'Built on <span class="s1">Pi Extension API</span> · MIT',
+      "hero.title":
+        '<span class="accent">PieX</span> — Extend Pi without forking',
+      "hero.lead":
+        "Core capabilities extracted from oh-my-pi, Claude Code, OpenCode and other coding agents, packaged as independent <code>@piex-dev/*</code> npm packages. Install with <code>pi install</code>.",
       "hero.cta1": "Get Started",
       "hero.cta2": "GitHub",
       "hero.term.title": "pi — piex",
-      "hero.term.body": "<span class=\"comment\"># Pick any package:</span>\n<span class=\"prompt\">$</span> pi install npm:@piex-dev/hashline\n<span class=\"prompt\">$</span> pi install npm:@piex-dev/dap\n<span class=\"prompt\">$</span> pi install npm:@piex-dev/lsp\n<span class=\"comment\"># All-in-one:</span>\n<span class=\"prompt\">$</span> curl -fsSL piex.dev/install.sh | bash</span>",
+      "hero.term.body":
+        '<span class="comment"># Pick any package:</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># All-in-one:</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/install.sh | bash</span>',
       "stats.pkg": "Packages",
       "stats.lines": "Core Lines",
       "stats.adapters": "Debug Adapters",
@@ -41,57 +44,57 @@
       "nav.principles": "Principles",
 
       "why.title": "Design Philosophy",
-      "why.desc": "Extend Pi without forking — on demand, understood, and measured.",
+      "why.desc":
+        "Extend Pi without forking — on demand, understood, and measured.",
       "why.1.title": "Extend Pi, never fork",
-      "why.1.desc": "omp forks the core and bundles everything; piex only extends via the official Extension API — never touching the core, upgrading with Pi.",
+      "why.1.desc":
+        "omp forks the core and bundles everything; piex only extends via the official Extension API — never touching the core, upgrading with Pi.",
       "why.2.title": "On demand, switch freely",
-      "why.2.desc": "Independent packages — install & remove at will. Minimal and in control: pay tokens only for what you use.",
+      "why.2.desc":
+        "Independent packages — install & remove at will. Minimal and in control: pay tokens only for what you use.",
       "why.3.title": "Know how it works",
-      "why.3.desc": "Borrow the best from top agents — understand their designs, then rebuild as extensions you fully control.",
+      "why.3.desc":
+        "Borrow the best from top agents — understand their designs, then rebuild as extensions you fully control.",
       "why.4.title": "Eval first",
-      "why.4.desc": "Behavior-changing extensions ship with eval criteria & data. No measurement, no adoption.",
+      "why.4.desc":
+        "Behavior-changing extensions ship with eval criteria & data. No measurement, no adoption.",
       "why.more": "Read the full design philosophy →",
 
       "blog.title": "Blog",
-      "blog.desc": "Deep dives into Pi extension mechanics, coding agent design, and tooling.",
+      "blog.desc":
+        "Deep dives into Pi extension mechanics, coding agent design, and tooling.",
       "blog.ext.title": "Pi Extension Mechanism & Internals",
-      "blog.ext.excerpt": "Loader, runner, wrapper — how pi stays minimal and extensible.",
-      "blog.hashline.title": "Hashline: Content-Anchored Edits",
-      "blog.hashline.excerpt": "Tag-verified patches over fragile line numbers, with Phase 1 model guards.",
-      "blog.dap.title": "DAP: Real Debugging for Agents",
-      "blog.dap.excerpt": "Breakpoints, stepping, and variables via the Debug Adapter Protocol.",
-      "blog.lsp.title": "LSP: Language-Server Eyes",
-      "blog.lsp.excerpt": "Post-edit ERRORs, navigation, rename/code actions — LSP in the agent loop.",
-      "blog.plan.title": "Plan Mode: Think Before Edit",
-      "blog.plan.excerpt": "Read-only exploration, numbered plans, gated execution, visible progress.",
-      "blog.review.title": "Review: First-Class Code Review",
-      "blog.review.excerpt": "Scoped git diffs, noise filters, one engine for /review and the review tool.",
-      "blog.init.title": "Init: One-Shot AGENTS.md",
-      "blog.init.excerpt": "Guided /init prompt — scan the repo and create or improve project rules.",
-      "blog.xai.title": "xAI OAuth: Subscription Login",
-      "blog.xai.excerpt": "Device-code OAuth and live model discovery beside API keys.",
-      "blog.theme.title": "Dark Terminal Theme",
-      "blog.theme.excerpt": "High-contrast terminal skin for pi — zero behavior change.",
+      "blog.ext.excerpt":
+        "Loader, runner, wrapper — how pi stays minimal and extensible.",
 
-      "blog.btw.title": "BTW: Ephemeral Side Questions",
-      "blog.btw.excerpt": "Full-context answers that leave no trace in conversation history.",
-      "blog.context.title": "Context: Token Usage at a Glance",
-      "blog.context.excerpt": "Entry distribution, role breakdown, and token estimates in one command.",
       "packages.title": "Packages",
-      "packages.desc": "All packages are published as <code>@piex-dev/&lt;name&gt;</code>. See README in each package directory for details.",
-      "pkg.hashline.desc": "Line-anchored, #TAG-verified hashline patch language — fewer mistakes, less token waste.",
-      "pkg.dap.desc": "DAP debug adapter collection (14 adapters): breakpoints, stepping, variable inspection inside the agent session.",
-      "pkg.lsp.desc": "Diagnostics (post-edit ERRORs), navigation, rename/code actions & format across ~50 default servers.",
-      "pkg.plan.desc": "Read-only exploration, plan drafting & step-by-step execution with progress tracking and tool locking.",
-      "pkg.review.desc": "Interactive code review command & callable review tool covering diff / commit / branch comparisons.",
-      "pkg.init.desc": "Guided /init prompt template: scan the repo and create or improve AGENTS.md.",
-      "pkg.xai.desc": "xAI Grok OAuth subscription login: SuperGrok / X Premium+, with real-time model discovery.",
-      "pkg.btw.desc": "Ephemeral side questions with full session context — answers not saved to conversation history.",
-      "pkg.context.desc": "Session usage report: entry distribution, role breakdown, and estimated token allocation.",
-      "pkg.theme.desc": "High-contrast dark terminal theme with green/blue/red accents, distributed via pi.themes.",
+      "packages.desc":
+        "All packages are published as <code>@piex-dev/&lt;name&gt;</code>. Click a card for its intro, usage &amp; changelog.",
+      "pkg.overview": "Overview →",
+      "pkg.hashline.desc":
+        "Line-anchored, #TAG-verified hashline patch language — fewer mistakes, less token waste.",
+      "pkg.dap.desc":
+        "DAP debug adapter collection (14 adapters): breakpoints, stepping, variable inspection inside the agent session.",
+      "pkg.lsp.desc":
+        "Diagnostics (post-edit ERRORs), navigation, rename/code actions & format across ~50 default servers.",
+      "pkg.plan.desc":
+        "Read-only exploration, plan drafting & step-by-step execution with progress tracking and tool locking.",
+      "pkg.review.desc":
+        "Interactive code review command & callable review tool covering diff / commit / branch comparisons.",
+      "pkg.init.desc":
+        "Guided /init prompt template: scan the repo and create or improve AGENTS.md.",
+      "pkg.xai.desc":
+        "xAI Grok OAuth subscription login: SuperGrok / X Premium+, with real-time model discovery.",
+      "pkg.btw.desc":
+        "Ephemeral side questions with full session context — answers not saved to conversation history.",
+      "pkg.context.desc":
+        "Session usage report: entry distribution, role breakdown, and estimated token allocation.",
+      "pkg.theme.desc":
+        "High-contrast dark terminal theme with green/blue/red accents, distributed via pi.themes.",
 
       "docs.title": "Documentation",
-      "docs.desc": "Synced with the <code>docs/</code> directory in the repository.",
+      "docs.desc":
+        "Synced with the <code>docs/</code> directory in the repository.",
       "docs.design.title": "Design Philosophy",
       "docs.design.sub": "Core principles & architecture patterns",
       "docs.arch.title": "Architecture Overview",
@@ -120,13 +123,15 @@
       "copy.hint": "click to copy",
     },
     zh: {
-      "hero.badge": "基于 <span class=\"s1\">Pi Extension API</span> · MIT",
-      "hero.title": "<span class=\"accent\">PieX</span> — 不 fork Pi，按需扩展",
-      "hero.lead": "从 oh-my-pi、Claude Code、OpenCode 等优秀 coding agent 提炼核心能力，封装为独立 <code>@piex-dev/*</code> package，<code>pi install</code> 即装即用。",
+      "hero.badge": '基于 <span class="s1">Pi Extension API</span> · MIT',
+      "hero.title": '<span class="accent">PieX</span> — 不 fork Pi，按需扩展',
+      "hero.lead":
+        "从 oh-my-pi、Claude Code、OpenCode 等优秀 coding agent 提炼核心能力，封装为独立 <code>@piex-dev/*</code> package，<code>pi install</code> 即装即用。",
       "hero.cta1": "快速安装",
       "hero.cta2": "GitHub",
       "hero.term.title": "pi — piex",
-      "hero.term.body": "<span class=\"comment\"># 按需安装，逐包自由组合：</span>\n<span class=\"prompt\">$</span> pi install npm:@piex-dev/hashline\n<span class=\"prompt\">$</span> pi install npm:@piex-dev/dap\n<span class=\"prompt\">$</span> pi install npm:@piex-dev/lsp\n<span class=\"comment\"># 一键全部：</span>\n<span class=\"prompt\">$</span> curl -fsSL piex.dev/install.sh | bash</span>",
+      "hero.term.body":
+        '<span class="comment"># 按需安装，逐包自由组合：</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># 一键全部：</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/install.sh | bash</span>',
       "stats.pkg": "Packages",
       "stats.lines": "核心代码行",
       "stats.adapters": "调试适配器",
@@ -140,49 +145,42 @@
       "why.title": "设计理念",
       "why.desc": "充分拓展 pi 而非 fork，按需自由切换，知其所以然，评测优先。",
       "why.1.title": "充分拓展，而非 fork",
-      "why.1.desc": "omp fork 内核并全量内置；piex 只做官方扩展，不碰内核，随 pi 升级而升级。",
+      "why.1.desc":
+        "omp fork 内核并全量内置；piex 只做官方扩展，不碰内核，随 pi 升级而升级。",
       "why.2.title": "按需拓展，自由切换",
-      "why.2.desc": "扩展相互独立、即装即卸；克制可控，只为用到的能力付出 token。",
+      "why.2.desc":
+        "扩展相互独立、即装即卸；克制可控，只为用到的能力付出 token。",
       "why.3.title": "知其所以然",
-      "why.3.desc": "取百家之长：借鉴主流 agent 的优秀设计，搞懂原理再以扩展引入，自己选择、自己掌控。",
+      "why.3.desc":
+        "取百家之长：借鉴主流 agent 的优秀设计，搞懂原理再以扩展引入，自己选择、自己掌控。",
       "why.4.title": "评测优先",
-      "why.4.desc": "影响 agent 行为的扩展须有评测标准与数据支撑：无法度量，就不引入。",
+      "why.4.desc":
+        "影响 agent 行为的扩展须有评测标准与数据支撑：无法度量，就不引入。",
       "why.more": "阅读完整设计理念 →",
       "blog.title": "博客",
-      "blog.desc": "深入 Pi 扩展机制、coding agent 设计与工具链的技术文章。",
+      "blog.desc": "项目级深度文章：Pi 扩展机制、coding agent 设计与工具链。",
       "blog.ext.title": "Pi Extension 机制及工作原理",
-      "blog.ext.excerpt": "loader / runner / wrapper：pi 如何保持内核极简又可扩展。",
-      "blog.hashline.title": "Hashline：用内容锚点改代码",
-      "blog.hashline.excerpt": "用内容 tag 与 seen-lines 做安全编辑，并补 Phase 1 模型容错。",
-      "blog.dap.title": "DAP：让 Agent 真正会调试",
-      "blog.dap.excerpt": "断点、单步、变量：把 Debug Adapter Protocol 接到 pi。",
-      "blog.lsp.title": "LSP：语言服务器的眼睛",
-      "blog.lsp.excerpt": "写后 ERROR、导航、rename/code_actions，嵌进 agent 改代码闭环。",
-      "blog.plan.title": "Plan Mode：先想清楚再动手",
-      "blog.plan.excerpt": "只读探索、编号计划、审批执行与可见进度。",
-      "blog.review.title": "Review：Code Review 一等公民",
-      "blog.review.excerpt": "范围清楚的 git diff、噪声过滤，人机同一套引擎。",
-      "blog.init.title": "Init：一键写出 AGENTS.md",
-      "blog.init.excerpt": "引导式 /init prompt：扫仓库并创建或改进项目规则。",
-      "blog.xai.title": "xAI OAuth：订阅登录 Grok",
-      "blog.xai.excerpt": "设备码 OAuth 与模型发现，与 API Key 通道并存。",
-      "blog.theme.title": "Dark Terminal 主题",
-      "blog.theme.excerpt": "高对比暗终端皮肤，零行为变更。",
+      "blog.ext.excerpt":
+        "loader / runner / wrapper：pi 如何保持内核极简又可扩展。",
 
       "packages.title": "Package 总览",
-      "packages.desc": "npm 包名均为 <code>@piex-dev/&lt;name&gt;</code>，详情见仓库内各 package README。",
-      "pkg.hashline.desc": "行锚定、#TAG 校验的 hashline 补丁语言，降低误改与 token 浪费。",
-      "blog.btw.title": "BTW：不被记住的临时提问",
-      "blog.btw.excerpt": "用满上下文问一句，答案不留痕迹。",
-      "blog.context.title": "Context：一眼看清 Token 用量",
-      "blog.context.excerpt": "条目分布、角色占比、token 估算，一个命令搞定。",
-      "pkg.dap.desc": "DAP 调试适配器集合（14 个 adapter），在 agent 会话中断点、单步、查看变量。",
-      "pkg.lsp.desc": "写后 ERROR 诊断、导航、rename/code_actions 与格式化，~50 个默认 language server。",
+      "packages.desc":
+        "npm 包名均为 <code>@piex-dev/&lt;name&gt;</code>。点击卡片查看该 package 的介绍、使用说明与迭代记录。",
+      "pkg.overview": "介绍 →",
+      "pkg.hashline.desc":
+        "行锚定、#TAG 校验的 hashline 补丁语言，降低误改与 token 浪费。",
+      "pkg.dap.desc":
+        "DAP 调试适配器集合（14 个 adapter），在 agent 会话中断点、单步、查看变量。",
+      "pkg.lsp.desc":
+        "写后 ERROR 诊断、导航、rename/code_actions 与格式化，~50 个默认 language server。",
       "pkg.plan.desc": "只读探索、计划撰写与分步执行，带进度跟踪与工具锁定。",
-      "pkg.review.desc": "交互式代码评审命令与 review 工具，覆盖 diff / commit / 分支对比。",
+      "pkg.review.desc":
+        "交互式代码评审命令与 review 工具，覆盖 diff / commit / 分支对比。",
       "pkg.init.desc": "引导式 /init prompt：扫描仓库并创建或改进 AGENTS.md。",
-      "pkg.xai.desc": "xAI Grok OAuth 订阅登录，SuperGrok / X Premium+，含实时模型发现。",
-      "pkg.theme.desc": "高对比暗终端主题，绿 / 蓝 / 红强调色，通过 pi.themes 分发。",
+      "pkg.xai.desc":
+        "xAI Grok OAuth 订阅登录，SuperGrok / X Premium+，含实时模型发现。",
+      "pkg.theme.desc":
+        "高对比暗终端主题，绿 / 蓝 / 红强调色，通过 pi.themes 分发。",
 
       "docs.title": "项目文档",
       "docs.desc": "与仓库 <code>docs/</code> 同源同步。",
@@ -214,7 +212,7 @@
       "footer.pi": "Pi",
       "footer.omp": "oh-my-pi",
       "copy.hint": "点击复制",
-    }
+    },
   };
 
   /* ---- language routing ---- */
@@ -240,8 +238,8 @@
   /**
    * Rewrite absolute content links so they always carry the active language
    * prefix. Matches:
-   *   /docs/...  /blogs/...
-   *   /zh/docs/...  /en/blogs/...
+   *   /docs/...  /blogs/...  /packages/...
+   *   /zh/docs/...  /en/blogs/...  /zh/packages/...
    * Leaves external, hash, and non-content paths alone.
    */
   function localizeContentHrefs(lang) {
@@ -253,7 +251,9 @@
       if (path.indexOf("https://piex.dev") === 0) {
         path = path.slice("https://piex.dev".length) || "/";
       }
-      var m = path.match(/^\/(?:zh|en)?\/?(docs|blogs)(\/[^#?]*)?([?#].*)?$/);
+      var m = path.match(
+        /^\/(?:zh|en)?\/?(docs|blogs|packages)(\/[^#?]*)?([?#].*)?$/,
+      );
       if (!m) return;
       var kind = m[1];
       var rest = m[2] || "/";
@@ -278,7 +278,8 @@
 
     // Homepage title only (content pages set their own <title>)
     if (!pageLangFromPath()) {
-      document.title = lang === "zh" ? "PieX — Pi 功能拓展集合" : "PieX — Pi Extensions";
+      document.title =
+        lang === "zh" ? "PieX — Pi 功能拓展集合" : "PieX — Pi Extensions";
     }
 
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
@@ -308,9 +309,10 @@
     });
 
     // Homepage (and any non-prefixed page): keep content links in sync with LANG
-    if (!pageLangFromPath()) {
-      localizeContentHrefs(lang);
-    }
+    // Keep content links (docs|blogs|packages) in sync with the active language.
+    // On content pages links are already language-prefixed in static HTML, so
+    // this is a no-op there; on the homepage it rewrites /en/packages/... etc.
+    localizeContentHrefs(lang);
 
     localStorage.setItem("piex-lang", lang);
     LANG = lang;
@@ -329,8 +331,12 @@
   }
 
   // expose for other scripts / debugging
-  window.piexLang = function () { return LANG; };
-  window.piexT = function (key) { return (T[LANG] && T[LANG][key]) || key; };
+  window.piexLang = function () {
+    return LANG;
+  };
+  window.piexT = function (key) {
+    return (T[LANG] && T[LANG][key]) || key;
+  };
   window.piexSwitchLang = switchLang;
 
   // bind lang buttons
@@ -351,13 +357,16 @@
   }
 
   /* ---- scroll animations ---- */
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("visible");
-      }
-    });
-  }, { threshold: 0.10, rootMargin: "0px 0px -30px 0px" });
+  var observer = new IntersectionObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+        }
+      });
+    },
+    { threshold: 0.1, rootMargin: "0px 0px -30px 0px" },
+  );
 
   document.querySelectorAll(".anim-fade").forEach(function (el) {
     observer.observe(el);
@@ -366,11 +375,16 @@
   /* ---- copy install command on click ---- */
   document.querySelectorAll(".pkg-install").forEach(function (el) {
     el.addEventListener("click", function () {
-      var text = (el.textContent || "").replace(/\s*click to copy\s*$/i, "").replace(/\s*点击复制\s*$/i, "").trim();
+      var text = (el.textContent || "")
+        .replace(/\s*click to copy\s*$/i, "")
+        .replace(/\s*点击复制\s*$/i, "")
+        .trim();
       if (!text) return;
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () { showHint(el); });
+        navigator.clipboard.writeText(text).then(function () {
+          showHint(el);
+        });
       } else {
         var ta = document.createElement("textarea");
         ta.value = text;
@@ -378,19 +392,25 @@
         ta.style.left = "-9999px";
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand("copy"); showHint(el); } catch (_) {}
+        try {
+          document.execCommand("copy");
+          showHint(el);
+        } catch (_) {}
         document.body.removeChild(ta);
       }
     });
   });
 
   function showHint(el) {
-    var hint = el.querySelector(".copied-hint") || document.createElement("span");
+    var hint =
+      el.querySelector(".copied-hint") || document.createElement("span");
     hint.className = "copied-hint";
     hint.textContent = "copied ✓";
     if (!hint.parentNode) el.appendChild(hint);
     hint.classList.add("show");
-    setTimeout(function () { hint.classList.remove("show"); }, 1500);
+    setTimeout(function () {
+      hint.classList.remove("show");
+    }, 1500);
   }
 
   /* ---- mobile nav toggle ---- */

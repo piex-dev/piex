@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>init — 一键写出项目的 AGENTS.md — PieX</title>
+  <meta name="description" content="/init 把扫仓库→写规则收成可重复 prompt，让每个新项目第一步就能建好 agent 约定。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/init/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/init/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/init/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/init/" />
+  <meta property="og:title" content="init — 一键写出项目的 AGENTS.md — PieX" />
+  <meta property="og:description" content="/init 把扫仓库→写规则收成可重复 prompt，让每个新项目第一步就能建好 agent 约定。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/init/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="false" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/" class="is-active">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/" class="is-active">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Prompt</span>
+          <span class="blog-tag">AGENTS.md</span>
+          <code class="pkg-tag">@piex-dev/init</code>
+        </div>
+        <h1>init — 一键写出项目的 AGENTS.md</h1>
+        <p class="blog-lede">把「扫仓库 → 写规则」收成可重复 prompt，每个新项目第一步就能建好 agent 约定。</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">导语</p>
+            <p><code>/init</code> 不发明新协议：把「扫仓库 → 写规则」收成一条可重复的 prompt，让每个新项目第一步就能建好 agent 约定。</p>
+          </div>
+        </div>
+
+        <h2 id="intro">简介</h2>
+        <p>
+          Agent 进仓库第一件事本该是读项目规则，现实里常是没规则、规则过时、迁移成本高、入口不统一。没有高信号规则，agent 容易猜错测试命令、改错包边界、重复踩环境坑。<code>@piex-dev/init</code> 收成：<code>pi install</code> 一次，之后 <code>/init</code> 即可。
+        </p>
+
+        <h2 id="theory">技术原理</h2>
+        <p>
+          pi 只加载规则不生成规则：内核从 <code>~/.pi/agent</code> 与 cwd 向上发现 <code>AGENTS.md</code>/<code>CLAUDE.md</code> 注入 system prompt，但内置 slash 没有 <code>/init</code>。<strong>Prompt template = 零代码 slash 命令</strong>：<code>prompts/init.md</code> 文件名即命令名，支持 <code>$ARGUMENTS</code>，pi 展开为完整 user message 交给当前会话模型。
+        </p>
+        <p>
+          价值在调查清单不在模板长度：好的 init prompt 规定三件事——先读什么、提取什么、写什么/不写什么。可执行源（package.json scripts、CI、lockfile）优先于散文 README；已有规则就地改进不盲目覆盖。
+        </p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/init</code></pre>
+        </div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/prompts/init" target="_blank" rel="noopener"><code>prompts/init</code></a></p>
+        <h3 id="example">用法</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>/init           # 扫描当前仓库并生成/改进 AGENTS.md
+/init &lt;说明&gt;    # 带额外说明</code></pre>
+        </div>
+        <p>写完提示 <code>/reload</code> 使当前会话生效。</p>
+        <h3 id="config">配置</h3>
+        <p>纯 prompt 包，无 TypeScript、无 peer 依赖、无运行时代码。<code>package.json</code> 声明 <code>"pi": { "prompts": ["./prompts"] }</code>，<code>prompts/init.md</code> 即命令本体。</p>
+
+        <h2 id="impl">实现方案</h2>
+        <p>本包是<strong>纯 prompt 包</strong>，无 <code>extensions/</code>、无 peer 依赖。</p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>tree</span></div>
+          <pre><code>prompts/init/
+├── package.json          # "pi": { "prompts": ["./prompts"] }
+├── README.md
+└── prompts/init.md</code></pre>
+        </div>
+        <p><code>init.md</code> 要求：优先读 README/manifest/构建测试 CI/既有 instruction/<code>.pi/settings.json</code>；只保留 agent 容易猜错的高信号事实；仓库答不上的才向用户提问；写到项目根 <code>AGENTS.md</code>，写完提示 <code>/reload</code>。刻意不做：全局 <code>~/.pi/agent/AGENTS.md</code> 自动写入、交互菜单、extension 包装。</p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>OpenCode /init</strong></td><td>内置 slash，模板注入会话；可问 question；就地改进 <code>AGENTS.md</code></td><td><strong>采纳</strong>调查清单、写作规则、<code>$ARGUMENTS</code>、in-place 改进。<strong>不采纳</strong>内核内置、专用配置引用；改为 pi <code>prompts/</code> 包</td></tr>
+<tr><td><strong>oh-my-pi</strong></td><td>多 provider 发现/加载规则；无生成 <code>/init</code></td><td><strong>不重复</strong>加载层（pi 已 walk-up）。<strong>借鉴</strong>「规则文件是一等上下文」，补齐生成侧</td></tr>
+<tr><td><strong>pi 原生</strong></td><td><code>loadProjectContextFiles</code> 只读；<code>prompts/*.md</code> 可作 slash</td><td><strong>直接建立在</strong> prompt template 上，零运行时、随 pi 升级</td></tr>
+</tbody></table></div>
+<p>结论：生成逻辑应是「可分发的 prompt」，不是第二个 agent 内核功能。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>现状</th><th>影响</th><th>怎么补</th></tr></thead>
+            <tbody>
+              <tr><td>单文件 prompt，依赖模型自觉按清单调研</td><td>无结构化校验生成质量</td><td>可选 thin extension 注入绝对路径与「已存在则提示 update」</td></tr>
+              <tr><td>—</td><td>复杂 monorepo 可能漏包级命令；写完需手动 <code>/reload</code></td><td>生成后自检 checklist（是否含 test/lint 命令）；支持 <code>/init global</code> 写用户级规则</td></tr>
+              <tr><td>—</td><td>规则无法随会话沉淀</td><td>与 learning 类扩展衔接（会话中沉淀规则再 merge 进 AGENTS.md）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.0</td><td>2026-07-19</td><td>初始版本：纯 prompt 包（<code>pi.prompts</code>），<code>/init</code> 扫描仓库生成/改进 <code>AGENTS.md</code>；调查清单（README/manifest/CI/lockfile 优先于散文）；就地改进已有规则不盲目覆盖；写完提示 <code>/reload</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/zh/packages/review/">
+          <span class="blog-nav-label">← 上一个</span>
+          <span class="blog-nav-title">review</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/zh/packages/xai-oauth/">
+          <span class="blog-nav-label">下一个 →</span>
+          <span class="blog-nav-title">xai-oauth</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/init.md" target="_blank" rel="noopener">docs/packages/init.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>plan — Think Before You Edit — PieX</title>
+  <meta name="description" content="/plan gives the agent a 'research before building' regime: writing tools temporarily confiscated, plan visible/approvable, execution progress tracked." />
+  <link rel="canonical" href="https://piex.dev/en/packages/plan/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/plan/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/plan/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/plan/" />
+  <meta property="og:title" content="plan — Think Before You Edit — PieX" />
+  <meta property="og:description" content="/plan gives the agent a 'research before building' regime: writing tools temporarily confiscated, plan visible/approvable, execution progress tracked." />
+  <meta property="og:url" content="https://piex.dev/en/packages/plan/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/" class="is-active">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/" class="is-active">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#appendix">Appendix</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Workflow</span>
+          <code class="pkg-tag">@piex-dev/plan</code>
+        </div>
+        <h1>plan — Think Before You Edit</h1>
+        <p class="blog-lede">A "research before building" regime: writing tools temporarily confiscated, plan visible/approvable, progress tracked.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">TL;DR</p>
+            <p><code>/plan</code>'s value isn't one more command — it's a regime of "research before building": writing tools temporarily confiscated, plan visible/approvable, execution progress tracked.</p>
+          </div>
+        </div>
+
+        <h2 id="intro">Overview</h2>
+        <p>
+          Letting an agent edit directly fails not because it "can't write code", but because it acts too soon (editing before mapping the repo), loses scope (a small ask balloons into half a refactor), hides progress, and loses state on compaction. Plan Mode solves a workflow problem: read-only exploration → an approvable numbered plan → full-tool execution after approval → progress via <code>[DONE:n]</code>.
+        </p>
+
+        <h2 id="theory">How it works</h2>
+        <p>
+          Two modes, two tool boundaries: Plan mode keeps only <code>read</code>/<code>bash</code>(limited)/<code>grep</code>/<code>find</code>/<code>ls</code>, <strong>disabling</strong> <code>edit</code>/<code>write</code> — not via prompt pleading but by actually removing write tools from active tools. Execution mode restores all tools.
+        </p>
+        <p>
+          bash runs a <strong>whitelist + shell lexer</strong> (default-deny, rule-based allow): split on <code>;</code><code>|</code><code>&amp;&amp;</code>, reject redirects/subshells/command-substitution/var-expansion/glob outright; read-only commands pass, <code>git</code>/<code>find</code>/<code>sed</code>/<code>npm</code> get dedicated arg validators. Shifting from "block known-bad" to "allow known-good" collapses the bypass surface to the whitelist itself.
+        </p>
+        <p>
+          Plan and questions go through structured tools <code>plan_complete</code>/<code>plan_question</code>, taken directly from tool params (regex <code>Plan:</code> as fallback). State survives compaction via <code>appendEntry</code>, the plan lands in <code>PLAN.md</code>; instructions go through <code>systemPrompt</code> rebuilt every turn, leaving no plan artifacts in message history.
+        </p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/plan</code></pre>
+        </div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/plan" target="_blank" rel="noopener"><code>extensions/plan</code></a></p>
+        <h3 id="config">Configuration</h3>
+        <p>plan has extra peer deps: <code>@earendil-works/pi-tui</code>, <code>@earendil-works/pi-agent-core</code>, <code>@earendil-works/pi-ai</code> (TUI integration), unlike other extensions that only need <code>pi-coding-agent</code>.</p>
+        <h3 id="example">Usage</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>flow</span></div>
+          <pre><code>/plan
+  → read-only exploration (plan_question clarifies key decisions)
+  → plan_complete submits the full plan (with Plan: numbered steps)
+  → UI offers Execute / Stay / Refine
+  → Execute: opens all tools, step by step
+  → [DONE:n] advances
+  → all done → Plan Complete</code></pre>
+        </div>
+        <p>Aux commands: <code>/todos</code> toggles the todo widget; CLI flag <code>plan</code> starts in plan mode.</p>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi -e ./extensions/plan/src/plan.ts -p "what is 1+1" --no-session</code></pre>
+        </div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>
+          A ~1430-line single file. One of the packages that "uses the Extension API most fully" in piex: <code>registerCommand</code>/<code>registerTool</code>/<code>setActiveTools</code>/<code>on("tool_call")</code> blocking/<code>on("before_agent_start")</code> systemPrompt injection/<code>on("turn_end")</code> <code>[DONE:n]</code> parsing/<code>appendEntry</code> persistence/<code>ctx.ui.select</code> interaction.
+        </p>
+        <p>Tool-set merge: entering plan remembers <code>toolsBeforePlanMode</code>; the plan tool set = (prior active minus edit/write) ∪ read-only set; on exit it restores while keeping other extensions' tools, coexisting with hashline/lsp/dap without collateral kill.</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>omp</th><th>piex plan</th></tr></thead>
+<tbody>
+<tr><td>fullscreen plan-review overlay</td><td><code>select</code> three-option interaction</td></tr>
+<tr><td>Plan TOC sidebar</td><td>none (pi API limit)</td></tr>
+<tr><td>sub-agent plan handoff</td><td>none (awaiting subagent)</td></tr>
+<tr><td>write disabled</td><td>same</td></tr>
+</tbody></table></div>
+<p>Lightness pays off: small dependency surface, predictable behavior, same-source as upstream pi example, easy to maintain.</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
+<tbody>
+<tr><td><strong>pi official plan-mode example</strong></td><td><code>registerCommand("plan")</code> + <code>setActiveTools</code> + <code>tool_call</code> bash interception</td><td><strong>Adopted</strong> core API approach. <strong>Enhanced</strong>: <code>appendEntry</code> persistence + PLAN.md + UI widget</td></tr>
+<tr><td><strong>oh-my-pi plan</strong></td><td>fullscreen plan-review overlay + TOC sidebar + sub-agent handoff</td><td><strong>Not adopted</strong>: pi API has no fullscreen overlay, sub-agent not ready. <strong>Borrowed</strong>: step approval, configurable tool whitelist, <code>/review</code> integration</td></tr>
+<tr><td><strong>pi-extensions pi-plan-mode</strong></td><td>shell-lexer bash whitelist, structured tools, <code>systemPrompt</code> injection, context artifact cleanup</td><td><strong>Adopted</strong> all four; <strong>not adopted</strong>: settings file &amp; legacy migration, fixed thinking level, dropping progress tracking</td></tr>
+</tbody></table></div>
+<p>Core trade-off: stay on the pi-example-same-source route (light, predictable, maintainable), drop omp-style heavy UI; use <code>appendEntry</code> against compaction.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Direction</th><th>Plan</th></tr></thead>
+            <tbody>
+              <tr><td><code>[DONE:n]</code> relies on honesty</td><td>weak verify: if a step's named files are untouched in the working tree, warn "marked DONE but no change"</td></tr>
+              <tr><td>Refine is shallow</td><td>strengthen approval within pi API limits, not a fullscreen overlay</td></tr>
+              <tr><td>Whitelist ≠ sandbox</td><td>configurable whitelist (allow <code>lsp</code> in plan phase, tighten bash); document "risk reduction ≠ isolation"</td></tr>
+              <tr><td>Single-session sequential</td><td>first link with <code>/review</code> (plan→exec→review); parallel execution awaits sub-agent</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.1</td><td>2026-07-19</td><td>regex-blacklist bash interception; in-body <code>Plan:</code> regex extraction; <code>context</code> message injection</td></tr>
+              <tr><td>0.2.0</td><td>2026-07-19</td><td>shell-lexer whitelist; <code>plan_complete</code>/<code>plan_question</code> structured tools; <code>systemPrompt</code> injection (default-deny rule-based; plan/questions via dedicated tool params; instructions rebuilt per turn, no plan artifacts in history)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>0.1.1 lesson: regex blacklists miss equivalent bypasses; in-body regex extraction drops plans when the model doesn't follow format; <code>context</code> message injection gets eaten by compaction. 0.2.0 switches to structured: whitelist collapses bypass surface, tool params replace body parsing, systemPrompt replaces message injection.</p>
+
+        <h2 id="appendix">Appendix: pi plan ecosystem capability comparison</h2>
+        <p>Objective capability differences across four projects (omp / pi official example / pi-extensions <code>pi-plan-mode</code> / piex plan).</p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Capability</th><th>omp</th><th>pi example</th><th>pi-extensions</th><th>piex</th></tr></thead>
+            <tbody>
+              <tr><td>Dangerous bash interception</td><td>✅ regex</td><td>✅</td><td>✅ lexer whitelist</td><td>✅ lexer whitelist (ported)</td></tr>
+              <tr><td>Structured plan/question tools</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td></tr>
+              <tr><td>Instruction injection</td><td>context msg</td><td>context msg</td><td>systemPrompt</td><td>systemPrompt</td></tr>
+              <tr><td>Progress tracking</td><td>✅ [DONE:n]</td><td>✅</td><td>❌ disabled</td><td>✅ [DONE:n] + widget</td></tr>
+              <tr><td>Plan approval popup</td><td>✅ fullscreen overlay</td><td>❌</td><td>✅ select</td><td>❌ select instead</td></tr>
+              <tr><td>Sub-agent plan handoff</td><td>✅ plan-handoff</td><td>❌</td><td>❌</td><td>❌ awaits subagent</td></tr>
+              <tr><td>Compaction protection</td><td>✅ plan file</td><td>❌</td><td>✅ appendEntry</td><td>✅ appendEntry</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/en/packages/lsp/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">lsp</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/packages/review/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">review</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/plan.md" target="_blank" rel="noopener">docs/packages/plan.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#appendix">Appendix</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>review — First-Class Code Review for Agents — PieX</title>
+  <meta name="description" content="/review turns 'paste a diff for AI to look at' into a repeatable capability: clear scope, noise-controlled, shared engine for human and model." />
+  <link rel="canonical" href="https://piex.dev/en/packages/review/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/review/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/review/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/review/" />
+  <meta property="og:title" content="review — First-Class Code Review for Agents — PieX" />
+  <meta property="og:description" content="/review turns 'paste a diff for AI to look at' into a repeatable capability: clear scope, noise-controlled, shared engine for human and model." />
+  <meta property="og:url" content="https://piex.dev/en/packages/review/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/" class="is-active">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/" class="is-active">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Git</span>
+          <code class="pkg-tag">@piex-dev/review</code>
+        </div>
+        <h1>review — First-Class Code Review for Agents</h1>
+        <p class="blog-lede">Turns "paste a diff for AI to look at" into a repeatable capability: clear scope, noise-controlled, shared engine.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">TL;DR</p>
+            <p><code>/review</code> turns "paste a diff for AI to look at" into a repeatable capability: clear scope, noise-controlled, one shared engine for human and model.</p>
+          </div>
+        </div>
+
+        <h2 id="intro">Overview</h2>
+        <p>
+          "Have AI look at this code" stumbles on: where the diff comes from, too much noise, unstable prompts, split human/model entry points. <code>@piex-dev/review</code> consolidates it: humans use <code>/review</code>, the model uses the <code>review</code> tool, the core is one git-diff collection + noise filter + structured prompt. A <strong>lightweight</strong> omp review: keeps the diff engine and modes, drops multi-agent parallel review and TUI overlay.
+        </p>
+
+        <h2 id="theory">How it works</h2>
+        <p>
+          Review = pick scope + clean noise + feed structured context. Core insight: <strong>review quality depends on whether the diff fed to the model is clean</strong> — half the tokens being <code>package-lock.json</code> is waste. 5 modes map to real dev actions: uncommitted / staged / vs base branch (with fetch) / commit / custom.
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>flow</span></div>
+          <pre><code>pick mode → git diff/show → parse unified diff
+→ drop noise (lock/min/build/vendor) → build Markdown prompt
+→ hand to current session model for findings</code></pre>
+        </div>
+        <p>Human and model share the engine: <code>/review</code> uses a UI menu, the <code>review</code> tool uses params; both end up in <code>parseDiff</code> + <code>buildReviewPrompt</code>.</p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/review</code></pre>
+        </div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/review" target="_blank" rel="noopener"><code>extensions/review</code></a></p>
+        <h3 id="prereq">Prerequisites</h3>
+        <p>The current directory is a git repo; <code>git</code> is on the machine.</p>
+        <h3 id="example">Usage</h3>
+        <p>Human: <code>/review</code> lists the mode menu. Model: call the <code>review</code> tool with <code>action</code> (<code>diff</code>/<code>staged</code>/<code>commit</code>/<code>branch</code>). After selection a prompt is generated and sent back via <code>pi.sendUserMessage(..., { deliverAs: "followUp" })</code> for the current model to act as reviewer.</p>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session</code></pre>
+        </div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>
+          ~350 lines, single file. <strong>Noise filter (EXCLUDED_PATTERNS)</strong> auto-excludes lock/build/vendor/generated/media-binary; excluded files still appear in an "Excluded" section (path + reason + line count) so the model knows things were filtered without ingesting them. <strong>Diff parsing</strong> chunks by <code>diff --git</code> counting +/-. <strong>Prompt generation</strong>: skips embedding full diff when too large (&gt;50k chars or &gt;20 files, suggests <code>read</code>); unified instructions grade findings critical/warning/info with file+line.
+        </p>
+        <div class="blog-table-wrap"><table><thead><tr><th>omp</th><th>piex review</th></tr></thead>
+<tbody>
+<tr><td>multi-agent parallel review</td><td>current agent reviews directly</td></tr>
+<tr><td>TUI overlay</td><td>text output</td></tr>
+<tr><td>Diff + noise filter</td><td>✅</td></tr>
+<tr><td>Multiple modes</td><td>✅ (light set)</td></tr>
+<tr><td>Structured prompt</td><td>✅ streamlined</td></tr>
+</tbody></table></div>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi review</strong></td><td>command + tool; multi-agent parallel + TUI overlay; diff engine + noise filter + structured prompt</td><td><strong>Adopted</strong>: diff engine, noise filter, multi-mode, shared prompt. <strong>Not adopted</strong>: multi-agent parallel (needs subagent), TUI overlay</td></tr>
+<tr><td><strong>OpenCode /review</strong></td><td>built-in command, review uncommitted or specified commit/branch</td><td><strong>Borrowed</strong>: interactive menu, unified prompt template, multi-source review</td></tr>
+</tbody></table></div>
+<p>Core trade-off: keep the diff engine and noise filter intact (feed the model clean context), drop parallelism and visual overlay.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Direction</th><th>Plan</th></tr></thead>
+            <tbody>
+              <tr><td>Single model, single thread</td><td>near-term optional multi-pass (critical then style); long-term migrate to omp multi-agent when subagent is ready</td></tr>
+              <tr><td>Weak findings↔code binding</td><td>output findings JSON; link diagnostics, route runtime suspects to dap</td></tr>
+              <tr><td>Naive base-branch &amp; noise rules</td><td>project-level <code>.reviewignore</code>/pathspec; configurable remote &amp; default branch</td></tr>
+              <tr><td>Result is chat text</td><td>attach a machine-readable block beyond Markdown; serve local workflow first, then gating</td></tr>
+              <tr><td>Extreme diffs</td><td>parser covers real PR edge cases (rename/binary/submodule)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.1</td><td>2026-07-19</td><td>Initial release: diff engine (<code>parseDiff</code>) + noise filter (<code>EXCLUDED_PATTERNS</code>); 5 modes; <code>buildReviewPrompt</code> structured prompt (oversized diff not inlined); shared engine for human/model; omp lightweight (no multi-agent parallel or TUI overlay)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/en/packages/plan/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">plan</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/packages/init/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">init</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/review.md" target="_blank" rel="noopener">docs/packages/review.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

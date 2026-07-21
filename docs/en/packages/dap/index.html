@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>dap — Real Debugging for Coding Agents — PieX</title>
+  <meta name="description" content="Brings DAP to Pi: a debug tool lets the agent launch, set breakpoints, step and inspect variables instead of guessing." />
+  <link rel="canonical" href="https://piex.dev/en/packages/dap/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/dap/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/dap/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/dap/" />
+  <meta property="og:title" content="dap — Real Debugging for Coding Agents — PieX" />
+  <meta property="og:description" content="Brings DAP to Pi: a debug tool lets the agent launch, set breakpoints, step and inspect variables instead of guessing." />
+  <meta property="og:url" content="https://piex.dev/en/packages/dap/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/" class="is-active">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/" class="is-active">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Debug</span>
+          <code class="pkg-tag">@piex-dev/dap</code>
+        </div>
+        <h1>dap — Real Debugging for Coding Agents</h1>
+        <p class="blog-lede">The agent can "run and look" like a human, turning "guess the variable" into "read the variable".</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">TL;DR</p>
+            <p>After installing <code>@piex-dev/dap</code>, the agent can "run and look" like a human. It won't replace tests, but it turns "guess the variable" into "read the variable".</p>
+          </div>
+        </div>
+
+        <h2 id="intro">Overview</h2>
+        <p>
+          Most coding agents "fix bugs" by reading code, guessing a cause, editing a few lines, re-running tests in bash, then guessing again. This works for simple issues but breaks on runtime-only problems: which stack frame threw? what was that local variable? does a breakpoint on a conditional branch hold?
+        </p>
+        <p>
+          <a href="https://microsoft.github.io/debug-adapter-protocol/" target="_blank" rel="noopener">DAP</a> is the VS Code debugging protocol. <code>@piex-dev/dap</code> brings it to Pi: the model calls a <code>debug</code> tool to launch, set breakpoints, step and inspect variables.
+        </p>
+
+        <h2 id="theory">How it works</h2>
+        <p>
+          Three layers: Agent (Pi + LLM decides) → DAP client (<code>@piex-dev/dap</code> translates to standard DAP requests) → Debug Adapter (debugpy/dlv/lldb-dap controls the process). The session state machine is <code>running</code>/<code>stopped</code>/<code>terminated</code>; each tool call returns a session summary + formatted text, not raw JSON-RPC.
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>lifecycle</span></div>
+          <pre><code>launch/attach → spawn adapter(stdio) → initialize
+→ running → stopped(breakpoint/step/exception)
+→ stack_trace/variables/evaluate
+→ continue/step_* → terminate</code></pre>
+        </div>
+        <p>
+          Adapter selection: <code>defaults.json</code> holds start command, language suffix, project-root marker and launch/attach defaults; launch auto-picks by suffix + workspace marker. The Node port is <strong>stdio-only</strong> (covers local debugging, no socket lifecycle), no remote TCP attach.
+        </p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/dap</code></pre>
+        </div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/dap" target="_blank" rel="noopener"><code>extensions/dap</code></a></p>
+        <h3 id="prereq">Prerequisites</h3>
+        <p>The extension handles protocol and sessions, not installing debuggers. Install the adapter for your language:</p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pip install debugpy        # Python
+brew install llvm           # lldb-dap
+go install github.com/go-delve/delve/cmd/dlv@latest  # Go</code></pre>
+        </div>
+        <p>14 adapters supported: gdb, lldb-dap, codelldb, debugpy, dlv, js-debug-adapter, netcoredbg, kotlin-debug-adapter, rdbg, php-debug-adapter, bash-debug-adapter, dart-debug-adapter, flutter-debug-adapter, elixir-ls-debugger.</p>
+        <h3 id="config">Configuration</h3>
+        <p>Defaults live in <code>extensions/dap/defaults.json</code>. No manual config needed — the extension auto-selects an adapter by file suffix + project-root marker; the model may also name an adapter explicitly.</p>
+        <h3 id="example">Typical usage</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>debug tool</span></div>
+          <pre><code>debug(action=launch, program=./main.py)
+debug(action=set_breakpoint, path=main.py, line=42)
+debug(action=continue)
+# after hit
+debug(action=stack_trace)
+debug(action=variables, variablesReference=…)
+debug(action=evaluate, expression="user.id")</code></pre>
+        </div>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi -e ./extensions/dap/src/dap.ts -p "what is 1+1" --no-session</code></pre>
+        </div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>
+          <code>dap.ts</code> registers the debug tool and dispatches actions; <code>client.ts</code> handles Content-Length frames + JSON-RPC; <code>session.ts</code> manages sessions, breakpoint queue, output buffer and idle cleanup; <code>config.ts</code> reads <code>defaults.json</code> and picks an adapter.
+        </p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Domain</th><th>actions</th></tr></thead>
+            <tbody>
+              <tr><td>Session</td><td>launch / attach / terminate / sessions / output</td></tr>
+              <tr><td>Breakpoints</td><td>set_breakpoint / remove_breakpoint</td></tr>
+              <tr><td>Execution</td><td>continue / step_over / step_in / step_out / pause</td></tr>
+              <tr><td>Inspection</td><td>stack_trace / threads / scopes / variables / evaluate</td></tr>
+              <tr><td>Low-level</td><td>disassemble / read_memory / write_memory / modules / loaded_sources / custom_request</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Capabilities are checked against the adapter's reported <code>capabilities</code>: unsupported ops error out, no silent no-op. Engineering details: serialized breakpoint mutations, ring-buffered output (~128KB), idle reaping, clamped timeouts (5s–300s, default 30s), non-interactive env injection (<code>PAGER=cat</code>).</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi dap</strong></td><td>full DAP client: stdio + TCP + WebSocket; 14+ adapters; structured output; TUI variable explorer</td><td><strong>Adopted</strong>: 14-adapter config, JSON-RPC framing, breakpoint queue, output cap, idle reaping. <strong>Not adopted</strong>: TCP/WebSocket, TUI overlay (pi API limits)</td></tr>
+<tr><td><strong>VS Code DAP</strong></td><td>three-layer spec (editor / client / adapter)</td><td><strong>Borrowed</strong>: three-layer split, capabilities check, auto context summary on stop</td></tr>
+</tbody></table></div>
+<p>Core trade-off: stdio only (simple and safe), no remote attach; text output first, TUI later; capabilities-driven action surface, not all at once.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Current</th><th>Impact</th><th>Plan</th></tr></thead>
+            <tbody>
+              <tr><td>stdio only, no TCP/WebSocket</td><td>hard to attach remote debug servers</td><td>optional TCP as advanced, stdio default</td></tr>
+              <tr><td>data/instruction/exception breakpoints not fully exposed</td><td>"who wrote this memory" questions are hard</td><td>gradually expose by capabilities</td></tr>
+              <tr><td>completions, exceptionInfo not all exposed</td><td>existing adapter capabilities unused</td><td>add actions by usage frequency</td></tr>
+              <tr><td>plain-text output</td><td>stack/vars less readable than omp</td><td>default stop summary first, then TUI</td></tr>
+              <tr><td>depends on locally installed adapters</td><td>higher setup barrier</td><td>document gaps; preinstall in eval images</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Product direction: context-on-stop (auto top frame + key vars); project-aware launch (read <code>.vscode/launch.json</code>); eval hook (<code>debug_success</code> reproducible tasks).</p>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.1</td><td>2026-07-19</td><td>Initial release: 14-adapter default config; DAP client (stdio + JSON-RPC); session management (breakpoint queue, ring-buffered output, idle reaping, clamped timeout); Node port (Bun.spawn → child_process.spawn)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/en/packages/hashline/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">hashline</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/packages/lsp/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">lsp</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/dap.md" target="_blank" rel="noopener">docs/packages/dap.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

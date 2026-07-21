@@ -4,8 +4,8 @@ DAP（Debug Adapter Protocol）调试扩展，注册 `debug` 工具。
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/dap/
-- 源稿：[`docs/notes/dap.md`](../../docs/notes/dap.md)
+- 介绍：https://piex.dev/zh/packages/dap/
+- 源稿：[`docs/packages/dap.md`](../../docs/packages/dap.md)
 
 ## 功能
 

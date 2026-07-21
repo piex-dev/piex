@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>lsp — Language-Server Eyes for Agents — PieX</title>
+  <meta name="description" content="LSP as a Pi tool: diagnostics, navigation, refactor, format; auto ERROR after edit for an edit→verify→re-edit loop." />
+  <link rel="canonical" href="https://piex.dev/en/packages/lsp/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/lsp/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/lsp/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/lsp/" />
+  <meta property="og:title" content="lsp — Language-Server Eyes for Agents — PieX" />
+  <meta property="og:description" content="LSP as a Pi tool: diagnostics, navigation, refactor, format; auto ERROR after edit for an edit→verify→re-edit loop." />
+  <meta property="og:url" content="https://piex.dev/en/packages/lsp/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/" class="is-active">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/" class="is-active">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#appendix">Appendix</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Diagnostics</span>
+          <code class="pkg-tag">@piex-dev/lsp</code>
+        </div>
+        <h1>lsp — Language-Server Eyes for Agents</h1>
+        <p class="blog-lede">Let the agent ask an IDE-class question; auto-see ERRORs after edit without remembering to call diagnostics.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">TL;DR</p>
+            <p><code>@piex-dev/lsp</code> lets the agent ask IDE-class questions; more importantly, it <strong>auto-surfaces ERRORs after edit</strong> without relying on the model to remember to run diagnostics.</p>
+          </div>
+        </div>
+
+        <h2 id="intro">Overview</h2>
+        <p>
+          Without LSP, an agent understands code via <code>read</code>, <code>grep</code>, and the model guessing types/references. This breaks at scale: missed call sites after a signature change, type errors only found by running <code>tsc</code>/<code>cargo check</code>, "where is this defined" reduced to guessing paths. <code>@piex-dev/lsp</code> turns LSP into a Pi tool so the model can <strong>actively ask a language server</strong> before/after editing.
+        </p>
+
+        <h2 id="theory">How it works</h2>
+        <p>
+          The most valuable capabilities: diagnostics (errors/warnings), definition/references (blast radius), hover (symbol type), symbols (structure outline), format (consistent style). It matches a server by file suffix in <code>defaults.json</code>, finds the workspace root via root markers, spawns a child process on stdio JSON-RPC, and caches per root+server within a session to avoid cold starts. Diagnostics come from server-pushed <code>publishDiagnostics</code>, cached by URI — so after an edit you can immediately ask "any red lines left?", closing an edit→verify→re-edit loop.
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>LSP flow</span></div>
+          <pre><code>Editor/Agent          Language Server
+     |                        |
+     |  initialize            |
+     |  textDocument/*        |
+     | ---------------------> |
+     |  publishDiagnostics    |
+     | &lt;--------------------- |</code></pre>
+        </div>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/lsp</code></pre>
+        </div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/lsp" target="_blank" rel="noopener"><code>extensions/lsp</code></a></p>
+        <h3 id="prereq">Prerequisites</h3>
+        <p>The extension is a client, not a server distributor. The language server binary must be locally executable (e.g. <code>typescript-language-server</code>, <code>rust-analyzer</code>, <code>pyright</code>, <code>gopls</code>). <code>defaults.json</code> ships start commands and args for ~50 servers.</p>
+        <h3 id="config">Configuration</h3>
+        <p>Defaults live in <code>extensions/lsp/defaults.json</code>; each server has <code>command</code> / <code>fileTypes</code> / <code>rootMarkers</code> / <code>initOptions</code> / <code>settings</code> / <code>isLinter</code>. A single server's command can be overridden via <code>PI_&lt;NAME&gt;_LSP_COMMAND</code>; post-edit diagnostics can be disabled with <code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code>.</p>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>cd extensions/lsp &amp;&amp; npm install &amp;&amp; bun test   # mock server unit tests
+pi -e ./extensions/lsp/src/lsp.ts -p "what is 1+1" --no-session  # smoke</code></pre>
+        </div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>
+          <code>lsp.ts</code> is the client + router + tools + post-edit diagnostic hook; <code>defaults.json</code> configures ~50 servers. Post-edit diagnostics hook <code>edit</code>/<code>write</code> (incl. hashline): sync to disk → wait for publishDiagnostics → ERRORs only, capped 20 per file, appended to the result.
+        </p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>action</th><th>purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>diagnostics</code></td><td>match multiple servers, aggregate</td></tr>
+              <tr><td><code>definition</code>/<code>type_definition</code>/<code>implementation</code></td><td>navigation</td></tr>
+              <tr><td><code>references</code>/<code>hover</code>/<code>symbols</code>/<code>workspace_symbols</code></td><td>read intelligence</td></tr>
+              <tr><td><code>rename</code></td><td>preview by default; <code>apply=true</code> writes</td></tr>
+              <tr><td><code>code_actions</code></td><td>list or apply by index</td></tr>
+              <tr><td><code>format</code></td><td>TextEdit write-back</td></tr>
+              <tr><td><code>status</code>/<code>reload</code></td><td>ops</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Correctness: diagnostic settle (silent N ms after last publish, default 800ms); LSP 3.17 pull diagnostics (only if <code>diagnosticProvider</code> declared); <code>resolveProvider</code> gating; overlapping TextEdit intersection rejected; stderr captured into error messages (cap 16KB); <code>which</code> includes <code>node_modules/.bin</code>, <code>.venv/bin</code>; Windows <code>.bat/.cmd</code> wrapped via <code>cmd.exe /d /s /c</code>.</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi lsp</strong></td><td>full LSP client: multi-server routing, didChange, full action surface, diagnostic aggregation</td><td><strong>Adopted</strong>: JSON-RPC client, defaults.json-driven, lazy start/session reuse. <strong>Not adopted</strong>: Bun runtime, all-actions-at-once</td></tr>
+<tr><td><strong>OpenCode post-edit diagnostics</strong></td><td><code>tool_result</code> hook on edit/write → wait publishDiagnostics → ERRORs only, per-file cap</td><td><strong>Adopted</strong> the whole pattern: sync → wait → only ERROR → cap 20. <code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code> disables it</td></tr>
+<tr><td><strong>VS Code LSP</strong></td><td>initialize + settings/didChangeConfiguration + workspace/configuration</td><td><strong>Borrowed</strong>: initOptions/settings dispatch; full-text didChange; <code>which</code> checks .bin/.venv</td></tr>
+<tr><td><strong>pi-extensions pi-lsp</strong></td><td>diagnostic settle, pull diagnostics, stderr capture, gating, overlap detection, cmd.exe wrap, command override</td><td><strong>Adopted</strong> all protocol details (fused into resident-process architecture); <strong>not adopted</strong>: spawn-per-call, two-tools-only</td></tr>
+</tbody></table></div>
+<p>Core trade-off: prioritize the post-edit ERROR loop (à la OpenCode), diagnostics over navigation exposure; linters don't hijack the primary server's navigation role.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>Item</th></tr></thead>
+            <tbody>
+              <tr><td>✅</td><td>init/settings, didChange, multi-server, post-edit ERROR, rename/code_actions</td></tr>
+              <tr><td>✅</td><td>diagnostic settle, pull diagnostics, resolveProvider gating, overlap guard, stderr capture</td></tr>
+              <tr><td>✅</td><td>mock server unit tests</td></tr>
+              <tr><td>Next</td><td>project-level <code>.lsp.json</code> override; module split (client/config/edits)</td></tr>
+              <tr><td>Next</td><td>indexing/ready state to avoid cold-start false negatives; directory-level batch diagnostics</td></tr>
+              <tr><td>Deferred</td><td>lspmux, auto-download LS, completion, TUI, repo-wide CLI diagnostics</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+            <tbody>
+              <tr><td>0.2.0</td><td>2026-07-19</td><td>Early version: multi-server routing, didChange, diagnostic aggregation; returned on first push; blindly called <code>codeAction/resolve</code>; server exits gave only exit code, stderr lost</td></tr>
+              <tr><td>0.3.0</td><td>2026-07-19</td><td>push settle window + LSP 3.17 pull diagnostics dual-track; call <code>resolveProvider</code>/<code>diagnosticProvider</code> only when declared; stderr captured into timeout/exit errors; <code>.bat/.cmd</code> via <code>cmd.exe</code> wrap; <code>PI_&lt;NAME&gt;_LSP_COMMAND</code> override; overlapping TextEdit detection prevents file corruption</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>0.2.0 lesson: servers like intelephense push empty diagnostics first then real ones — returning on first push reported erroneous files as clean; server crashes gave only exit codes, making debugging guesswork. 0.3.0 fills in the protocol details.</p>
+
+        <h2 id="appendix">Appendix: pi LSP ecosystem capability comparison</h2>
+        <p>Objective capability differences across four projects (omp / OpenCode / pi-extensions <code>pi-lsp</code> / piex lsp).</p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Capability</th><th>omp</th><th>OpenCode</th><th>pi-extensions</th><th>piex</th></tr></thead>
+            <tbody>
+              <tr><td>Action surface</td><td>14 actions</td><td>experimental, off by default</td><td>2 (diagnostics+fix)</td><td>13 actions</td></tr>
+              <tr><td>Process model</td><td>session-reuse</td><td>session-reuse</td><td>spawn-per-call</td><td>session-reuse</td></tr>
+              <tr><td>push settle window</td><td>❌</td><td>❌</td><td>✅</td><td>✅ (800ms)</td></tr>
+              <tr><td>LSP 3.17 pull diagnostics</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td></tr>
+              <tr><td>Post-edit diagnostics</td><td>writethrough</td><td>edit injects ERROR</td><td>❌</td><td>tool_result appends ERROR</td></tr>
+              <tr><td>stderr capture</td><td>❌</td><td>❌</td><td>✅</td><td>✅ (cap 16KB)</td></tr>
+              <tr><td>Overlapping TextEdit guard</td><td>❌</td><td>❌</td><td>✅</td><td>✅ (cwd-limited)</td></tr>
+              <tr><td>Windows .bat/.cmd</td><td>—</td><td>—</td><td>✅ cmd.exe</td><td>✅</td></tr>
+              <tr><td>rename / format</td><td>✅</td><td>❌</td><td>❌</td><td>✅ (preview default)</td></tr>
+              <tr><td>Unit tests</td><td>—</td><td>—</td><td>❌</td><td>✅ (mock server)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/en/packages/dap/">
+          <span class="blog-nav-label">← Previous</span>
+          <span class="blog-nav-title">dap</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/packages/plan/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">plan</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/lsp.md" target="_blank" rel="noopener">docs/packages/lsp.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#appendix">Appendix</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

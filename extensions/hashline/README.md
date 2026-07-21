@@ -4,8 +4,8 @@
 
 ## 深度解读
 
-- 博客：https://piex.dev/zh/blogs/hashline/
-- 源稿：[`docs/notes/hashline.md`](../../docs/notes/hashline.md)
+- 介绍：https://piex.dev/zh/packages/hashline/
+- 源稿：[`docs/packages/hashline.md`](../../docs/packages/hashline.md)
 
 ## 功能
 

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>btw — Ephemeral Side Questions — PieX</title>
+  <meta name="description" content="/btw asks a side question with full context, the Q&amp;A never enters the session — a completeSimple side call, zero session writes." />
+  <link rel="canonical" href="https://piex.dev/en/packages/btw/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/btw/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/btw/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/btw/" />
+  <meta property="og:title" content="btw — Ephemeral Side Questions — PieX" />
+  <meta property="og:description" content="/btw asks a side question with full context, the Q&amp;A never enters the session — a completeSimple side call, zero session writes." />
+  <meta property="og:url" content="https://piex.dev/en/packages/btw/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="true" class="active" role="radio">EN</button><button data-lang="zh" aria-checked="false" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/" class="is-active">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/" class="is-active">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Extension</span><span class="blog-tag">Context</span><code class="pkg-tag">@piex-dev/btw</code></div><h1>btw — Ephemeral Side Questions, Not Remembered</h1><p class="blog-lede">Ask a side question with full context; the Q&amp;A never enters the session — like whispering to your neighbor mid-meeting.</p></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p><code>/btw</code> lets you ask a side question with full context; the Q&amp;A never enters the session — like whispering to your neighbor mid-meeting.</p></div></div>
+
+        <h2 id="intro">Overview</h2>
+        <p>The classic dilemma: you want to ask something related to the current task but not have it "taken seriously". E.g. while debugging you ask "what's this project's Docker base image?" — sending it directly makes the agent treat it as task context, weighing "the user asked about Docker" on every later turn. <code>@piex-dev/btw</code>'s answer: <strong>the question never goes to the agent</strong>. The extension takes a session snapshot, makes a side model call, and shows the answer. Nothing is left in the session.</p>
+
+        <h2 id="theory">How it works</h2>
+        <p><strong>Core mechanism: side call</strong>. The extension bypasses the agent loop and uses pi-ai's <code>completeSimple</code> for a one-shot request. Since the Q&amp;A never enters the session, "anti-pollution" shifts from runtime filtering to an architectural guarantee: there's nothing to filter.</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>/btw cmd → resolve model &amp; creds → build snapshot (≤40K chars)
+→ completeSimple(model, { systemPrompt, messages })
+→ render answer into a Markdown pager (scrollable, interruptible)
+→ no write to the session</code></pre></div>
+        <p>The snapshot is a compressed summary (only user/assistant messages, toolCall kept as <code>name(args)</code>, truncated from the head past 40K chars). A dedicated model can be configured (<code>~/.pi/piex-dev/btw/btw.json</code>) — side questions rarely need a flagship model. Waiting shows a <code>BorderedLoader</code> (Esc aborts), the answer a homegrown Markdown pager (<code>j/k</code> scroll, PgUp/PgDn, Home/End, progress %).</p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/btw</code></pre></div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/btw" target="_blank" rel="noopener"><code>extensions/btw</code></a></p>
+        <h3 id="example">Usage</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>/btw what's this project's Docker base image?</code></pre></div>
+        <p>The answer shows in the pager; after closing, the session is untouched.</p>
+        <h3 id="config">Configuration</h3>
+        <p><code>~/.pi/piex-dev/btw/btw.json</code>:</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>json</span></div><pre><code>{ "model": "anthropic/claude-haiku-4-5", "thinkingLevel": "low" }</code></pre></div>
+        <p>Falls back to the current session model if unset. Config is re-read each question, no <code>/reload</code> needed.</p>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi -e ./extensions/btw/src/btw.ts -p "what is 1+1" --no-session</code></pre></div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>~700 lines, single file. Core modules: <code>/btw</code> command, <code>loadCompleteSimple</code> (compatible with pi-ai 0.79 root export and 0.80 <code>/compat</code> subpath), <code>resolveBtwModel</code> (config→current-model fallback + cred check), <code>buildConversationContext</code> (compressed snapshot), <code>completeSideQuestion</code> (AbortSignal), <code>BtwAnswerPager</code> (Markdown scroll reader).</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>omp btw</th><th>btw (piex)</th></tr></thead><tbody>
+<tr><td>engine-level side call</td><td><code>completeSimple</code> side call</td></tr>
+<tr><td>never writes to session</td><td>same (architectural guarantee)</td></tr>
+<tr><td>Bun runtime</td><td>Node.js (pi)</td></tr>
+</tbody></table></div>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead><tbody>
+<tr><td><strong>pi-extensions pi-btw</strong></td><td><code>completeSimple</code> side call + session snapshot + settings file + loader/pager UI</td><td><strong>Adopted</strong> the overall architecture, keeping piex's arg-less interactive input; pi-ai 0.79/0.80 compat loading reused directly</td></tr>
+</tbody></table></div>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Direction</th><th>Plan</th></tr></thead><tbody>
+<tr><td>Snapshot lacks system prompt &amp; full tool results</td><td>selectively carry by relevance (e.g. always keep the last toolResult full text)</td></tr>
+<tr><td>No multi-turn follow-up</td><td>add an input line in the pager; follow-up carries the prior turn (still no session write)</td></tr>
+<tr><td>Model config hot-update</td><td>add a <code>/btw model</code> quick config command</td></tr>
+</tbody></table></div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-07-19</td><td>inject + filter architecture: <code>[BTW]</code> question injected into the main agent loop, tools disabled by prompt, later filtered via a <code>context</code> hook guessing "skip next assistant"</td></tr>
+<tr><td>0.2.0</td><td>2026-07-19</td><td>side-call architecture: <code>completeSimple</code> one-shot request + ≤40K session snapshot, Q&amp;A never writes to session; adds <code>btw.json</code> dedicated model/thinking level, interruptible loader, Markdown pager</td></tr>
+</tbody></table></div>
+        <p>0.1.0 lesson: "pollute first, clean later" is hard to do strictly in an async message stream — when an assistant reply carries a toolCall sequence the filter guess misaligns and leaks; when the agent is busy, queued messages let the btw marker land on the wrong turn. 0.2.0 switches to "don't produce pollution", and the whole class of boundary issues vanishes.</p>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/en/packages/theme-dark-terminal/"><span class="blog-nav-label">← Previous</span><span class="blog-nav-title">theme-dark-terminal</span></a><a class="blog-nav-card is-next" href="/en/packages/context/"><span class="blog-nav-label">Next →</span><span class="blog-nav-title">context</span></a></nav>
+      <p class="blog-source-link">Source Markdown: <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/btw.md" target="_blank" rel="noopener">docs/packages/btw.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">On this page</p><nav><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

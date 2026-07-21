@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>dap — 让 Coding Agent 真正会调试 — PieX</title>
+  <meta name="description" content="把 DAP 接到 pi 上：debug 工具让 agent launch、下断点、单步、看变量，而不是只会改代码碰运气。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/dap/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/dap/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/dap/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/dap/" />
+  <meta property="og:title" content="dap — 让 Coding Agent 真正会调试 — PieX" />
+  <meta property="og:description" content="把 DAP 接到 pi 上：debug 工具让 agent launch、下断点、单步、看变量，而不是只会改代码碰运气。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/dap/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="false" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/" class="is-active">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/" class="is-active">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Debug</span>
+          <code class="pkg-tag">@piex-dev/dap</code>
+        </div>
+        <h1>dap — 让 Coding Agent 真正会调试</h1>
+        <p class="blog-lede">agent 可以像人一样「跑起来看」，把「猜变量」变成「读变量」。</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">导语</p>
+            <p>装上 <code>@piex-dev/dap</code> 之后，agent 可以像人一样「跑起来看」。它替代不了测试，但会把「猜变量」变成「读变量」。</p>
+          </div>
+        </div>
+
+        <h2 id="intro">简介</h2>
+        <p>
+          多数 coding agent 的「修 bug」路径是：读代码猜原因 → 改几行 → 用 bash 再跑测试 → 失败就再猜。一碰到「只有运行时才暴露」的问题就很脆：空指针在哪层调用栈？局部变量当时是什么？断点能不能停在条件分支上？
+        </p>
+        <p>
+          <a href="https://microsoft.github.io/debug-adapter-protocol/" target="_blank" rel="noopener">DAP</a> 是 VS Code 那套调试协议。<code>@piex-dev/dap</code> 把它接到 pi 上：模型调用 <code>debug</code> 工具，就能 launch、下断点、单步、看变量。
+        </p>
+
+        <h2 id="theory">技术原理</h2>
+        <p>
+          三层分工：Agent（pi + LLM 决策）→ DAP 客户端（<code>@piex-dev/dap</code> 翻译成标准 DAP 请求）→ Debug Adapter（debugpy/dlv/lldb-dap 真正控制进程）。会话状态机 <code>running</code>/<code>stopped</code>/<code>terminated</code>，模型每次拿到的是会话摘要 + 格式化文本，而非原始 JSON-RPC。
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>lifecycle</span></div>
+          <pre><code>launch/attach → spawn adapter(stdio) → initialize
+→ running → stopped(断点/步进/异常)
+→ stack_trace/variables/evaluate
+→ continue/step_* → terminate</code></pre>
+        </div>
+        <p>
+          适配器选择：<code>defaults.json</code> 按启动命令、语言后缀、项目根标记、launch/attach 默认参数配置；launch 时按文件后缀 + 工作区根标记自动挑 adapter。Node 移植<strong>只做 stdio</strong>（本机够用、省 socket 生命周期），不支持远程 TCP attach。
+        </p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/dap</code></pre>
+        </div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/dap" target="_blank" rel="noopener"><code>extensions/dap</code></a></p>
+        <h3 id="prereq">前提条件</h3>
+        <p>扩展负责协议与会话，不负责替你装调试器。对应语言还要装 adapter 本体：</p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pip install debugpy        # Python
+brew install llvm           # lldb-dap
+go install github.com/go-delve/delve/cmd/dlv@latest  # Go</code></pre>
+        </div>
+        <p>已支持 14 个 adapter：gdb、lldb-dap、codelldb、debugpy、dlv、js-debug-adapter、netcoredbg、kotlin-debug-adapter、rdbg、php-debug-adapter、bash-debug-adapter、dart-debug-adapter、flutter-debug-adapter、elixir-ls-debugger。</p>
+        <h3 id="config">配置</h3>
+        <p>默认配置在 <code>extensions/dap/defaults.json</code>。无需手写配置，扩展按文件后缀 + 项目根标记自动选 adapter；模型也可显式指定 adapter 名称。</p>
+        <h3 id="example">典型用法</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>debug tool</span></div>
+          <pre><code>debug(action=launch, program=./main.py)
+debug(action=set_breakpoint, path=main.py, line=42)
+debug(action=continue)
+# 命中后
+debug(action=stack_trace)
+debug(action=variables, variablesReference=…)
+debug(action=evaluate, expression="user.id")</code></pre>
+        </div>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi -e ./extensions/dap/src/dap.ts -p "what is 1+1" --no-session</code></pre>
+        </div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>
+          <code>dap.ts</code> 注册 debug 工具分发 action；<code>client.ts</code> 处理 Content-Length 帧 + JSON-RPC；<code>session.ts</code> 管会话、断点队列、输出缓冲、空闲清理；<code>config.ts</code> 读 <code>defaults.json</code> 选择 adapter。
+        </p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>能力域</th><th>action</th></tr></thead>
+            <tbody>
+              <tr><td>会话</td><td>launch / attach / terminate / sessions / output</td></tr>
+              <tr><td>断点</td><td>set_breakpoint / remove_breakpoint</td></tr>
+              <tr><td>执行</td><td>continue / step_over / step_in / step_out / pause</td></tr>
+              <tr><td>观察</td><td>stack_trace / threads / scopes / variables / evaluate</td></tr>
+              <tr><td>底层</td><td>disassemble / read_memory / write_memory / modules / loaded_sources / custom_request</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>能力按 adapter 上报的 <code>capabilities</code> 检查：不支持的操作直接报错，避免 silently no-op。工程细节：断点变更串行化、输出环形缓冲（~128KB）、空闲回收、超时夹紧（5s–300s，默认 30s）、非交互环境变量注入（<code>PAGER=cat</code>）。</p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi dap</strong></td><td>完整 DAP 客户端：stdio + TCP + WebSocket；14+ adapter；结构化输出；TUI variable explorer</td><td><strong>采纳</strong>：14 adapter 配置、JSON-RPC 帧协议、断点队列、输出缓冲上限、空闲回收。<strong>不采纳</strong>：TCP/WebSocket、TUI overlay（pi API 限制）</td></tr>
+<tr><td><strong>VS Code DAP</strong></td><td>协议规范三层模型（editor / client / adapter）</td><td><strong>借鉴</strong>：三层分工理念、capabilities 检查、stop 后自动附上下文摘要</td></tr>
+</tbody></table></div>
+<p>核心取舍：只做 stdio（简单安全），不做远程 attach；先文本输出，暂缓 TUI；capabilities 驱动能力面，不一次铺满。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>现状</th><th>影响</th><th>打算</th></tr></thead>
+            <tbody>
+              <tr><td>仅 stdio，无 TCP/WebSocket</td><td>难远程 attach</td><td>可选 TCP 作高级能力，默认仍 stdio</td></tr>
+              <tr><td>数据/指令/异常断点未完整暴露</td><td>「谁改了内存」类问题吃力</td><td>按 capabilities 逐步挂到工具面</td></tr>
+              <tr><td>completions、exceptionInfo 未全部暴露</td><td>adapter 已有能力模型用不上</td><td>按使用频率补 action</td></tr>
+              <tr><td>纯文本输出</td><td>栈与变量可读性弱于 omp</td><td>先做 stop 默认摘要包，再考虑 TUI</td></tr>
+              <tr><td>依赖本机已装 adapter</td><td>新环境门槛高</td><td>文档说清缺失项；评测镜像预装</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>产品向：停住即给上下文（stop 自动附栈顶 + 关键变量）；launch 可项目化（读 <code>.vscode/launch.json</code>）；评测挂钩（<code>debug_success</code> 可复现任务量）。</p>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.1</td><td>2026-07-19</td><td>初始版本：14 个 adapter 默认配置；DAP 客户端（stdio + JSON-RPC）；会话管理（断点队列、输出环形缓冲、空闲回收、超时夹紧）；Node.js 移植（Bun.spawn → child_process.spawn）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/zh/packages/hashline/">
+          <span class="blog-nav-label">← 上一个</span>
+          <span class="blog-nav-title">hashline</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/zh/packages/lsp/">
+          <span class="blog-nav-label">下一个 →</span>
+          <span class="blog-nav-title">lsp</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/dap.md" target="_blank" rel="noopener">docs/packages/dap.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

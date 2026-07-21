@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>hashline — Edit by Content Anchor, Not Fragile Line Numbers — PieX</title>
+  <meta name="description" content="Line numbers are unreliable. piex/hashline uses content tags and seen-lines for safe edits, plus Phase 1 model guards." />
+  <link rel="canonical" href="https://piex.dev/en/packages/hashline/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/hashline/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/hashline/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/hashline/" />
+  <meta property="og:title" content="hashline — Edit by Content Anchor, Not Fragile Line Numbers — PieX" />
+  <meta property="og:description" content="Line numbers are unreliable. piex/hashline uses content tags and seen-lines for safe edits, plus Phase 1 model guards." />
+  <meta property="og:url" content="https://piex.dev/en/packages/hashline/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/" class="is-active">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/" class="is-active">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>On this page</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#appendix">Appendix</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Edit</span>
+          <code class="pkg-tag">@piex-dev/hashline</code>
+        </div>
+        <h1>hashline — Edit by Content Anchor, Not Fragile Line Numbers</h1>
+        <p class="blog-lede">Default edits go from "guessing line numbers" to "editing against the version you read": fewer silent mistakes, at the cost of occasional re-reads.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">TL;DR</p>
+            <p>After installing <code>@piex-dev/hashline</code>, default edits go from "guessing line numbers" to "editing against the version you read": fewer silent mistakes, at the cost of occasional re-reads. A tax worth paying.</p>
+          </div>
+        </div>
+
+        <h2 id="intro">Overview</h2>
+        <p>
+          The <code>edit</code> tool of an AI coding assistant has a fundamental conflict: the model describes <strong>where</strong> to change with <strong>line numbers</strong>, but line numbers are deeply unstable in the real world. A user edits the file while the model thinks; a prior edit shifted lines; an unread region gets edited against an "assumed" line number — all cause silent, wrong writes.
+        </p>
+        <p>
+          <code>@piex-dev/hashline</code> overrides Pi's built-in edit with content anchors: tag on read, verify on write, reject lines never shown.
+        </p>
+
+        <h2 id="theory">How it works</h2>
+        <p>
+          On read, a <code>[path#TAG]</code> is injected and seen-lines recorded; an edit must carry the same tag. The whole-file 4-hex tag acts like an optimistic lock: any external change invalidates it and forces a re-read. Stricter than per-line hashing, but it buys tree-sitter block ops and boundary repair.
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>hashline</span></div>
+          <pre><code>[src/main.ts#A3F2]
+SWAP 2.=2:
++const x = 2;</code></pre>
+        </div>
+        <p>
+          Phase 1 guards: 3 consecutive byte-identical noops → <code>[E_NOOP_LOOP]</code>; re-sending the same payload after success with an unchanged file → <code>[E_DUPLICATE_EDIT]</code>; CRLF / code-fence / extra-blank-line dialects normalized.
+        </p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/hashline</code></pre>
+        </div>
+        <p>
+          Active immediately: hashline <strong>overrides</strong> Pi's built-in <code>edit</code> tool and hooks <code>read</code> results. No extra switch, no config file.
+        </p>
+        <p>
+          Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/hashline" target="_blank" rel="noopener"><code>extensions/hashline</code></a>
+        </p>
+        <h3 id="config">Configuration</h3>
+        <p>Works out of the box, no required config. For local development, install runtime deps first:</p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>cd extensions/hashline &amp;&amp; npm install &amp;&amp; cd ../..</code></pre>
+        </div>
+        <p>Deps: <code>@oh-my-pi/hashline</code> ^16.4.0 (runtime), <code>@earendil-works/pi-coding-agent</code> (peer), <code>typebox</code> (peer).</p>
+        <h3 id="workflow">Workflow</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>flow</span></div>
+          <pre><code>1. LLM calls read /tmp/file.js
+2. hashline hook → inject header: [/tmp/file.js#A1B2]
+3. LLM receives tagged file content
+4. LLM emits a hashline patch
+5. Patcher verifies #A1B2 + seen-lines → applies edit
+6. Returns new tag: #C3D4</code></pre>
+        </div>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi -e ./extensions/hashline/src/hashline.ts -p "what is 1+1" --no-session</code></pre>
+        </div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>
+          Wraps <code>@oh-my-pi/hashline</code>: <code>hashline.ts</code> overrides edit and hooks read; <code>PiexNodeFilesystem</code> drives node:fs + realpath directly; <code>EditGuard</code> handles noop/duplicate; Bun polyfill only provides <code>xxHash32</code>.
+        </p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Capability</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>tree-sitter block / REM·MV</td><td>✅ via engine</td></tr>
+              <tr><td>Noop / Duplicate / normalize</td><td>✅ Phase 1</td></tr>
+              <tr><td>Stale auto-recovery / multi-version snapshot</td><td>❌ Phase 2</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
+<tbody>
+<tr><td><strong>oh-my-pi hashline</strong></td><td>whole-file tag + tree-sitter block grammar + boundary repair engine</td><td><strong>Adopted</strong>: wrap <code>@oh-my-pi/hashline</code>, inherit tag, SWAP.BLK, REM/MV and the engine. <strong>Not adopted</strong>: in-tree integration, Bun FS, LSP writethrough; use Node + an outer EditGuard instead</td></tr>
+<tr><td><strong>pi-hashline-edit</strong></td><td>per-line context hash + 3-way merge recovery + JSON DSL</td><td><strong>Not adopted</strong> core algorithm (route divergence), <strong>borrowed</strong> the fault-tolerance intent (noop/dup guard). ADRs kept as Phase 2 Stale-recovery reference</td></tr>
+<tr><td><strong>pi-hashline-edit-pro</strong></td><td>per-line content hash + stable mapping</td><td><strong>Not adopted</strong> algorithm, <strong>borrowed</strong> "minimize re-reads" as a long-term goal</td></tr>
+</tbody></table></div>
+<p>Core trade-off: whole-file tag (strict and simple) over per-line tag (locally usable), with a wrapper layer for fault tolerance. Three phases: Phase 1 tolerance (done) → Phase 2 recovery → Phase 3 undo/LSP integration.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <p>
+          Conflict policy leans toward reject (safe but costly) → add 3-way merge / Recovery; snapshots are thin → multi-version LRU + anchored Grep; duplicate granularity per section; wrapper-layer unit tests and optional LSP integration.
+        </p>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>phases</span></div>
+          <pre><code>Phase 1 ✅  Noop Loop / Duplicate Edit / dialect normalize
+Phase 2    Stale recovery · multi-version snapshot · anchored Grep
+Phase 3    Undo · Auto/Raw Read · LSP integration · denser tests</code></pre>
+        </div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.1</td><td>2026-07-14</td><td>Initial release: wraps <code>@oh-my-pi/hashline</code>, overrides built-in edit; Phase 1 guards (Noop Loop / Duplicate Edit / dialect normalize); Node.js native FS + realpath path normalization</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="appendix">Appendix: comparison with other hashline implementations</h2>
+        <p>
+          Three industry routes: oh-my-pi whole-file tag, pi-hashline-edit context per-line hash, pi-hashline-edit-pro stable mapping. piex picks the first as engine, borrowing fault tolerance from the latter. Full comparison in the source.
+        </p>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/#packages">
+          <span class="blog-nav-label">← All Packages</span>
+          <span class="blog-nav-title">Back to Packages list</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/en/packages/dap/">
+          <span class="blog-nav-label">Next →</span>
+          <span class="blog-nav-title">dap</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/hashline.md" target="_blank" rel="noopener">docs/packages/hashline.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#intro">Overview</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#appendix">Appendix</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

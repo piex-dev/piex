@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>theme-dark-terminal — Paint Pi Like a Real Terminal — PieX</title>
+  <meta name="description" content="High-contrast dark terminal palette: black bg, neon green/blue/red, pure JSON zero-code, /settings toggle, no behavior change." />
+  <link rel="canonical" href="https://piex.dev/en/packages/theme-dark-terminal/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/theme-dark-terminal/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/theme-dark-terminal/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/theme-dark-terminal/" />
+  <meta property="og:title" content="theme-dark-terminal — Paint Pi Like a Real Terminal — PieX" />
+  <meta property="og:description" content="High-contrast dark terminal palette: black bg, neon green/blue/red, pure JSON zero-code, /settings toggle, no behavior change." />
+  <meta property="og:url" content="https://piex.dev/en/packages/theme-dark-terminal/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="true" class="active" role="radio">EN</button><button data-lang="zh" aria-checked="false" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/" class="is-active">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/" class="is-active">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Theme</span><span class="blog-tag">TUI</span><code class="pkg-tag">@piex-dev/theme-dark-terminal</code></div><h1>theme-dark-terminal — Paint Pi Like a Real Terminal</h1><p class="blog-lede">Install Dark Terminal, toggle /settings, zero behavior change.</p></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p>Want Pi to look like a serious hacker terminal instead of a generic gray-blue panel: install Dark Terminal, toggle <code>/settings</code>, zero behavior change.</p></div></div>
+
+        <h2 id="intro">Overview</h2>
+        <p>The default theme aims for "generic readable", but doesn't fit everyone: diffs in low light need higher contrast, some prefer the classic terminal (black bg, neon green, pure-red warnings). <code>@piex-dev/theme-dark-terminal</code> does no TypeScript logic — it only provides a JSON under Pi's official theme schema, mapping the whole UI token set to a high-contrast "dark terminal" palette. Sourced from <a href="https://github.com/debugtalk/opencode-themes" target="_blank" rel="noopener">opencode-themes/dark-terminal</a> color roles.</p>
+
+        <h2 id="theory">How it works</h2>
+        <p>Pi themes are data, not plugin code: a theme package mounts <code>"pi": { "themes": ["./themes"] }</code>; Pi scans <code>themes/*.json</code> on startup, validating name + colors. <strong>Zero runtime, zero hooks</strong>: switching a theme never changes agent behavior. Tokens layer <code>vars</code> (palette atoms) → <code>colors</code> (semantic tokens pointing to vars) — change one <code>green</code> and accent/success/diff-added all shift together.</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>Role</th><th>Color</th><th>Used for</th></tr></thead><tbody>
+<tr><td>Accent</td><td><code>#00ff00</code> green</td><td>accent, success, diff added</td></tr>
+<tr><td>Structure</td><td><code>#00aaff</code> blue</td><td>border, links, keyword</td></tr>
+<tr><td>Error</td><td><code>#ff0000</code> red</td><td>error, string, high thinking</td></tr>
+<tr><td>Warning</td><td><code>#ffff00</code> yellow</td><td>warning, function</td></tr>
+<tr><td>Background</td><td><code>#050505</code></td><td>page &amp; panel</td></tr>
+</tbody></table></div>
+<p>No gradients, no muted tones: CRT-style readable impact.</p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/theme-dark-terminal
+# then /settings → theme: dark-terminal</code></pre></div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/themes/theme-dark-terminal" target="_blank" rel="noopener"><code>themes/theme-dark-terminal</code></a></p>
+        <h3 id="config">Configuration</h3>
+        <p><strong>Use an absolute path for global install</strong>, otherwise <code>/reload</code> resolves the relative path against the settings file location and the theme may "disappear". Project-level <code>pi install -l ./themes/theme-dark-terminal</code> is safer. npm install goes through the package path, easier than hand-writing relative paths.</p>
+        <h3 id="switch">Switch</h3>
+        <p><code>/settings</code> → theme pick <code>dark-terminal</code>, <code>/reload</code> to apply.</p>
+
+        <h2 id="impl">Implementation</h2>
+        <p>Pure JSON: <code>package.json</code> + <code>themes/dark-terminal.json</code>. Fills all required Pi theme schema color tokens (dozens): general (accent/border/success/error/warning/muted/text), messages, tools (pending/success/error/diff add-remove), Markdown (headings/lists/links/quote), Syntax (keyword/string/function/type), Thinking gradient (off→max, top tier neon pink <code>#ff0088</code>, a Pi-side addition). The theme package <strong>deliberately</strong> does not: register tools/commands, read files or touch the network, depend on Node APIs — smallest risk surface, also an example of "extension distribution mechanism".</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead><tbody>
+<tr><td><strong>opencode-themes dark-terminal</strong></td><td>51-token high-contrast dark terminal palette; <code>bg:#050505</code>, green/blue/red accent</td><td><strong>Adopted</strong>: color roles &amp; semantic mapping. <strong>Adapted</strong> to Pi's extra tokens (thinking gradient <code>#ff0088</code> Pi-side addition)</td></tr>
+<tr><td><strong>pi theme schema</strong></td><td><code>vars</code>→<code>colors</code> two-layer; <code>pi.themes</code> JSON distribution; zero-code hot reload</td><td><strong>Fully followed</strong>: static JSON only, no TS, no hooks</td></tr>
+</tbody></table></div>
+<p>Core trade-off: no code, no behavior change, no host-terminal binding; just translate the opencode-themes palette to Pi token names.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Direction</th><th>Plan</th></tr></thead><tbody>
+<tr><td>Only one high-contrast dark variant</td><td>variants: dark-terminal-soft (desaturated), colorblind-safe branch</td></tr>
+<tr><td>Color-tweaking by eye</td><td>token reference table + local/optional CI visual regression</td></tr>
+<tr><td>Layering with terminal emulator themes</td><td>document recommended outer config, don't try to control the host terminal</td></tr>
+<tr><td>Tracking pi schema evolution</td><td>version notes track schema; missing-key fallback strategy documented</td></tr>
+<tr><td>Theme assets still manual</td><td>build a role-mapping table to generate multiple piex theme packages; settings deeplinks</td></tr>
+</tbody></table></div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
+<tr><td>0.1.1</td><td>2026-07-19</td><td>Initial release: high-contrast dark terminal palette (black bg #050505 + neon green/blue/cyan/red/yellow); vars→colors two-layer token mapping; fills all required Pi theme schema color tokens (general/message/tool/diff/markdown/syntax/thinking gradient); zero-code zero-hook pure JSON; thinking top tier neon pink #ff0088 (Pi-side addition)</td></tr>
+</tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/en/packages/xai-oauth/"><span class="blog-nav-label">← Previous</span><span class="blog-nav-title">xai-oauth</span></a><a class="blog-nav-card is-next" href="/en/packages/btw/"><span class="blog-nav-label">Next →</span><span class="blog-nav-title">btw</span></a></nav>
+      <p class="blog-source-link">Source Markdown: <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/theme-dark-terminal.md" target="_blank" rel="noopener">docs/packages/theme-dark-terminal.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">On this page</p><nav><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

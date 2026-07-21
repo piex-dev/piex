@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>xai-oauth — Subscription Login for Grok — PieX</title>
+  <meta name="description" content="Already paying for a Grok subscription? @piex-dev/xai-oauth lets Pi use the same quota; the API Key path stays for automation." />
+  <link rel="canonical" href="https://piex.dev/en/packages/xai-oauth/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/xai-oauth/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/xai-oauth/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/xai-oauth/" />
+  <meta property="og:title" content="xai-oauth — Subscription Login for Grok — PieX" />
+  <meta property="og:description" content="Already paying for a Grok subscription? @piex-dev/xai-oauth lets Pi use the same quota; the API Key path stays for automation." />
+  <meta property="og:url" content="https://piex.dev/en/packages/xai-oauth/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/" class="is-active">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/" class="is-active">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button>
+        <nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row"><span class="blog-tag">Extension</span><span class="blog-tag">Provider</span><code class="pkg-tag">@piex-dev/xai-oauth</code></div>
+        <h1>xai-oauth — Subscription Login for Grok, Not API-Key-Locked</h1>
+        <p class="blog-lede">Already paying for a Grok subscription? Let Pi use the same quota; the API Key path stays for automation.</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p>If you already pay for a Grok subscription, <code>@piex-dev/xai-oauth</code> lets Pi use that quota; the API Key path stays for automation and metered use.</p></div></div>
+
+        <h2 id="intro">Overview</h2>
+        <p>Pi's built-in <code>xai</code> uses an API Key (metered, fixed model set, good for CI). But many users hold a SuperGrok subscription or X Premium+ quota — already paid, yet forced to open another API Key on a separate ledger. <code>@piex-dev/xai-oauth</code> adds xAI Grok to <code>/login</code>, authorizes via standard device-code OAuth, discovers models in the background after login (subscription vs public API routed separately), and coexists with the built-in <code>xai</code>.</p>
+
+        <h2 id="theory">How it works</h2>
+        <p><strong>Device Authorization Grant (RFC 8628)</strong>: the extension acts as a public client (no secret), requests a device_code, the user authenticates on the official page, and the extension only gets a token; refresh_token renews before access_token expiry. After login it pulls <code>/v1/models</code> from both endpoints (public API <code>api.x.ai</code> + subscription proxy <code>cli-chat-proxy.grok.com</code>) and merges into the provider table — new models appear after <code>/reload</code>, no npm upgrade needed.</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>built-in xai</th><th>xai-oauth</th></tr></thead><tbody>
+<tr><td>API Key auth</td><td>OAuth subscription</td></tr><tr><td>metered billing</td><td>subscription quota</td></tr><tr><td>fixed public set</td><td>fallback + live discovery</td></tr><tr><td>built-in</td><td>extension</td></tr>
+</tbody></table></div>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/xai-oauth</code></pre></div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/xai-oauth" target="_blank" rel="noopener"><code>extensions/xai-oauth</code></a></p>
+        <h3 id="example">Usage</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>/login → pick xAI Grok (SuperGrok / X Premium+)
+→ browser opens the verification page
+→ /model grok-4.5 (or whatever id appears)</code></pre></div>
+        <h3 id="config">Configuration</h3>
+        <p>Model whitelist/order: <code>PI_XAI_OAUTH_MODELS=grok-build,grok-4.5</code>. Subscription token stored in Pi's standard storage, never on disk in the extension. <code>/reload</code> picks up new models.</p>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts</code></pre></div>
+
+        <h2 id="impl">Implementation</h2>
+        <p><code>xai-oauth.ts</code> OAuth flow + <code>registerProvider</code>; <code>models.ts</code> catalog/discovery/merge/routing. One of the few piex packages with unit tests. Security posture: <strong>error truncation</strong> (extract only error/error_description, length-capped, no full response in logs); <strong>endpoint validation</strong> (<code>*.x.ai</code> only); <strong>token skew</strong> (expire minutes early + minimum TTL floor); <strong>slow_down</strong> (increase polling interval). Model layer: fallback catalog (offline-usable) + triggerDiscovery (background fetch after login) + rebuildModelsForOAuth (merge, mark routing) + env var filter.</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead><tbody>
+<tr><td><strong>oh-my-pi xai-oauth</strong></td><td>full RFC 8628 flow; dual-endpoint discovery; standard OAuth provider registration</td><td><strong>Adopted</strong>: flow chain, client_id (same source), endpoint validation, error truncation/skew. <strong>Not adopted</strong>: Bun runtime</td></tr>
+<tr><td><strong>stnly/pi-grok</strong></td><td>pull /v1/models and merge into provider</td><td><strong>Borrowed</strong>: live-discovery idea, implementation rewritten independently</td></tr>
+<tr><td><strong>pi built-in xai</strong></td><td>API Key + fixed model set</td><td><strong>Coexist</strong>: Key/CI + subscription/interactive, no conflict</td></tr>
+</tbody></table></div>
+<p>Core trade-off: subscription token in Pi's standard storage (extension never persists), best-effort model discovery (fall back to fallback on failure), security posture "under-report rather than mis-report".</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Direction</th><th>Plan</th></tr></thead><tbody>
+<tr><td>Strong xAI-side dependency</td><td>thin wrapper + fast follow; OIDC/device-code contract tests (snapshot mock) against regressions</td></tr>
+<tr><td>Best-effort discovery</td><td>/models or status marks source (discovered/fallback) and routing; PI_XAI_OAUTH_MODELS as first-class config</td></tr>
+<tr><td>Raw error/quota semantics</td><td>per-error-class next steps (re-/login, switch model, check subscription)</td></tr>
+<tr><td>Confusable with built-in xai</td><td>UI/status clarifies current provider and billing path</td></tr>
+<tr><td>Enterprise uncovered</td><td>stabilize personal subscription path; evaluate enterprise separately</td></tr>
+</tbody></table></div>
+        <h3 id="versions">Version history</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
+<tr><td>0.1.1</td><td>2026-07-19</td><td>Initial release: RFC 8628 OAuth flow; dual-endpoint model discovery (public API + subscription proxy); fallback catalog + triggerDiscovery + rebuildModelsForOAuth routing merge; PI_XAI_OAUTH_MODELS whitelist; security posture (error truncation, endpoint validation *.x.ai, token skew, slow_down); subscription token via Pi standard storage, no disk; unit-test coverage</td></tr>
+</tbody></table></div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/en/packages/init/"><span class="blog-nav-label">← Previous</span><span class="blog-nav-title">init</span></a>
+        <a class="blog-nav-card is-next" href="/en/packages/theme-dark-terminal/"><span class="blog-nav-label">Next →</span><span class="blog-nav-title">theme-dark-terminal</span></a>
+      </nav>
+      <p class="blog-source-link">Source Markdown: <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/xai-oauth.md" target="_blank" rel="noopener">docs/packages/xai-oauth.md</a></p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">On this page</p><nav><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></aside>
+  </div>
+
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

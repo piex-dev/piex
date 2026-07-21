@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>btw — 不被记住的临时提问 — PieX</title>
+  <meta name="description" content="/btw 用满上下文问一个临时问题，问答完全不进入会话——旁路调用 completeSimple，session 零写入。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/btw/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/btw/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/btw/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/btw/" />
+  <meta property="og:title" content="btw — 不被记住的临时提问 — PieX" />
+  <meta property="og:description" content="/btw 用满上下文问一个临时问题，问答完全不进入会话——旁路调用 completeSimple，session 零写入。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/btw/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="false" role="radio">EN</button><button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/" class="is-active">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/" class="is-active">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>本页目录</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Extension</span><span class="blog-tag">Context</span><code class="pkg-tag">@piex-dev/btw</code></div><h1>btw — 不被记住的临时提问</h1><p class="blog-lede">用满上下文问一个临时问题，问答完全不进入会话——就像会议里压低声音问旁边人一句。</p></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">导语</p><p><code>/btw</code> 让你用满上下文问一个临时问题，问答完全不进入会话——就像会议里压低声音问旁边人一句。</p></div></div>
+
+        <h2 id="intro">简介</h2>
+        <p>经典困境：你想问一个跟当前任务有关、但又不想它「当真」的问题。比如 debug 时顺手问「这个项目的 Docker 基镜像是哪个？」——直接发消息会被理解成任务上下文，之后每次推理都掂量「用户问过 Docker」，导致回答发散。<code>@piex-dev/btw</code> 的回答：<strong>问题压根不发给 agent</strong>。扩展自己拿一份会话快照，旁路调一次模型，答案弹给你看。session 里什么都不会留下。</p>
+
+        <h2 id="theory">技术原理</h2>
+        <p><strong>核心机制：旁路调用</strong>。扩展绕开 agent loop，用 pi-ai 的 <code>completeSimple</code> 直接对模型发一次性请求。因为问答从不进入 session，「防污染」从运行时过滤变成架构保证：没有东西需要被滤掉。</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>/btw 命令 → 解析模型与凭据 → 构建会话快照（≤40K 字符）
+→ completeSimple(model, { systemPrompt, messages })
+→ 答案渲染进 Markdown pager（可滚动、可中断）
+→ session 中无任何写入</code></pre></div>
+        <p>会话快照是压缩摘要（只取 user/assistant 消息，toolCall 保留 <code>name(args)</code>，超 40K 字符从头部截断）。可配专用模型（<code>~/.pi/piex-dev/btw/btw.json</code>），临时提问通常不需要旗舰模型。等待期是 <code>BorderedLoader</code>（Esc 中断），答案用自制 Markdown pager（<code>j/k</code> 滚动、PgUp/PgDn、Home/End、进度百分比）。</p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/btw</code></pre></div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/btw" target="_blank" rel="noopener"><code>extensions/btw</code></a></p>
+        <h3 id="example">用法</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>/btw 这个项目的 Docker 基镜像是哪个？</code></pre></div>
+        <p>答案在 pager 中显示，关闭后 session 不留痕迹。</p>
+        <h3 id="config">配置</h3>
+        <p><code>~/.pi/piex-dev/btw/btw.json</code>：</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>json</span></div><pre><code>{ "model": "anthropic/claude-haiku-4-5", "thinkingLevel": "low" }</code></pre></div>
+        <p>未配置时回退当前会话模型。配置每次提问重读，无需 <code>/reload</code>。</p>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi -e ./extensions/btw/src/btw.ts -p "what is 1+1" --no-session</code></pre></div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>约 700 行单文件。核心模块：<code>/btw</code> 命令、<code>loadCompleteSimple</code>（兼容 pi-ai 0.79 根导出与 0.80 <code>/compat</code> 子路径）、<code>resolveBtwModel</code>（设置→当前模型回退链 + 凭据校验）、<code>buildConversationContext</code>（压缩快照）、<code>completeSideQuestion</code>（AbortSignal）、<code>BtwAnswerPager</code>（Markdown 滚动阅读器）。</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>omp btw</th><th>btw (piex)</th></tr></thead><tbody>
+<tr><td>引擎级旁路</td><td><code>completeSimple</code> 旁路调用</td></tr>
+<tr><td>完全不在 session 写入</td><td>同样不写入（架构保证）</td></tr>
+<tr><td>Bun 运行时</td><td>Node.js (pi)</td></tr>
+</tbody></table></div>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead><tbody>
+<tr><td><strong>pi-extensions pi-btw</strong></td><td><code>completeSimple</code> 旁路 + 会话快照 + settings 文件 + loader/pager UI</td><td><strong>采纳</strong>整体架构，保留 piex 的无参交互输入；pi-ai 0.79/0.80 兼容加载直接复用</td></tr>
+</tbody></table></div>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>方向</th><th>打算</th></tr></thead><tbody>
+<tr><td>快照不含 system prompt 与工具结果全文</td><td>按问题相关性选择性携带（如始终保留最后一个 toolResult 全文）</td></tr>
+<tr><td>无多轮追问</td><td>pager 里加输入行，追问时携带上一轮回合（仍不写入 session）</td></tr>
+<tr><td>模型配置热更新</td><td>补 <code>/btw model</code> 快捷配置命令</td></tr>
+</tbody></table></div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-07-19</td><td>注入 + 过滤架构：<code>[BTW]</code> 问题注入主 agent loop，靠 prompt 禁工具，事后用 <code>context</code> 钩子按「跳过下一条 assistant」推断过滤</td></tr>
+<tr><td>0.2.0</td><td>2026-07-19</td><td>旁路调用架构：<code>completeSimple</code> 一次性请求 + ≤40K 会话快照，问答不写入 session；新增 <code>btw.json</code> 独立模型/thinking level、可中断 loader、Markdown pager</td></tr>
+</tbody></table></div>
+        <p>0.1.0 教训：「先污染、后治理」在异步消息流里很难做严——assistant 回复夹带 toolCall 序列时过滤推断错位漏滤，agent 忙时消息排队会让 btw 标记盖到错误的 turn。0.2.0 换成「不产生污染」，整类边界随之消失。</p>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/theme-dark-terminal/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">theme-dark-terminal</span></a><a class="blog-nav-card is-next" href="/zh/packages/context/"><span class="blog-nav-label">下一个 →</span><span class="blog-nav-title">context</span></a></nav>
+      <p class="blog-source-link">源稿 Markdown：<a href="https://github.com/piex-dev/piex/blob/main/docs/packages/btw.md" target="_blank" rel="noopener">docs/packages/btw.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">本页目录</p><nav><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

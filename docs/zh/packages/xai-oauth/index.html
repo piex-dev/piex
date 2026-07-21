@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>xai-oauth — 用订阅登录 Grok — PieX</title>
+  <meta name="description" content="已为 Grok 订阅付费？@piex-dev/xai-oauth 让 pi 走订阅配额；API Key 通道仍留给自动化。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/xai-oauth/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/xai-oauth/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/xai-oauth/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/xai-oauth/" />
+  <meta property="og:title" content="xai-oauth — 用订阅登录 Grok — PieX" />
+  <meta property="og:description" content="已为 Grok 订阅付费？@piex-dev/xai-oauth 让 pi 走订阅配额；API Key 通道仍留给自动化。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/xai-oauth/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="false" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/" class="is-active">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/" class="is-active">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false"><span>本页目录</span><span class="chev" aria-hidden="true">▾</span></button>
+        <nav class="blog-toc-mobile-nav"><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row"><span class="blog-tag">Extension</span><span class="blog-tag">Provider</span><code class="pkg-tag">@piex-dev/xai-oauth</code></div>
+        <h1>xai-oauth — 用订阅登录 Grok，而不是绑死 API Key</h1>
+        <p class="blog-lede">已为 Grok 订阅付费？让 pi 走同一套配额；API Key 通道仍留给自动化。</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">导语</p><p>若你已为 Grok 订阅付费，<code>@piex-dev/xai-oauth</code> 让 pi 走同一套配额；API Key 通道仍留给自动化与按量场景。</p></div></div>
+
+        <h2 id="intro">简介</h2>
+        <p>pi 内置 <code>xai</code> 走 API Key（按量计费、模型固定、适合 CI）。但很多用户手里是 SuperGrok 订阅或 X Premium+ 额度——已为订阅付过钱却还要再开 API Key 走另一套账本。`@piex-dev/xai-oauth` 在 <code>/login</code> 增加 xAI Grok，用标准设备码 OAuth 授权，登录后后台发现模型（订阅 vs 公开 API 分流），与内置 <code>xai</code> 并存互不抢戏。</p>
+
+        <h2 id="theory">技术原理</h2>
+        <p><strong>Device Authorization Grant（RFC 8628）</strong>：扩展作为 public client（不持有 secret）请求 device_code，用户在官方页面认证，扩展只拿 token；access_token 过期前用 refresh_token 续期。登录后对两边 <code>/v1/models</code> 拉取（公开 API <code>api.x.ai</code> + 订阅代理 <code>cli-chat-proxy.grok.com</code>），合并进 provider 模型表——新模型出现后 <code>/reload</code> 即可，不必升级 npm 包。</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>内置 xai</th><th>xai-oauth</th></tr></thead><tbody>
+<tr><td>API Key 认证</td><td>OAuth 订阅</td></tr><tr><td>按量计费</td><td>订阅配额</td></tr><tr><td>固定公开集</td><td>fallback + 实时发现</td></tr><tr><td>内置</td><td>扩展</td></tr>
+</tbody></table></div>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/xai-oauth</code></pre></div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/xai-oauth" target="_blank" rel="noopener"><code>extensions/xai-oauth</code></a></p>
+        <h3 id="example">用法</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>/login → 选 xAI Grok（SuperGrok / X Premium+）
+→ 浏览器打开验证页确认
+→ /model grok-4.5（或列表里出现的 id）</code></pre></div>
+        <h3 id="config">配置</h3>
+        <p>模型白名单/排序：<code>PI_XAI_OAUTH_MODELS=grok-build,grok-4.5</code>。订阅 token 存 pi 标准存储，扩展层不落盘。`/reload` 即可拿到新模型。</p>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts</code></pre></div>
+
+        <h2 id="impl">实现方案</h2>
+        <p><code>xai-oauth.ts</code> OAuth 流程 + <code>registerProvider</code>；<code>models.ts</code> 目录/发现/合并/路由。piex 少数带单测的包。安全姿态：<strong>错误信息截断</strong>（只提取 error/error_description 限长，避免整包响应进日志）；<strong>端点校验</strong>（仅 <code>*.x.ai</code>）；<strong>token skew</strong>（提前数分钟过期 + 最小 TTL 地板）；<strong>slow_down</strong>（加大轮询间隔）。模型层：fallback 目录（离线可用）+ triggerDiscovery（登录后后台拉取）+ rebuildModelsForOAuth（合并标记路由）+ 环境变量过滤。</p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead><tbody>
+<tr><td><strong>oh-my-pi xai-oauth</strong></td><td>RFC 8628 完整流程；双 endpoint 发现；标准 OAuth provider 注册</td><td><strong>采纳</strong>：流程链路、client_id（同源）、端点校验、错误截断/skew。<strong>不采纳</strong>：Bun 运行时</td></tr>
+<tr><td><strong>stnly/pi-grok</strong></td><td>拉取 /v1/models 合并进 provider</td><td><strong>借鉴</strong>：实时发现理念，实现独立重写</td></tr>
+<tr><td><strong>pi 内置 xai</strong></td><td>API Key + 固定模型集</td><td><strong>并存</strong>：Key/CI + 订阅/交互不冲突</td></tr>
+</tbody></table></div>
+<p>核心取舍：订阅 token 存 pi 标准存储（扩展层不落盘），模型发现 best-effort（失败回退 fallback），安全姿态「宁可少报不错报」。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>方向</th><th>打算</th></tr></thead><tbody>
+<tr><td>强依赖 xAI 侧变更</td><td>薄封装 + 快速跟版；OIDC/device code 契约测试（快照 mock）防回归</td></tr>
+<tr><td>模型发现 best-effort</td><td>/models 或 status 标明来源（discovered/fallback）与路由；PI_XAI_OAUTH_MODELS 写成一等配置说明</td></tr>
+<tr><td>错误与配额语义偏生</td><td>分错误类给出下一步（重新 /login、换模型、检查订阅）</td></tr>
+<tr><td>与内置 xai 易混淆</td><td>UI/status 明确当前 provider 与计费路径</td></tr>
+<tr><td>企业场景未覆盖</td><td>个人订阅路径做稳；企业需求单独评估</td></tr>
+</tbody></table></div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
+<tr><td>0.1.1</td><td>2026-07-19</td><td>初始版本：RFC 8628 OAuth 流程；双 endpoint 模型发现（公开 API + 订阅代理）；fallback 目录 + triggerDiscovery + rebuildModelsForOAuth 路由合并；PI_XAI_OAUTH_MODELS 白名单；安全姿态（错误截断、端点校验 *.x.ai、token skew、slow_down）；订阅 token 走 pi 标准存储不落盘；单测覆盖</td></tr>
+</tbody></table></div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/zh/packages/init/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">init</span></a>
+        <a class="blog-nav-card is-next" href="/zh/packages/theme-dark-terminal/"><span class="blog-nav-label">下一个 →</span><span class="blog-nav-title">theme-dark-terminal</span></a>
+      </nav>
+      <p class="blog-source-link">源稿 Markdown：<a href="https://github.com/piex-dev/piex/blob/main/docs/packages/xai-oauth.md" target="_blank" rel="noopener">docs/packages/xai-oauth.md</a></p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">本页目录</p><nav><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></aside>
+  </div>
+
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>plan — 先想清楚，再动手改 — PieX</title>
+  <meta name="description" content="/plan 给 agent 一套「先调研再动工」的制度：写工具暂时没收，计划可见可批，执行进度可盯。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/plan/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/plan/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/plan/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/plan/" />
+  <meta property="og:title" content="plan — 先想清楚，再动手改 — PieX" />
+  <meta property="og:description" content="/plan 给 agent 一套「先调研再动工」的制度：写工具暂时没收，计划可见可批，执行进度可盯。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/plan/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="false" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/" class="is-active">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/" class="is-active">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav>
+      </div>
+
+      <div class="blog-toc-mobile">
+        <button type="button" class="blog-toc-toggle" aria-expanded="false">
+          <span>本页目录</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+        <a href="#appendix">附录</a>
+        </nav>
+      </div>
+<header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Workflow</span>
+          <code class="pkg-tag">@piex-dev/plan</code>
+        </div>
+        <h1>plan — 先想清楚，再动手改</h1>
+        <p class="blog-lede">给 agent 一套「先调研再动工」的制度：写工具暂时没收，计划可见可批，执行进度可盯。</p>
+      </header>
+
+      <div class="blog-prose">
+        <div class="blog-callout insight">
+          <div class="blog-callout-icon" aria-hidden="true">💡</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">导语</p>
+            <p><code>/plan</code> 的价值不是多一个命令，而是给 agent 一套「先调研再动工」的制度：写工具暂时没收，计划可见可批，执行进度可盯。</p>
+          </div>
+        </div>
+
+        <h2 id="intro">简介</h2>
+        <p>
+          让 agent 直接改代码，常见失败模式不是「写不出代码」，而是：过早动手（仓库没摸清就 edit）、范围失控（小需求扯出半个重构）、进度不可见、上下文压缩丢状态。Plan Mode 解决的是工作流问题：先只读探索 → 产出可审批的编号计划 → 用户点头后再全工具执行 → 用 <code>[DONE:n]</code> 推进进度。
+        </p>
+
+        <h2 id="theory">技术原理</h2>
+        <p>
+          两种模式两套工具边界：Plan 模式只留 <code>read</code>/<code>bash</code>(受限)/<code>grep</code>/<code>find</code>/<code>ls</code>，<strong>禁用</strong> <code>edit</code>/<code>write</code>——不是提示词劝导，而是真正从 active tools 拿掉写工具。Execution 模式恢复全工具。
+        </p>
+        <p>
+          bash 走<strong>白名单 + shell 词法分析</strong>（默认拒绝、按规则放行）：按 <code>;</code><code>|</code><code>&amp;&amp;</code> 分段，重定向/子 shell/命令替换/变量展开/glob 一律拒绝；只读命令直接放行，<code>git</code>/<code>find</code>/<code>sed</code>/<code>npm</code> 带专属参数校验器。从「拦已知坏」换成「只放已知好」，绕过面收敛到白名单本身。
+        </p>
+        <p>
+          计划与提问走结构化工具 <code>plan_complete</code>/<code>plan_question</code>，从工具参数直取，<code>Plan:</code> 正则作 fallback。状态用 <code>appendEntry</code> 扛 compaction，计划落 <code>PLAN.md</code>；指令走 <code>systemPrompt</code> 每 turn 重建，消息历史不留 plan 制品。
+        </p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi install npm:@piex-dev/plan</code></pre>
+        </div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/plan" target="_blank" rel="noopener"><code>extensions/plan</code></a></p>
+        <h3 id="config">配置</h3>
+        <p>plan 有额外 peer 依赖：<code>@earendil-works/pi-tui</code>、<code>@earendil-works/pi-agent-core</code>、<code>@earendil-works/pi-ai</code>（TUI 集成），不同于其他扩展仅需 <code>pi-coding-agent</code>。</p>
+        <h3 id="example">用法</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>flow</span></div>
+          <pre><code>/plan
+  → 只读探索（plan_question 澄清关键决策）
+  → plan_complete 提交完整计划（含 Plan: 编号步骤）
+  → UI 提供 Execute / Stay / Refine 选择
+  → Execute：打开全工具，按步执行
+  → [DONE:n] 推进
+  → 全部完成提示 Plan Complete</code></pre>
+        </div>
+        <p>辅助命令：<code>/todos</code> 开关 todo widget；CLI flag <code>plan</code> 启动即进入 plan mode。</p>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code">
+          <div class="blog-code-bar"><span>bash</span></div>
+          <pre><code>pi -e ./extensions/plan/src/plan.ts -p "what is 1+1" --no-session</code></pre>
+        </div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>
+          入口约 1430 行单文件。piex 里「扩展 API 用得最全」的包之一：<code>registerCommand</code>/<code>registerTool</code>/<code>setActiveTools</code>/<code>on("tool_call")</code> 拦截/<code>on("before_agent_start")</code> 注入 systemPrompt/<code>on("turn_end")</code> 解析 <code>[DONE:n]</code>/<code>appendEntry</code> 持久化/<code>ctx.ui.select</code> 交互。
+        </p>
+        <p>工具集合并：进入 plan 记住 <code>toolsBeforePlanMode</code>，计划工具集 =（原 active 去掉 edit/write）∪ 只读工具集；退出时恢复并保留其它扩展注册的工具，与 hashline/lsp/dap 共存不误杀。</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>omp</th><th>piex plan</th></tr></thead>
+<tbody>
+<tr><td>全屏 plan-review overlay</td><td><code>select</code> 三选项级交互</td></tr>
+<tr><td>Plan TOC 侧栏</td><td>无（pi API 限制）</td></tr>
+<tr><td>子 agent plan handoff</td><td>无（依赖未来 subagent）</td></tr>
+<tr><td>write 禁用</td><td>一致</td></tr>
+</tbody></table></div>
+<p>轻量的好处：依赖面小、行为可预测、和上游 pi 示例同源好维护。</p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>pi 官方 plan-mode 示例</strong></td><td><code>registerCommand("plan")</code> + <code>setActiveTools</code> + <code>tool_call</code> 拦截 bash</td><td><strong>采纳</strong>核心 API 方案。<strong>增强</strong>：<code>appendEntry</code> 持久化 + PLAN.md 落盘 + UI widget</td></tr>
+<tr><td><strong>oh-my-pi plan</strong></td><td>全屏 plan-review overlay + TOC 侧栏 + 子 agent handoff</td><td><strong>不采纳</strong>：pi API 不支持全屏 overlay、子 agent 未就绪。<strong>借鉴</strong>：步骤审批、工具白名单可配置、与 <code>/review</code> 联动</td></tr>
+<tr><td><strong>pi-extensions pi-plan-mode</strong></td><td>shell 词法 bash 白名单、结构化工具、<code>systemPrompt</code> 注入、context 制品清扫</td><td><strong>采纳</strong>全部四项；<strong>不采纳</strong>：settings 文件与遗留迁移、thinking level 固定、放弃执行进度跟踪</td></tr>
+</tbody></table></div>
+<p>核心取舍：坚持 pi 示例同源路线（轻、可预测、好维护），放弃 omp 式重 UI；用 <code>appendEntry</code> 扛 compaction。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>方向</th><th>打算</th></tr></thead>
+            <tbody>
+              <tr><td><code>[DONE:n]</code> 靠自觉</td><td>弱验证：步骤点名的文件若 working tree 完全未动，提示「标了 DONE 但无变化」</td></tr>
+              <tr><td>Refine 偏浅</td><td>在 pi API 能力范围内加强审批，不重做全屏 overlay</td></tr>
+              <tr><td>白名单不是沙箱</td><td>白名单可配置（plan 阶段允许 <code>lsp</code>、收紧 bash），文档写死「降风险 ≠ 隔离」</td></tr>
+              <tr><td>单会话顺序执行</td><td>先与 <code>/review</code> 收尾联动；并行执行等子 agent 机制成熟</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
+            <tbody>
+              <tr><td>0.1.1</td><td>2026-07-19</td><td>正则黑名单 bash 拦截；正文 <code>Plan:</code> 标题正则提取计划；<code>context</code> 消息注入约束</td></tr>
+              <tr><td>0.2.0</td><td>2026-07-19</td><td>shell 词法白名单；<code>plan_complete</code>/<code>plan_question</code> 结构化工具；<code>systemPrompt</code> 注入（默认拒绝按规则放行；计划与提问走专用工具参数；指令每 turn 重建系统提示，消息历史不留 plan 制品）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>0.1.1 教训：正则黑名单拦不住等价绕过，正文正则提取计划在模型不按格式输出时会漏，<code>context</code> 消息注入会被 compaction 吞掉。0.2.0 换成结构化方案：白名单收敛绕过面、工具参数取代正文解析、systemPrompt 取代消息注入。</p>
+
+        <h2 id="appendix">附录：pi plan 生态能力逐项对比</h2>
+        <p>四个项目（omp / pi 官方示例 / pi-extensions <code>pi-plan-mode</code> / piex plan）的客观能力差异。</p>
+        <div class="blog-table-wrap">
+          <table>
+            <thead><tr><th>能力</th><th>omp</th><th>pi 示例</th><th>pi-extensions</th><th>piex</th></tr></thead>
+            <tbody>
+              <tr><td>危险 bash 拦截</td><td>✅ 正则</td><td>✅</td><td>✅ 词法白名单</td><td>✅ 词法白名单（移植）</td></tr>
+              <tr><td>结构化计划/提问工具</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td></tr>
+              <tr><td>指令注入</td><td>context 消息</td><td>context 消息</td><td>systemPrompt</td><td>systemPrompt</td></tr>
+              <tr><td>执行进度追踪</td><td>✅ [DONE:n]</td><td>✅</td><td>❌ 禁止</td><td>✅ [DONE:n] + widget</td></tr>
+              <tr><td>计划审批弹窗</td><td>✅ 全屏 overlay</td><td>❌</td><td>✅ select</td><td>❌ select 替代</td></tr>
+              <tr><td>子 agent 计划传递</td><td>✅ plan-handoff</td><td>❌</td><td>❌</td><td>❌ 依赖 subagent</td></tr>
+              <tr><td>Compaction 保护</td><td>✅ 计划文件</td><td>❌</td><td>✅ appendEntry</td><td>✅ appendEntry</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav class="blog-footer-nav" aria-label="Package navigation">
+        <a class="blog-nav-card" href="/zh/packages/lsp/">
+          <span class="blog-nav-label">← 上一个</span>
+          <span class="blog-nav-title">lsp</span>
+        </a>
+        <a class="blog-nav-card is-next" href="/zh/packages/review/">
+          <span class="blog-nav-label">下一个 →</span>
+          <span class="blog-nav-title">review</span>
+        </a>
+      </nav>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/plan.md" target="_blank" rel="noopener">docs/packages/plan.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#changelog">迭代记录</a>
+        <a href="#appendix">附录</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>
