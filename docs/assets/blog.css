@@ -216,6 +216,11 @@
   font-weight: 600;
 }
 
+/* package 页无 lede：收紧标题到首块（导语 callout）的间距 */
+.blog-header:has(.pkg-tag) {
+  margin-bottom: 0.85rem;
+}
+
 /* ---- prose ---- */
 
 .blog-prose {
