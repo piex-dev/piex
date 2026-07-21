@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/plan",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "Plan Mode extension for pi — read-only exploration, plan creation, and step-by-step execution with progress tracking",
   "license": "MIT",
@@ -36,8 +36,11 @@
   ],
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*",
     "@earendil-works/pi-agent-core": "*",
-    "@earendil-works/pi-ai": "*"
+    "@earendil-works/pi-ai": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "typebox": "*"
   }
 }
