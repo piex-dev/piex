@@ -108,12 +108,12 @@ defaults.json    # ~50 server（command / fileTypes / rootMarkers / initOptions 
 
 ## 设计参考
 
-| 项目                                                                      | 机制                                                                                                                                    | piex 取舍                                                                                                                                                                 |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **oh-my-pi lsp**                                                          | 完整 LSP 客户端：多 server 路由、didChange、完整 action 面、诊断聚合                                                                    | **采纳**：JSON-RPC client、defaults.json 驱动、按需启动/会话复用、多 server 诊断聚合。**不采纳**：Bun 运行时（改 Node/child_process）、大面铺满 action（按需暴露）        |
-| **OpenCode 写后诊断**                                                     | `tool_result` hook 拦截 edit/write → 等 publishDiagnostics → 仅 ERROR 附在结果末尾、每文件 cap                                          | **采纳**这一整套模式：sync → wait → only ERROR → cap 20 → 干净文件不附加。`PI_LSP_DIAGNOSTICS_ON_EDIT=0` 可关                                                             |
-| **VS Code LSP**                                                           | initialize + settings/didChangeConfiguration + workspace/configuration                                                                  | **借鉴**：initOptions/settings 正确下发路径；full-text didChange 避免 server 读到旧 buffer；`which` 查 node_modules/.bin 和 .venv                                         |
-| [**pi-extensions `pi-lsp`**](https://github.com/narumiruna/pi-extensions) | 诊断 settle 静默期、LSP 3.17 pull 诊断、stderr 捕获、`resolveProvider` 门控、重叠 edit 检测、cmd.exe 包装、`PI_<NAME>_LSP_COMMAND` 覆盖 | **采纳**全部协议细节（融入 piex 的常驻进程架构）；**不采纳**：spawn-per-call（piex 会话内复用进程）、仅 diagnostics/fix 两工具（piex 保留 13 action） |
+| 项目                                                                      | 机制                                                                                                                                    | piex 取舍                                                                                                                                                          |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **oh-my-pi lsp**                                                          | 完整 LSP 客户端：多 server 路由、didChange、完整 action 面、诊断聚合                                                                    | **采纳**：JSON-RPC client、defaults.json 驱动、按需启动/会话复用、多 server 诊断聚合。**不采纳**：Bun 运行时（改 Node/child_process）、大面铺满 action（按需暴露） |
+| **OpenCode 写后诊断**                                                     | `tool_result` hook 拦截 edit/write → 等 publishDiagnostics → 仅 ERROR 附在结果末尾、每文件 cap                                          | **采纳**这一整套模式：sync → wait → only ERROR → cap 20 → 干净文件不附加。`PI_LSP_DIAGNOSTICS_ON_EDIT=0` 可关                                                      |
+| **VS Code LSP**                                                           | initialize + settings/didChangeConfiguration + workspace/configuration                                                                  | **借鉴**：initOptions/settings 正确下发路径；full-text didChange 避免 server 读到旧 buffer；`which` 查 node_modules/.bin 和 .venv                                  |
+| [**pi-extensions `pi-lsp`**](https://github.com/narumiruna/pi-extensions) | 诊断 settle 静默期、LSP 3.17 pull 诊断、stderr 捕获、`resolveProvider` 门控、重叠 edit 检测、cmd.exe 包装、`PI_<NAME>_LSP_COMMAND` 覆盖 | **采纳**全部协议细节（融入 piex 的常驻进程架构）；**不采纳**：spawn-per-call（piex 会话内复用进程）、仅 diagnostics/fix 两工具（piex 保留 13 action）              |
 
 核心取舍：优先写后 ERROR 闭环（学 OpenCode），诊断优于导航暴露；linter 不抢 primary server 的导航角色。
 
@@ -132,10 +132,10 @@ defaults.json    # ~50 server（command / fileTypes / rootMarkers / initOptions 
 
 ### 版本记录
 
-| 版本 | 日期 | 变更 |
-| --- | --- | --- |
-| 0.2.0 | 2026-07-19 | 早期版本：多 server 路由、didChange、诊断聚合；push 诊断到即返；盲调 `codeAction/resolve`；server 退出只给 exit code，stderr 丢失 |
-| 0.3.0 | 2026-07-19 | push settle 静默期 + LSP 3.17 pull 诊断双轨；`resolveProvider`/`diagnosticProvider` 声明才调；stderr 捕获进超时/退出错误；`.bat/.cmd` 经 `cmd.exe` 包装；`PI_<NAME>_LSP_COMMAND` 覆盖；重叠 TextEdit 检测防写坏文件 |
+| 版本  | 日期       | 变更                                                                                                                                                                                                                |
+| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.2.0 | 2026-07-19 | 早期版本：多 server 路由、didChange、诊断聚合；push 诊断到即返；盲调 `codeAction/resolve`；server 退出只给 exit code，stderr 丢失                                                                                   |
+| 0.3.0 | 2026-07-21 | push settle 静默期 + LSP 3.17 pull 诊断双轨；`resolveProvider`/`diagnosticProvider` 声明才调；stderr 捕获进超时/退出错误；`.bat/.cmd` 经 `cmd.exe` 包装；`PI_<NAME>_LSP_COMMAND` 覆盖；重叠 TextEdit 检测防写坏文件 |
 
 0.2.0 的教训：intelephense 这类 server 会先推一批空诊断、再推真诊断，到即返会把有错的文件报成干净；server 崩溃时只有 exit code，排障全靠猜。0.3.0 把协议细节补齐——settle 静默期等推送稳定、pull 诊断让 server 按需算、stderr 进错误消息、`resolveProvider` 门控避免对不支持的 server 发多余请求。
 

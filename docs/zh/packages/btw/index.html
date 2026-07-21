@@ -109,7 +109,7 @@
         <h3 id="versions">版本记录</h3>
         <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
 <tr><td>0.1.0</td><td>2026-07-19</td><td>注入 + 过滤架构：<code>[BTW]</code> 问题注入主 agent loop，靠 prompt 禁工具，事后用 <code>context</code> 钩子按「跳过下一条 assistant」推断过滤</td></tr>
-<tr><td>0.2.0</td><td>2026-07-19</td><td>旁路调用架构：<code>completeSimple</code> 一次性请求 + ≤40K 会话快照，问答不写入 session；新增 <code>btw.json</code> 独立模型/thinking level、可中断 loader、Markdown pager</td></tr>
+<tr><td>0.2.0</td><td>2026-07-21</td><td>旁路调用架构：<code>completeSimple</code> 一次性请求 + ≤40K 会话快照，问答不写入 session；新增 <code>btw.json</code> 独立模型/thinking level、可中断 loader、Markdown pager</td></tr>
 </tbody></table></div>
         <p>0.1.0 教训：「先污染、后治理」在异步消息流里很难做严——assistant 回复夹带 toolCall 序列时过滤推断错位漏滤，agent 忙时消息排队会让 btw 标记盖到错误的 turn。0.2.0 换成「不产生污染」，整类边界随之消失。</p>
       </div>

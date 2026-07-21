@@ -215,7 +215,7 @@ pi -e ./extensions/lsp/src/lsp.ts -p "what is 1+1" --no-session  # smoke</code><
             <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
             <tbody>
               <tr><td>0.2.0</td><td>2026-07-19</td><td>Early version: multi-server routing, didChange, diagnostic aggregation; returned on first push; blindly called <code>codeAction/resolve</code>; server exits gave only exit code, stderr lost</td></tr>
-              <tr><td>0.3.0</td><td>2026-07-19</td><td>push settle window + LSP 3.17 pull diagnostics dual-track; call <code>resolveProvider</code>/<code>diagnosticProvider</code> only when declared; stderr captured into timeout/exit errors; <code>.bat/.cmd</code> via <code>cmd.exe</code> wrap; <code>PI_&lt;NAME&gt;_LSP_COMMAND</code> override; overlapping TextEdit detection prevents file corruption</td></tr>
+              <tr><td>0.3.0</td><td>2026-07-21</td><td>push settle window + LSP 3.17 pull diagnostics dual-track; call <code>resolveProvider</code>/<code>diagnosticProvider</code> only when declared; stderr captured into timeout/exit errors; <code>.bat/.cmd</code> via <code>cmd.exe</code> wrap; <code>PI_&lt;NAME&gt;_LSP_COMMAND</code> override; overlapping TextEdit detection prevents file corruption</td></tr>
             </tbody>
           </table>
         </div>

@@ -129,9 +129,9 @@ pi -e ./extensions/btw/src/btw.ts -p "what is 1+1" --no-session
 
 ### 版本记录
 
-| 版本 | 日期 | 变更 |
-| --- | --- | --- |
-| 0.1.0 | 2026-07-19 | 注入 + 过滤架构：`[BTW]` 问题注入主 agent loop，靠 prompt 禁工具，事后用 `context` 钩子按「跳过下一条 assistant」推断过滤 |
-| 0.2.0 | 2026-07-19 | 旁路调用架构：`completeSimple` 一次性请求 + ≤40K 会话快照，问答不写入 session；新增 `btw.json` 独立模型/thinking level、可中断 loader、Markdown pager |
+| 版本  | 日期       | 变更                                                                                                                                                  |
+| ----- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.1.0 | 2026-07-19 | 注入 + 过滤架构：`[BTW]` 问题注入主 agent loop，靠 prompt 禁工具，事后用 `context` 钩子按「跳过下一条 assistant」推断过滤                             |
+| 0.2.0 | 2026-07-21 | 旁路调用架构：`completeSimple` 一次性请求 + ≤40K 会话快照，问答不写入 session；新增 `btw.json` 独立模型/thinking level、可中断 loader、Markdown pager |
 
 0.1.0 的教训：「先污染、后治理」在异步消息流里很难做严——assistant 回复夹带 toolCall 序列时过滤推断会错位漏滤，agent 忙时消息排队会让 btw 标记盖到错误的 turn，注入的指令消息本身也成了要清扫的制品。0.2.0 换成「不产生污染」，整类边界随之消失。

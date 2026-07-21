@@ -128,10 +128,10 @@ pi -e ./extensions/plan/src/plan.ts -p "what is 1+1" --no-session
 
 ## 设计参考
 
-| 项目                                                                            | 机制                                                                                                                   | piex 取舍                                                                                                                                                                                                                    |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **pi 官方 plan-mode 示例**                                                      | `registerCommand("plan")` + `setActiveTools` + `tool_call` 拦截 bash                                                   | **采纳**核心 API 方案：工具切换、bash 拦截、`[DONE:n]` 标记解析。**增强**：`appendEntry` 跨 turn 持久化 + PLAN.md 落盘 + UI widget                                                                                           |
-| **oh-my-pi plan**                                                               | 全屏 plan-review overlay + TOC 侧栏 + 子 agent handoff                                                                 | **不采纳**：pi API 不支持全屏 overlay，且子 agent 未就绪。**借鉴**：步骤审批（改为 `select` 交互）、工具白名单可配置、与 `/review` 联动                                                                                      |
+| 项目                                                                            | 机制                                                                                                                   | piex 取舍                                                                                                                                  |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **pi 官方 plan-mode 示例**                                                      | `registerCommand("plan")` + `setActiveTools` + `tool_call` 拦截 bash                                                   | **采纳**核心 API 方案：工具切换、bash 拦截、`[DONE:n]` 标记解析。**增强**：`appendEntry` 跨 turn 持久化 + PLAN.md 落盘 + UI widget         |
+| **oh-my-pi plan**                                                               | 全屏 plan-review overlay + TOC 侧栏 + 子 agent handoff                                                                 | **不采纳**：pi API 不支持全屏 overlay，且子 agent 未就绪。**借鉴**：步骤审批（改为 `select` 交互）、工具白名单可配置、与 `/review` 联动    |
 | **[pi-extensions `pi-plan-mode`](https://github.com/narumiruna/pi-extensions)** | shell 词法级 bash 白名单、结构化 `plan_mode_question`/`plan_mode_complete` 工具、`systemPrompt` 注入、context 制品清扫 | **采纳**全部四项（替代正则黑名单、正文正则解析与消息注入）；**不采纳**：settings 文件与遗留配置迁移、thinking level 固定、放弃执行进度跟踪 |
 
 核心取舍：坚持 pi 示例同源路线（轻、可预测、好维护），放弃 omp 式重 UI；用 `appendEntry` 扛 compaction 而不是 TUI 持久化。
@@ -149,10 +149,10 @@ pi -e ./extensions/plan/src/plan.ts -p "what is 1+1" --no-session
 
 ### 版本记录
 
-| 版本 | 日期 | 变更 |
-| --- | --- | --- |
-| 0.1.1 | 2026-07-19 | 正则黑名单 bash 拦截；正文 `Plan:` 标题正则提取计划；`context` 消息注入约束（拦已知坏命令；计划靠模型在正文写 `Plan:` 标题后正则提取；约束消息注入历史流） |
-| 0.2.0 | 2026-07-19 | shell 词法白名单；`plan_complete`/`plan_question` 结构化工具；`systemPrompt` 注入（默认拒绝、按规则放行；计划与提问走专用工具参数；指令每 turn 重建系统提示，消息历史不留 plan 制品） |
+| 版本  | 日期       | 变更                                                                                                                                                                                  |
+| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.1.1 | 2026-07-19 | 正则黑名单 bash 拦截；正文 `Plan:` 标题正则提取计划；`context` 消息注入约束（拦已知坏命令；计划靠模型在正文写 `Plan:` 标题后正则提取；约束消息注入历史流）                            |
+| 0.2.0 | 2026-07-21 | shell 词法白名单；`plan_complete`/`plan_question` 结构化工具；`systemPrompt` 注入（默认拒绝、按规则放行；计划与提问走专用工具参数；指令每 turn 重建系统提示，消息历史不留 plan 制品） |
 
 0.1.1 的教训：正则黑名单拦不住等价绕过（`find -delete`、`$()`、`;` 拼接），正文正则提取计划在模型不按格式输出时会漏，`context` 消息注入的约束会被 compaction 吞掉、也成了需要清扫的制品。0.2.0 三处一起换成结构化方案：白名单收敛绕过面、工具参数取代正文解析、systemPrompt 取代消息注入，整类边界问题随之消失。
 
@@ -162,17 +162,17 @@ pi -e ./extensions/plan/src/plan.ts -p "what is 1+1" --no-session
 
 > 四个项目（omp / pi 官方示例 / pi-extensions `pi-plan-mode` / piex plan）的客观能力差异。
 
-| 能力                 | omp plan-mode               | pi 示例 | pi-extensions `pi-plan-mode`                    | piex plan                            |
-| -------------------- | --------------------------- | ------- | ----------------------------------------------- | ------------------------------------ |
-| /plan 命令           | ✅                          | ✅      | ✅                                              | ✅                                   |
-| 危险 bash 拦截       | ✅ 正则匹配                 | ✅      | ✅ shell 词法白名单                             | ✅ shell 词法白名单（移植）          |
-| git 子命令白名单     | —                           | —       | 9 内置 + 6 可配置                              | 15 内置全开                          |
-| 结构化计划/提问工具  | ❌                          | ❌      | ✅                                              | ✅ `plan_complete` / `plan_question` |
-| 指令注入             | context 消息                | context 消息 | `systemPrompt`                                  | `systemPrompt`                       |
-| 正文 Plan: 解析      | ✅                          | ✅      | ✅ legacy fallback                              | ✅ 工具参数 + 正则 fallback          |
-| 执行进度追踪         | ✅ `[DONE:n]`              | ✅      | ❌ 明确禁止                                     | ✅ `[DONE:n]` + todo/widget          |
-| Footer 状态          | ✅ ⏸ plan / 📋 n/m          | ✅      | ✅                                              | ✅                                   |
-| 状态持久化           | ✅ appendEntry              | ✅      | ✅ appendEntry                                  | ✅ appendEntry + PLAN.md             |
-| 计划审批弹窗         | ✅ plan-review-overlay 全屏 | ❌      | ✅ select                                       | ❌ select 替代                       |
-| 子 agent 计划传递    | ✅ plan-handoff             | ❌      | ❌                                              | ❌ 依赖 subagent                     |
-| Compaction 保护      | ✅ 计划文件不被清理         | ❌      | ✅ appendEntry                                  | ✅ appendEntry                       |
+| 能力                | omp plan-mode               | pi 示例      | pi-extensions `pi-plan-mode` | piex plan                            |
+| ------------------- | --------------------------- | ------------ | ---------------------------- | ------------------------------------ |
+| /plan 命令          | ✅                          | ✅           | ✅                           | ✅                                   |
+| 危险 bash 拦截      | ✅ 正则匹配                 | ✅           | ✅ shell 词法白名单          | ✅ shell 词法白名单（移植）          |
+| git 子命令白名单    | —                           | —            | 9 内置 + 6 可配置            | 15 内置全开                          |
+| 结构化计划/提问工具 | ❌                          | ❌           | ✅                           | ✅ `plan_complete` / `plan_question` |
+| 指令注入            | context 消息                | context 消息 | `systemPrompt`               | `systemPrompt`                       |
+| 正文 Plan: 解析     | ✅                          | ✅           | ✅ legacy fallback           | ✅ 工具参数 + 正则 fallback          |
+| 执行进度追踪        | ✅ `[DONE:n]`               | ✅           | ❌ 明确禁止                  | ✅ `[DONE:n]` + todo/widget          |
+| Footer 状态         | ✅ ⏸ plan / 📋 n/m          | ✅           | ✅                           | ✅                                   |
+| 状态持久化          | ✅ appendEntry              | ✅           | ✅ appendEntry               | ✅ appendEntry + PLAN.md             |
+| 计划审批弹窗        | ✅ plan-review-overlay 全屏 | ❌           | ✅ select                    | ❌ select 替代                       |
+| 子 agent 计划传递   | ✅ plan-handoff             | ❌           | ❌                           | ❌ 依赖 subagent                     |
+| Compaction 保护     | ✅ 计划文件不被清理         | ❌           | ✅ appendEntry               | ✅ appendEntry                       |

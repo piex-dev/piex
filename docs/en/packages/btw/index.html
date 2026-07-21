@@ -109,7 +109,7 @@
         <h3 id="versions">Version history</h3>
         <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
 <tr><td>0.1.0</td><td>2026-07-19</td><td>inject + filter architecture: <code>[BTW]</code> question injected into the main agent loop, tools disabled by prompt, later filtered via a <code>context</code> hook guessing "skip next assistant"</td></tr>
-<tr><td>0.2.0</td><td>2026-07-19</td><td>side-call architecture: <code>completeSimple</code> one-shot request + ≤40K session snapshot, Q&amp;A never writes to session; adds <code>btw.json</code> dedicated model/thinking level, interruptible loader, Markdown pager</td></tr>
+<tr><td>0.2.0</td><td>2026-07-21</td><td>side-call architecture: <code>completeSimple</code> one-shot request + ≤40K session snapshot, Q&amp;A never writes to session; adds <code>btw.json</code> dedicated model/thinking level, interruptible loader, Markdown pager</td></tr>
 </tbody></table></div>
         <p>0.1.0 lesson: "pollute first, clean later" is hard to do strictly in an async message stream — when an assistant reply carries a toolCall sequence the filter guess misaligns and leaks; when the agent is busy, queued messages let the btw marker land on the wrong turn. 0.2.0 switches to "don't produce pollution", and the whole class of boundary issues vanishes.</p>
       </div>
