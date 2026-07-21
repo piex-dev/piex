@@ -97,8 +97,10 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-                <a href="#design">Design notes</a>
-<a href="#roadmap">Roadmap</a>
+        <a href="#design">Design notes</a>
+        <a href="#versions">Version history</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#appendix">Appendix</a>
         </nav>
       </div>
 <header class="blog-header">
@@ -134,7 +136,10 @@
         </p>
         <h2 id="impl">Implementation</h2>
         <p>
-          initOptions/settings wired correctly; multi-server diagnostics with linter vs primary routing; rename defaults to preview; WorkspaceEdit confined to cwd. Disable post-edit with <code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code>.
+          initOptions/settings wired correctly; multi-server diagnostics with linter vs primary routing; rename defaults to preview; WorkspaceEdit confined to cwd. Disable post-edit with <code>PI_LSP_DIAGNOSTICS_ON_EDIT=0</code>; override any server's command with <code>PI_&lt;NAME&gt;_LSP_COMMAND</code>.
+        </p>
+        <p>
+          Diagnostics correctness: push diagnostics settle after a quiet period (800ms default, per-server <code>diagnosticsSettleMs</code>) so slow servers that publish empty-then-real can't report a dirty file as clean; servers advertising <code>diagnosticProvider</code> get LSP 3.17 pull diagnostics instead. <code>codeAction/resolve</code> is only called when <code>resolveProvider</code> is advertised; overlapping TextEdits are refused; server stderr is captured into error messages; Windows <code>.bat/.cmd</code> spawn via <code>cmd.exe</code>.
         </p>
         
         <h2 id="design">Design notes</h2>
@@ -143,13 +148,47 @@
 <tr><td><strong>oh-my-pi lsp</strong></td><td>Full LSP client: multi-server routing, didChange, full action surface, diagnostics aggregation</td><td><strong>Adopted</strong>: JSON-RPC client, defaults.json driver, on-demand startup/session reuse, multi-server aggregation. <strong>Dropped</strong>: Bun runtime (switched to Node), full action surface</td></tr>
 <tr><td><strong>OpenCode post-edit diagnostics</strong></td><td>tool_result hook intercepts edit/write → waits for publishDiagnostics → ERROR only, per-file cap</td><td><strong>Adopted</strong> the full pattern: sync → wait → only ERROR → cap 20 → skip on clean files</td></tr>
 <tr><td><strong>VS Code LSP</strong></td><td>initialize + settings/didChangeConfiguration + workspace/configuration</td><td><strong>Borrowed</strong>: initOptions/settings correct delivery path; full-text didChange; which lookup in node_modules/.bin and .venv</td></tr>
+<tr><td><strong><a href="https://github.com/narumiruna/pi-extensions" target="_blank" rel="noopener">pi-extensions <code>pi-lsp</code></a></strong></td><td>Diagnostics settle quiet-period, LSP 3.17 pull diagnostics, stderr capture, resolveProvider gating, overlapping-edit detection, cmd.exe wrapping, env command override</td><td><strong>Adopted</strong> all protocol details (merged into the persistent-process architecture); <strong>dropped</strong>: spawn-per-call and the diagnostics/fix-only tool surface (piex keeps 13 actions)</td></tr>
 </tbody></table></div>
 <p>Key tradeoff: post-edit ERROR loop first (from OpenCode), diagnostics over navigation surface; linters do not steal the primary's navigation role.</p>
 
+
+<h2 id="versions">Version history</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Diagnostic timing</th><th>Capability gating</th><th>Error context</th><th>Process model</th></tr></thead>
+<tbody>
+<tr><td>0.2.0</td><td>push diagnostics returned immediately; slow servers that push empty-first were misreported as clean</td><td>blindly called <code>codeAction/resolve</code></td><td>server exit gave only exit code, stderr lost</td><td>session-reuse, Windows .bat failed direct spawn</td></tr>
+<tr><td>0.3.0 (current)</td><td>push settle quiet-period + LSP 3.17 pull dual-track</td><td><code>resolveProvider</code>/<code>diagnosticProvider</code> advertised before calling</td><td>stderr captured into timeout/exit errors, no guessing</td><td>session-reuse unchanged; <code>.bat/.cmd</code> wrapped via <code>cmd.exe</code>; <code>PI_&lt;NAME&gt;_LSP_COMMAND</code> override</td></tr>
+</tbody></table></div>
+        <p>The 0.2.0 lesson: servers like intelephense push a batch of empty diagnostics first, then the real ones — returning immediately misreports a faulty file as clean; on crash only an exit code remained, so debugging was guesswork. 0.3.0 fills in the protocol details — settle quiet-period waits for push to stabilize, pull diagnostics let the server compute on demand, stderr lands in the error message, <code>resolveProvider</code> gating avoids redundant requests to unsupported servers, and overlapping-TextEdit detection prevents file corruption. These are protocol lessons pi-extensions <code>pi-lsp</code> ran first; piex merges them into the persistent-process architecture, paying cold-start only once.</p>
 <h2 id="roadmap">Roadmap</h2>
         <p>
-          Done: correctness, post-edit diagnostics, rename/code_actions. Tests: <code>bun test packages/lsp</code>. Next: project <code>.lsp.json</code>, module split, fake-server tests, indexing readiness. Deferred: lspmux, auto-download, completion.
+          Done: correctness, post-edit diagnostics, rename/code_actions, diagnostics settle/pull, overlapping-edit guard. Tests: <code>bun test packages/lsp</code>. Next: project <code>.lsp.json</code>, module split, indexing readiness, directory-wide batch diagnostics. Deferred: lspmux, auto-download, completion.
         </p>
+
+<hr />
+<h2 id="appendix">Appendix: pi LSP ecosystem capability comparison</h2>
+        <blockquote><p>Objective capability differences across four projects (omp / OpenCode / pi-extensions <code>pi-lsp</code> / piex lsp). piex tradeoffs are in the body's "Design notes".</p></blockquote>
+        <div class="blog-table-wrap"><table><thead><tr><th>Capability</th><th>omp lsp</th><th>OpenCode</th><th>pi-extensions <code>pi-lsp</code></th><th>piex lsp</th></tr></thead>
+<tbody>
+<tr><td>Tool surface</td><td>14 actions</td><td>experimental, off by default</td><td>2 (<code>lsp_diagnostics</code> + <code>lsp_fix</code>)</td><td>13 actions</td></tr>
+<tr><td>Process model</td><td>session-reuse</td><td>session-reuse</td><td>spawn-per-call (cold start each time)</td><td>session-reuse</td></tr>
+<tr><td>Diagnostic source</td><td>push cache</td><td>push cache</td><td>push settle + pull dual-track</td><td>push settle + pull dual-track</td></tr>
+<tr><td>push settle quiet-period</td><td>❌</td><td>❌</td><td>✅</td><td>✅ (<code>diagnosticsSettleMs</code>)</td></tr>
+<tr><td>LSP 3.17 pull diagnostics</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td></tr>
+<tr><td>Post-edit diagnostics</td><td>writethrough + deferred</td><td>edit/write injects ERROR</td><td>❌ (no hook)</td><td><code>tool_result</code> attaches ERROR (disableable)</td></tr>
+<tr><td>stderr capture</td><td>❌</td><td>❌</td><td>✅ into error message</td><td>✅ (cap 16KB)</td></tr>
+<tr><td><code>resolveProvider</code> gating</td><td>—</td><td>—</td><td>✅</td><td>✅</td></tr>
+<tr><td>overlapping TextEdit guard</td><td>❌</td><td>❌</td><td>✅</td><td>✅ (within cwd)</td></tr>
+<tr><td>Windows .bat/.cmd</td><td>—</td><td>—</td><td>✅ <code>cmd.exe</code> wrapping</td><td>✅</td></tr>
+<tr><td>command override</td><td>multi-layer config</td><td>config.lsp</td><td>✅ <code>PI_&lt;NAME&gt;_LSP_COMMAND</code></td><td>✅</td></tr>
+<tr><td><code>isLinter</code> routing</td><td>✅</td><td>multi-client</td><td>❌</td><td>✅</td></tr>
+<tr><td>rename / format</td><td>✅</td><td>❌</td><td>❌ (fix only)</td><td>✅ (preview by default)</td></tr>
+<tr><td>WorkspaceEdit apply</td><td>cwd-scoped</td><td>—</td><td>cwd-scoped</td><td>cwd-scoped</td></tr>
+<tr><td>TUI rendering</td><td>✅</td><td>sidebar status</td><td>❌</td><td>❌ (plain text)</td></tr>
+<tr><td>lspmux / auto-download</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>project-level config</td><td>multi-layer</td><td>config.lsp</td><td>❌ (global routes only)</td><td>defaults only (later <code>.lsp.json</code>)</td></tr>
+<tr><td>unit tests</td><td>—</td><td>—</td><td>❌</td><td>✅ (mock server, 14 cases)</td></tr>
+</tbody></table></div>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Post navigation">
@@ -175,8 +214,10 @@
         <a href="#bg">Background</a>
         <a href="#theory">How it works</a>
         <a href="#impl">Implementation</a>
-                <a href="#design">Design notes</a>
-<a href="#roadmap">Roadmap</a>
+        <a href="#design">Design notes</a>
+        <a href="#versions">Version history</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#appendix">Appendix</a>
       </nav>
     </aside>
   </div>

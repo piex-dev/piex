@@ -1,12 +1,15 @@
 /**
  * lsp extension — Language Server Protocol tool + post-edit diagnostics.
  *
- * Phase 0: correct init/settings, didChange sync, multi-server route, wait semantics
+ * Phase 0: correct init/settings, didChange sync, multi-server route
  * Phase 1: tool_result hook on edit/write → ERROR diagnostics (default on)
  * Phase 2: rename (preview default), code_actions, type_definition, implementation
+ * Phase 3: settle-based push diagnostics, LSP 3.17 pull diagnostics,
+ *          stderr capture, resolveProvider gating, overlapping-edit guard
  *
  *   pi install npm:@piex-dev/lsp
- *   PI_LSP_DIAGNOSTICS_ON_EDIT=0  # disable post-edit diagnostics
+ *   PI_LSP_DIAGNOSTICS_ON_EDIT=0       # disable post-edit diagnostics
+ *   PI_<NAME>_LSP_COMMAND="cmd args"   # override a server's command
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -101,8 +104,10 @@ interface ServerConfig {
   settings?: Record<string, unknown>;
   initializationOptions?: Record<string, unknown>;
   isLinter?: boolean;
+  /** Quiet period (ms) after the last publishDiagnostics before push
+   *  diagnostics are treated as settled. Defaults to 800. */
+  diagnosticsSettleMs?: number;
 }
-
 // ── Config ─────────────────────────────────────────────────────
 
 function loadDefaults(): Record<string, ServerConfig> {
@@ -140,6 +145,12 @@ function loadDefaults(): Record<string, ServerConfig> {
             : undefined,
         initializationOptions: init as Record<string, unknown> | undefined,
         isLinter: c.isLinter === true,
+        diagnosticsSettleMs:
+          typeof c.diagnosticsSettleMs === "number" &&
+          Number.isFinite(c.diagnosticsSettleMs) &&
+          c.diagnosticsSettleMs > 0
+            ? c.diagnosticsSettleMs
+            : undefined,
       };
     }
     return servers;
@@ -165,22 +176,36 @@ class LspClient {
   #diagnostics = new Map<string, Diagnostic[]>();
   /** URIs that have received at least one publishDiagnostics (including empty). */
   #diagReceived = new Set<string>();
+  /** Last publishDiagnostics timestamp per uri, for settle detection. */
+  #diagLastUpdate = new Map<string, number>();
   #openVersions = new Map<string, number>();
   #settings: Record<string, unknown> = {};
   #capabilities: Record<string, unknown> = {};
+  #stderr = "";
   alive = true;
 
   constructor(proc: ChildProcessWithoutNullStreams) {
     this.#proc = proc;
+    proc.stderr.on("data", (chunk: Buffer) => {
+      // Cap the buffer so a noisy server cannot grow memory unbounded.
+      if (this.#stderr.length < 16_000) this.#stderr += chunk.toString();
+    });
     proc.on("exit", () => {
       this.alive = false;
-      this.#rejectAll(new Error("LSP server exited"));
+      this.#rejectAll(new Error(`LSP server exited.${this.#formatStderr()}`));
     });
     this.#startReader();
   }
 
   static spawn(command: string, args: string[], cwd: string): LspClient {
-    const proc = spawn(command, args, {
+    // Windows cannot spawn .bat/.cmd directly; wrap via cmd.exe.
+    let cmd = command;
+    let cmdArgs = args;
+    if (process.platform === "win32" && /\.(?:bat|cmd)$/i.test(command)) {
+      cmd = process.env.ComSpec?.trim() || "cmd.exe";
+      cmdArgs = ["/d", "/s", "/c", command, ...args];
+    }
+    const proc = spawn(cmd, cmdArgs, {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },
@@ -188,6 +213,10 @@ class LspClient {
     return new LspClient(proc as ChildProcessWithoutNullStreams);
   }
 
+  #formatStderr(): string {
+    const stderr = this.#stderr.trim();
+    return stderr ? `\nServer stderr:\n${stderr}` : "";
+  }
   get capabilities(): Record<string, unknown> {
     return this.#capabilities;
   }
@@ -202,6 +231,36 @@ class LspClient {
 
   clearDiagnosticsFlag(uri: string): void {
     this.#diagReceived.delete(uri);
+    this.#diagLastUpdate.delete(uri);
+  }
+
+  /** LSP 3.17 pull diagnostics: server advertised textDocument/diagnostic. */
+  supportsPullDiagnostics(): boolean {
+    return "diagnosticProvider" in this.#capabilities;
+  }
+
+  /** codeAction/resolve is only valid when the server advertises it. */
+  canResolveCodeActions(): boolean {
+    const provider = this.#capabilities.codeActionProvider;
+    return (
+      typeof provider === "object" &&
+      provider !== null &&
+      (provider as { resolveProvider?: boolean }).resolveProvider === true
+    );
+  }
+
+  async pullDiagnostics(
+    uri: string,
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<Diagnostic[]> {
+    const result = await this.request<{ items?: Diagnostic[] } | undefined>(
+      "textDocument/diagnostic",
+      { textDocument: { uri } },
+      timeoutMs,
+      signal,
+    );
+    return result?.items ?? [];
   }
 
   async initialize(
@@ -321,7 +380,9 @@ class LspClient {
         this.#pending.delete(id);
         signal?.removeEventListener("abort", onAbort);
         reject(
-          new Error(`LSP request ${method} timed out after ${timeoutMs}ms`),
+          new Error(
+            `LSP request ${method} timed out after ${timeoutMs}ms.${this.#formatStderr()}`,
+          ),
         );
       }, timeoutMs);
       this.#pending.set(id, {
@@ -417,6 +478,7 @@ class LspClient {
       if (params?.uri) {
         this.#diagnostics.set(params.uri, params.diagnostics ?? []);
         this.#diagReceived.add(params.uri);
+        this.#diagLastUpdate.set(params.uri, Date.now());
       }
     }
   }
@@ -514,16 +576,24 @@ class LspClient {
     this.notify("textDocument/didSave", { textDocument: { uri } });
   }
 
+  /**
+   * Wait until push diagnostics settle: at least one publishDiagnostics was
+   * received and no newer publish arrived within settleMs. Some servers
+   * (e.g. intelephense) publish an empty set first and real diagnostics a
+   * few seconds later; returning on first publish would report a clean file.
+   */
   async waitForDiagnostics(
     uri: string,
     timeoutMs: number,
+    settleMs = 800,
     signal?: AbortSignal,
   ): Promise<{ diagnostics: Diagnostic[]; timedOut: boolean }> {
     const start = Date.now();
-    const step = 80;
+    const step = 60;
     while (Date.now() - start < timeoutMs) {
       if (signal?.aborted) throw new Error("Aborted");
-      if (this.hasReceivedDiagnostics(uri)) {
+      const lastUpdate = this.#diagLastUpdate.get(uri);
+      if (lastUpdate !== undefined && Date.now() - lastUpdate >= settleMs) {
         return { diagnostics: this.getDiagnostics(uri), timedOut: false };
       }
       await sleep(step);
@@ -797,7 +867,32 @@ function formatHover(h: Hover): string {
   );
 }
 
+/** True when any two edits cover intersecting ranges (applying them would corrupt text). */
+function hasOverlappingTextEdits(edits: TextEdit[]): boolean {
+  const sorted = [...edits].sort((a, b) => {
+    if (a.range.start.line !== b.range.start.line)
+      return a.range.start.line - b.range.start.line;
+    return a.range.start.character - b.range.start.character;
+  });
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1].range.end;
+    const curr = sorted[i].range.start;
+    if (
+      prev.line > curr.line ||
+      (prev.line === curr.line && prev.character > curr.character)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function applyTextEditsToContent(text: string, edits: TextEdit[]): string {
+  if (hasOverlappingTextEdits(edits)) {
+    throw new Error(
+      "LSP returned overlapping text edits; refusing to apply (would corrupt the file).",
+    );
+  }
   const sorted = [...edits].sort((a, b) => {
     if (a.range.start.line !== b.range.start.line)
       return b.range.start.line - a.range.start.line;
@@ -907,6 +1002,19 @@ function serverKey(name: string, cwd: string): string {
   return `${name}::${path.resolve(cwd)}`;
 }
 
+function commandOverrideFromEnv(
+  name: string,
+): { command: string; args: string[] } | undefined {
+  const envName = `PI_${name
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase()}_LSP_COMMAND`;
+  const raw = process.env[envName]?.trim();
+  if (!raw) return undefined;
+  const [command, ...args] = raw.split(/\s+/).filter(Boolean);
+  return command ? { command, args } : undefined;
+}
+
 async function getOrCreateServer(
   name: string,
   config: ServerConfig,
@@ -921,14 +1029,17 @@ async function getOrCreateServer(
     );
   }
 
-  const cmd = which(config.command, cwd);
+  // Per-server command override: PI_<NAME>_LSP_COMMAND="cmd arg1 arg2"
+  const override = commandOverrideFromEnv(name);
+  const command = override?.command ?? config.command;
+  const args = override?.args ?? config.args ?? [];
+
+  const cmd = which(command, cwd);
   if (!cmd)
-    throw new Error(
-      `LSP server '${name}' not found: ${config.command} not on PATH`,
-    );
+    throw new Error(`LSP server '${name}' not found: ${command} not on PATH`);
 
   try {
-    const client = LspClient.spawn(cmd, config.args ?? [], cwd);
+    const client = LspClient.spawn(cmd, args, cwd);
     const rootUri = fileToUri(cwd);
     await client.initialize(rootUri, {
       initializationOptions: config.initializationOptions,
@@ -963,17 +1074,24 @@ async function collectDiagnosticsForFile(
       const client = await getOrCreateServer(srv.name, srv.config, cwd);
       client.syncFile(absPath);
       client.notifySaved(absPath);
-      const { diagnostics } = await client.waitForDiagnostics(
-        uri,
-        timeoutMs,
-        signal,
-      );
-      used.push(srv.name);
+      // Prefer LSP 3.17 pull diagnostics when advertised: the server computes
+      // fresh results on demand, so there is no publish race to settle.
+      const diagnostics = client.supportsPullDiagnostics()
+        ? await client.pullDiagnostics(uri, timeoutMs, signal)
+        : (
+            await client.waitForDiagnostics(
+              uri,
+              timeoutMs,
+              srv.config.diagnosticsSettleMs ?? 800,
+              signal,
+            )
+          ).diagnostics;
       for (const d of diagnostics) {
         if (errorsOnly && d.severity !== undefined && d.severity !== 1)
           continue;
         all.push({ d, server: srv.name });
       }
+      used.push(srv.name);
     } catch {
       /* skip unavailable */
     }
@@ -1465,7 +1583,11 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           if (!picked) throw new Error(`No code action at index ${idx}`);
 
           let actionObj = picked as CodeAction;
-          if (!actionObj.edit && actionObj.data !== undefined) {
+          if (
+            !actionObj.edit &&
+            actionObj.data !== undefined &&
+            client.canResolveCodeActions()
+          ) {
             try {
               actionObj = await client.request<CodeAction>(
                 "codeAction/resolve",
@@ -1603,6 +1725,8 @@ export const __test__ = {
   getPrimaryServerForFile,
   findServers,
   applyTextEditsToContent,
+  hasOverlappingTextEdits,
+  commandOverrideFromEnv,
   applyWorkspaceEdit,
   fileToUri,
   uriToFile,

@@ -435,7 +435,8 @@
     "command": "intelephense",
     "args": ["--stdio"],
     "fileTypes": [".php", ".phtml"],
-    "rootMarkers": ["composer.json", "composer.lock", ".git"]
+    "rootMarkers": ["composer.json", "composer.lock", ".git"],
+    "diagnosticsSettleMs": 4000
   },
   "phpactor": {
     "command": "phpactor",

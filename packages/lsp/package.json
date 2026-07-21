@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/lsp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "LSP extension for pi — diagnostics (incl. post-edit ERRORs), navigation, rename, code actions, format",
   "license": "MIT",
