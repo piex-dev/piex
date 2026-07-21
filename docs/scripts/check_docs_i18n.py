@@ -16,9 +16,9 @@ Rules (docs/site.md + AGENTS.md):
   7. Footer source links point at the Chinese md path
 
 Usage:
-  ./scripts/check-docs-i18n.sh
-  ./scripts/check-docs-i18n.sh --staged
-  python3 scripts/check_docs_i18n.py [--staged]
+  ./docs/scripts/check-docs-i18n.sh
+  ./docs/scripts/check-docs-i18n.sh --staged
+  python3 docs/scripts/check_docs_i18n.py [--staged]
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 RED = "\033[31m"
 GRN = "\033[32m"

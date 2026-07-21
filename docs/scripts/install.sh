@@ -2,10 +2,10 @@
 # PieX — one-command install all packages
 #
 # Usage:
-#   curl -fsSL https://piex.dev/install.sh | bash          # global install (npm)
-#   curl -fsSL https://piex.dev/install.sh | bash -s -- -l  # project-local install (npm)
-#   bash docs/install.sh --dev                              # local dev install (repo paths)
-#   bash docs/install.sh --dev -l                           # local dev + project-level
+#   curl -fsSL https://piex.dev/scripts/install.sh | bash          # global install (npm)
+#   curl -fsSL https://piex.dev/scripts/install.sh | bash -s -- -l  # project-local install (npm)
+#   bash docs/scripts/install.sh --dev                              # local dev install (repo paths)
+#   bash docs/scripts/install.sh --dev -l                           # local dev + project-level
 #
 # Prerequisites: pi (https://pi.dev), Node.js >= 18
 set -euo pipefail
@@ -23,10 +23,10 @@ usage() {
 PieX install script — install all @piex-dev/* packages at once.
 
 Usage:
-  curl -fsSL https://piex.dev/install.sh | bash          # global install (npm)
-  curl -fsSL https://piex.dev/install.sh | bash -s -- -l  # project-local install (npm)
-  bash docs/install.sh --dev                              # local dev install (repo paths)
-  bash docs/install.sh --dev -l                           # local dev + project-level
+  curl -fsSL https://piex.dev/scripts/install.sh | bash          # global install (npm)
+  curl -fsSL https://piex.dev/scripts/install.sh | bash -s -- -l  # project-local install (npm)
+  bash docs/scripts/install.sh --dev                              # local dev install (repo paths)
+  bash docs/scripts/install.sh --dev -l                           # local dev + project-level
 
 Options:
   -l, --local   Install project-locally (.pi/settings.json)
@@ -88,12 +88,12 @@ fi
 # We discover packages from the repo so we can skip private ones; registry mode
 # installs them via npm:@piex-dev/<name>, dev mode via local path.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [[ -d "$SCRIPT_DIR/../extensions" ]]; then
-  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ -d "$SCRIPT_DIR/../../extensions" ]]; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 elif [[ "$USE_DEV" == true ]]; then
   echo -e "${RED}Cannot find extensions/ directory.${RESET}"
   echo "Run this script from the piex repo, or set REPO_ROOT:"
-  echo "  REPO_ROOT=/path/to/piex bash docs/install.sh --dev"
+  echo "  REPO_ROOT=/path/to/piex bash docs/scripts/install.sh --dev"
   exit 1
 else
   # registry mode from outside the repo: no local discovery, fall back to full list

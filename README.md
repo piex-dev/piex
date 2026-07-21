@@ -18,15 +18,15 @@
 ### 一键安装全部
 
 ```bash
-curl -fsSL https://piex.dev/install.sh | bash          # 全局安装
-curl -fsSL https://piex.dev/install.sh | bash -s -- -l  # 项目级安装
+curl -fsSL https://piex.dev/scripts/install.sh | bash          # 全局安装
+curl -fsSL https://piex.dev/scripts/install.sh | bash -s -- -l  # 项目级安装
 ```
 
 仓库内开发可直接执行本地脚本：
 
 ```bash
-bash docs/install.sh --dev        # 从本地 extensions/ prompts/ themes/ 安装
-bash docs/install.sh --dev -l     # 项目级 + 本地路径
+bash docs/scripts/install.sh --dev        # 从本地 extensions/ prompts/ themes/ 安装
+bash docs/scripts/install.sh --dev -l     # 项目级 + 本地路径
 ```
 
 ### 逐包安装

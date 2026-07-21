@@ -32,7 +32,7 @@
 | **禁止语言目录里的 md** | 不要写 `docs/zh/**.md` 或 `docs/en/**.md`                                                       |
 | **一次生成双语 HTML**   | 改一篇中文 md，必须同步产出 zh + en 两套结构化 HTML                                             |
 | **源稿链接统一**        | 中英 HTML 页脚「源稿」都指向同一中文 md                                                         |
-| **提交前校验**          | 见 `scripts/check-docs-i18n.sh`                                                                 |
+| **提交前校验**          | 见 `docs/scripts/check-docs-i18n.sh`                                                            |
 
 ## URL 约定（多语言）
 
@@ -71,7 +71,7 @@
         └─► docs/en/docs|blogs/<slug>/index.html   （英文结构化页，同结构翻译）
         │
         ├─► 同步同语言侧栏 + 主页入口 + hreflang
-        └─► scripts/check-docs-i18n.sh 通过
+        └─► docs/scripts/check-docs-i18n.sh 通过
 ```
 
 | 步骤              | 文档                                                | 博客                              |
@@ -80,7 +80,7 @@
 | 2a. 中文 HTML     | `docs/zh/docs/<slug>/index.html`                    | `docs/zh/blogs/<slug>/index.html` |
 | 2b. 英文 HTML     | `docs/en/docs/<slug>/index.html`                    | `docs/en/blogs/<slug>/index.html` |
 | 3. 导航           | 各语言全部同类页 `.docs-nav` + 主页 `#docs`/`#blog` | 同左                              |
-| 4. 校验           | `./scripts/check-docs-i18n.sh`                      | 同左                              |
+| 4. 校验           | `./docs/scripts/check-docs-i18n.sh`                 | 同左                              |
 | 5. 预览           | `cd docs && python3 -m http.server 8080`            | 同左                              |
 | 6. 发布           | push `main` 且触及 `docs/**` → `pages.yml`          | 同左                              |
 
@@ -133,7 +133,7 @@
 - 中英章节结构对齐（h2/h3 对应）；代码块/路径/包名不翻译
 - 源稿链接：中英页脚都指向同一中文 md
 - 同步：各语言全部同类页左侧导航 + 主页卡片 + hreflang
-- 校验：./scripts/check-docs-i18n.sh
+- 校验：./docs/scripts/check-docs-i18n.sh
 - 验收：cd docs && python3 -m http.server 8080
 ```
 
@@ -150,8 +150,8 @@
 ## 提交前校验
 
 ```bash
-./scripts/check-docs-i18n.sh           # 全量：配对 + 语言一致性
-./scripts/check-docs-i18n.sh --staged  # 仅检查本次 staged 变更（commit 前用）
+./docs/scripts/check-docs-i18n.sh           # 全量：配对 + 语言一致性
+./docs/scripts/check-docs-i18n.sh --staged  # 仅检查本次 staged 变更（commit 前用）
 ```
 
 校验项：
@@ -165,7 +165,7 @@
 
 Agent 在用户要求 commit、且本次变更触及文档/博客 md 时，**必须先跑** `--staged` 并通过后再提交。
 
-CI：`.github/workflows/pages.yml` 在 deploy 前跑 `python3 scripts/check_docs_i18n.py`；PR 也会跑校验（不部署）。
+CI：`.github/workflows/pages.yml` 在 deploy 前跑 `python3 docs/scripts/check_docs_i18n.py`；PR 也会跑校验（不部署）。
 
 ## GitHub Pages
 
@@ -195,7 +195,7 @@ cd docs && python3 -m http.server 8080
 1. 只写/改 `docs/<slug>.md`
 2. 生成 `docs/zh/docs/<slug>/index.html` **与** `docs/en/docs/<slug>/index.html`
 3. 同步各语言文档侧栏 + 主页 `#docs`（如有新文）
-4. `./scripts/check-docs-i18n.sh` 通过
+4. `./docs/scripts/check-docs-i18n.sh` 通过
 5. 本地 server 验收 → commit / push
 
 ## 新增 / 修改 Blog（速查）
@@ -213,4 +213,4 @@ cd docs && python3 -m http.server 8080
 3. 生成双语 HTML 到 `docs/{zh,en}/packages/<slug>/index.html`（侧栏列全部 package，源稿链接指 `docs/packages/<slug>.md`）
 4. 首页 `#packages` 卡片链接指向 `/en/packages/<slug>/`；各 package 目录 `README.md`「深度解读」链接指向 `/zh/packages/<slug>/`
 5. 若从 blog 迁移：删除 `docs/notes/<slug>.md` 与 `docs/{zh,en}/blogs/<slug>/index.html`
-6. `./scripts/check-docs-i18n.sh` → 本地验收 → commit / push
+6. `./docs/scripts/check-docs-i18n.sh` → 本地验收 → commit / push

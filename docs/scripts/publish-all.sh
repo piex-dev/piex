@@ -8,7 +8,7 @@
 # On failure, continue to the next package (version already published etc).
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # pi package types → top-level directories. hashline first (has runtime npm dep),
 # then the rest. Order within each dir is alphabetical.
 TYPE_DIRS=(extensions prompts themes)

@@ -1,309 +1,651 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en-US">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PieX — Pi Extensions</title>
-  <meta name="description" content="Independent Pi Extension API packages: hashline editing, DAP debugging, LSP, Plan Mode, code review & themes." />
-  <link rel="canonical" href="https://piex.dev/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/" />
-  <meta property="og:title" content="PieX — Pi Extensions" />
-  <meta property="og:description" content="Core capabilities from top coding agents, packaged as npm packages for on-demand install into Pi." />
-  <meta property="og:url" content="https://piex.dev/" />
-  <meta property="og:type" content="website" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/style.css?v=20260721pkgs" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-0BJ0ZVPSWN');
-  </script>
-
-</head>
-<body>
-  <header class="site-header">
-    <nav class="nav-inner">
-      <a class="logo" href="/" aria-label="PieX home">
-        <span class="logo-mark">π</span>
-        PieX
-      </a>
-      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
-      <div class="nav-links" id="nav-links">
-        <a href="#why" data-i18n="nav.why">Philosophy</a>
-        <a href="#packages" data-i18n="nav.packages">Packages</a>
-        <a href="#docs" data-i18n="nav.docs">Docs</a>
-        <a href="#blog" data-i18n="nav.blog">Blog</a>
-        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
-        <div class="lang-switch" role="radiogroup" aria-label="Language">
-          <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
-          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PieX — Pi Extensions</title>
+    <meta
+      name="description"
+      content="Independent Pi Extension API packages: hashline editing, DAP debugging, LSP, Plan Mode, code review & themes."
+    />
+    <link rel="canonical" href="https://piex.dev/" />
+    <link rel="alternate" hreflang="en" href="https://piex.dev/" />
+    <link rel="alternate" hreflang="zh" href="https://piex.dev/" />
+    <link rel="alternate" hreflang="x-default" href="https://piex.dev/" />
+    <meta property="og:title" content="PieX — Pi Extensions" />
+    <meta
+      property="og:description"
+      content="Core capabilities from top coding agents, packaged as npm packages for on-demand install into Pi."
+    />
+    <meta property="og:url" content="https://piex.dev/" />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/style.css?v=20260721pkgs" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E"
+    />
+    <!-- Google Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-0BJ0ZVPSWN");
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav-inner">
+        <a class="logo" href="/" aria-label="PieX home">
+          <span class="logo-mark">π</span>
+          PieX
+        </a>
+        <button
+          id="nav-toggle"
+          class="nav-toggle"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <div class="nav-links" id="nav-links">
+          <a href="#why" data-i18n="nav.why">Philosophy</a>
+          <a href="#packages" data-i18n="nav.packages">Packages</a>
+          <a href="#docs" data-i18n="nav.docs">Docs</a>
+          <a href="#blog" data-i18n="nav.blog">Blog</a>
+          <a
+            href="https://github.com/piex-dev/piex"
+            target="_blank"
+            rel="noopener"
+            >GitHub</a
+          >
+          <div class="lang-switch" role="radiogroup" aria-label="Language">
+            <button
+              data-lang="en"
+              class="active"
+              aria-checked="true"
+              role="radio"
+            >
+              EN
+            </button>
+            <button data-lang="zh" aria-checked="false" role="radio">
+              中文
+            </button>
+          </div>
         </div>
-      </div>
-    </nav>
-  </header>
+      </nav>
+    </header>
 
-  <main>
-    <!-- ===== HERO ===== -->
-    <div class="hero">
-      <p class="hero-badge"><span class="dot-live"></span> <span data-i18n="hero.badge" data-i18n-html>Built on <span class="s1">Pi Extension API</span> · MIT</span></p>
-      <h1 data-i18n="hero.title" data-i18n-html><span class="accent">PieX</span> — Extend Pi without forking</h1>
-      <p class="lead" data-i18n="hero.lead" data-i18n-html>Core capabilities extracted from oh-my-pi, Claude Code, OpenCode and other coding agents, packaged as independent <code>@piex-dev/*</code> npm packages. Install with <code>pi install</code>.</p>
-      <div class="cta-row">
-        <a class="btn btn-primary" href="#packages" data-i18n="hero.cta1">Get Started</a>
-        <a class="btn btn-secondary" href="https://github.com/piex-dev/piex" target="_blank" rel="noopener" data-i18n="hero.cta2">GitHub</a>
-      </div>
-
-      <div class="hero-terminal">
-        <div class="terminal-bar">
-          <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
-          <span data-i18n="hero.term.title">pi — piex</span>
+    <main>
+      <!-- ===== HERO ===== -->
+      <div class="hero">
+        <p class="hero-badge">
+          <span class="dot-live"></span>
+          <span data-i18n="hero.badge" data-i18n-html
+            >Built on <span class="s1">Pi Extension API</span> · MIT</span
+          >
+        </p>
+        <h1 data-i18n="hero.title" data-i18n-html>
+          <span class="accent">PieX</span> — Extend Pi without forking
+        </h1>
+        <p class="lead" data-i18n="hero.lead" data-i18n-html>
+          Core capabilities extracted from oh-my-pi, Claude Code, OpenCode and
+          other coding agents, packaged as independent
+          <code>@piex-dev/*</code> npm packages. Install with
+          <code>pi install</code>.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#packages" data-i18n="hero.cta1"
+            >Get Started</a
+          >
+          <a
+            class="btn btn-secondary"
+            href="https://github.com/piex-dev/piex"
+            target="_blank"
+            rel="noopener"
+            data-i18n="hero.cta2"
+            >GitHub</a
+          >
         </div>
-        <pre data-i18n="hero.term.body" data-i18n-html><span class="comment"># Pick any package:</span>
+
+        <div class="hero-terminal">
+          <div class="terminal-bar">
+            <span class="dot dot-r"></span><span class="dot dot-y"></span
+            ><span class="dot dot-g"></span>
+            <span data-i18n="hero.term.title">pi — piex</span>
+          </div>
+          <pre
+            data-i18n="hero.term.body"
+            data-i18n-html
+          ><span class="comment"># Pick any package:</span>
 <span class="prompt">$</span> pi install npm:@piex-dev/hashline
 <span class="prompt">$</span> pi install npm:@piex-dev/dap
 <span class="prompt">$</span> pi install npm:@piex-dev/lsp
 <span class="comment"># All-in-one:</span>
-<span class="prompt">$</span> curl -fsSL piex.dev/install.sh | bash</pre>
-      </div>
-
-      <div class="stats-row anim-fade">
-        <div class="stat"><span class="stat-num">10</span><span class="stat-label" data-i18n="stats.pkg">Packages</span></div>
-        <div class="stat"><span class="stat-num">~6k+</span><span class="stat-label" data-i18n="stats.lines">Core Lines</span></div>
-        <div class="stat"><span class="stat-num">14</span><span class="stat-label" data-i18n="stats.adapters">Debug Adapters</span></div>
-        <div class="stat"><span class="stat-num">50+</span><span class="stat-label" data-i18n="stats.servers">LSP Servers</span></div>
-      </div>
-    </div>
-    <section id="why" class="section-alt">
-      <div class="section-header anim-fade">
-        <div class="section-heading">
-          <span class="section-icon">🧭</span>
-          <h2 class="section-title" data-i18n="why.title">Design Philosophy</h2>
+<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash</pre>
         </div>
-        <div class="section-divider"></div>
-        <p class="section-desc" data-i18n="why.desc">Extend Pi without forking — on demand, understood, and measured.</p>
-      </div>
-      <div class="principles">
-        <article class="card anim-fade">
-          <span class="card-icon">🔌</span>
-          <h3 data-i18n="why.1.title">Extend Pi, never fork</h3>
-          <p data-i18n="why.1.desc">omp forks the core and bundles everything; piex only extends via the official Extension API — never touching the core, upgrading with Pi.</p>
-        </article>
-        <article class="card anim-fade">
-          <span class="card-icon">🧩</span>
-          <h3 data-i18n="why.2.title">On demand, switch freely</h3>
-          <p data-i18n="why.2.desc">Independent packages — install &amp; remove at will. Minimal and in control: pay tokens only for what you use.</p>
-        </article>
-        <article class="card anim-fade">
-          <span class="card-icon">🧠</span>
-          <h3 data-i18n="why.3.title">Know how it works</h3>
-          <p data-i18n="why.3.desc">Borrow the best from top agents — understand their designs, then rebuild as extensions you fully control.</p>
-        </article>
-        <article class="card anim-fade">
-          <span class="card-icon">📏</span>
-          <h3 data-i18n="why.4.title">Eval first</h3>
-          <p data-i18n="why.4.desc">Behavior-changing extensions ship with eval criteria &amp; data. No measurement, no adoption.</p>
-        </article>
-      </div>
-      <p class="why-note anim-fade"><a href="/en/docs/design/" data-i18n="why.more">Read the full design philosophy →</a></p>
-    </section>
 
-
-    <section id="packages">
-      <div class="section-header anim-fade">
-        <div class="section-heading">
-          <span class="section-icon">📦</span>
-          <h2 class="section-title" data-i18n="packages.title">Packages</h2>
+        <div class="stats-row anim-fade">
+          <div class="stat">
+            <span class="stat-num">10</span
+            ><span class="stat-label" data-i18n="stats.pkg">Packages</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">~6k+</span
+            ><span class="stat-label" data-i18n="stats.lines">Core Lines</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">14</span
+            ><span class="stat-label" data-i18n="stats.adapters"
+              >Debug Adapters</span
+            >
+          </div>
+          <div class="stat">
+            <span class="stat-num">50+</span
+            ><span class="stat-label" data-i18n="stats.servers"
+              >LSP Servers</span
+            >
+          </div>
         </div>
-        <div class="section-divider"></div>
-        <p class="section-desc" data-i18n="packages.desc" data-i18n-html>All packages are published as <code>@piex-dev/&lt;name&gt;</code>. See README in each package directory for details.</p>
       </div>
-      <div class="packages-grid">
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">hashline</span>
-            <span class="pkg-tag">edit</span>
+      <section id="why" class="section-alt">
+        <div class="section-header anim-fade">
+          <div class="section-heading">
+            <span class="section-icon">🧭</span>
+            <h2 class="section-title" data-i18n="why.title">
+              Design Philosophy
+            </h2>
           </div>
-          <p class="pkg-desc" data-i18n="pkg.hashline.desc">Line-anchored, #TAG-verified hashline patch language — fewer mistakes, less token waste.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/hashline</div>
-          <a class="pkg-link" href="/en/packages/hashline/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">dap</span>
-            <span class="pkg-tag">debug</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.dap.desc">DAP debug adapter collection (14 adapters): breakpoints, stepping, variable inspection inside the agent session.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/dap</div>
-          <a class="pkg-link" href="/en/packages/dap/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">lsp</span>
-            <span class="pkg-tag">lsp</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.lsp.desc">Diagnostics (post-edit ERRORs), navigation, rename/code actions &amp; format across ~50 default servers.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/lsp</div>
-          <a class="pkg-link" href="/en/packages/lsp/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">plan</span>
-            <span class="pkg-tag">/plan</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.plan.desc">Read-only exploration, plan drafting &amp; step-by-step execution with progress tracking and tool locking.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/plan</div>
-          <a class="pkg-link" href="/en/packages/plan/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">review</span>
-            <span class="pkg-tag">/review</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.review.desc">Interactive code review command &amp; callable review tool covering diff / commit / branch comparisons.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/review</div>
-          <a class="pkg-link" href="/en/packages/review/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">init</span>
-            <span class="pkg-tag">/init</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.init.desc">Guided /init prompt template: scan the repo and create or improve AGENTS.md.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/init</div>
-          <a class="pkg-link" href="/en/packages/init/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">xai-oauth</span>
-            <span class="pkg-tag">/login</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.xai.desc">xAI Grok OAuth subscription login: SuperGrok / X Premium+, with real-time model discovery.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/xai-oauth</div>
-          <a class="pkg-link" href="/en/packages/xai-oauth/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">theme-dark-terminal</span>
-            <span class="pkg-tag">theme</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.theme.desc">High-contrast dark terminal theme with green/blue/red accents, distributed via pi.themes.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/theme-dark-terminal</div>
-          <a class="pkg-link" href="/en/packages/theme-dark-terminal/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">btw</span>
-            <span class="pkg-tag">/btw</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.btw.desc">Ephemeral side questions with full session context — answers not saved to conversation history.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/btw</div>
-          <a class="pkg-link" href="/en/packages/btw/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-        <article class="pkg-card anim-fade">
-          <div class="pkg-head">
-            <span class="pkg-name">context</span>
-            <span class="pkg-tag">/context</span>
-          </div>
-          <p class="pkg-desc" data-i18n="pkg.context.desc">Session usage report: entry distribution, role breakdown, and estimated token allocation.</p>
-          <div class="pkg-install" data-copy-hint="click to copy" data-i18n-attr="data-copy-hint:copy.hint">pi install npm:@piex-dev/context</div>
-          <a class="pkg-link" href="/en/packages/context/" data-i18n="pkg.overview">Overview →</a>
-        </article>
-
-      </div>
-    </section>
-
-    <!-- ===== DOCS ===== -->
-    <section id="docs" class="section-alt">
-      <div class="section-header anim-fade">
-        <div class="section-heading">
-          <span class="section-icon">📚</span>
-          <h2 class="section-title" data-i18n="docs.title">Documentation</h2>
+          <div class="section-divider"></div>
+          <p class="section-desc" data-i18n="why.desc">
+            Extend Pi without forking — on demand, understood, and measured.
+          </p>
         </div>
-        <div class="section-divider"></div>
-        <p class="section-desc" data-i18n="docs.desc" data-i18n-html>Synced with the <code>docs/</code> directory in the repository.</p>
-      </div>
-      <ul class="docs-list">
-        <li class="anim-fade"><a href="/en/docs/design/"><span class="doc-title" data-i18n="docs.design.title">Design Philosophy</span><span class="doc-sub" data-i18n="docs.design.sub">Core principles &amp; architecture patterns</span></a></li>
-        <li class="anim-fade"><a href="/en/docs/architecture/"><span class="doc-title" data-i18n="docs.arch.title">Architecture Overview</span><span class="doc-sub" data-i18n="docs.arch.sub">Structure, tool registration, API mapping</span></a></li>
-        <li class="anim-fade"><a href="/en/docs/roadmap/"><span class="doc-title" data-i18n="docs.roadmap.title">Roadmap</span><span class="doc-sub" data-i18n="docs.roadmap.sub">Completed &amp; planned</span></a></li>
-        <li class="anim-fade"><a href="/en/docs/evaluation/"><span class="doc-title" data-i18n="docs.eval.title">Evaluation Plan</span><span class="doc-sub" data-i18n="docs.eval.sub">Benchmarks, metrics &amp; implementation path</span></a></li>
-        <li class="anim-fade"><a href="/en/docs/testing/"><span class="doc-title" data-i18n="docs.testing.title">Testing Guide</span><span class="doc-sub" data-i18n="docs.testing.sub">Per-package verification commands</span></a></li>
-        <li class="anim-fade"><a href="/en/docs/references/"><span class="doc-title" data-i18n="docs.refs.title">References</span><span class="doc-sub" data-i18n="docs.refs.sub">Pi docs &amp; source projects</span></a></li>
-      </ul>
-    </section>
-
-    <!-- ===== BLOG ===== -->
-    <section id="blog">
-      <div class="section-header anim-fade">
-        <div class="section-heading">
-          <span class="section-icon">✍️</span>
-          <h2 class="section-title" data-i18n="blog.title">Blog</h2>
+        <div class="principles">
+          <article class="card anim-fade">
+            <span class="card-icon">🔌</span>
+            <h3 data-i18n="why.1.title">Extend Pi, never fork</h3>
+            <p data-i18n="why.1.desc">
+              omp forks the core and bundles everything; piex only extends via
+              the official Extension API — never touching the core, upgrading
+              with Pi.
+            </p>
+          </article>
+          <article class="card anim-fade">
+            <span class="card-icon">🧩</span>
+            <h3 data-i18n="why.2.title">On demand, switch freely</h3>
+            <p data-i18n="why.2.desc">
+              Independent packages — install &amp; remove at will. Minimal and
+              in control: pay tokens only for what you use.
+            </p>
+          </article>
+          <article class="card anim-fade">
+            <span class="card-icon">🧠</span>
+            <h3 data-i18n="why.3.title">Know how it works</h3>
+            <p data-i18n="why.3.desc">
+              Borrow the best from top agents — understand their designs, then
+              rebuild as extensions you fully control.
+            </p>
+          </article>
+          <article class="card anim-fade">
+            <span class="card-icon">📏</span>
+            <h3 data-i18n="why.4.title">Eval first</h3>
+            <p data-i18n="why.4.desc">
+              Behavior-changing extensions ship with eval criteria &amp; data.
+              No measurement, no adoption.
+            </p>
+          </article>
         </div>
-        <div class="section-divider"></div>
-        <p class="section-desc" data-i18n="blog.desc">Project-level deep dives: Pi extension mechanics, coding agent design, and tooling.</p>
-      </div>
-      <div class="blog-list">
-        <article class="blog-card anim-fade">
-          <div class="blog-meta">
-            <span class="blog-date">2026-07-14</span>
-            <span class="blog-tag">Pi Extension</span>
-          </div>
-          <h3 class="blog-title"><a href="/en/blogs/pi-extension-mechanism/" data-i18n="blog.ext.title">Pi Extension Mechanism &amp; Internals</a></h3>
-          <p class="blog-excerpt" data-i18n="blog.ext.excerpt">Loader, runner, wrapper — how pi stays minimal and extensible.</p>
-        </article>
-      </div>
-    </section>
-  </main>
+        <p class="why-note anim-fade">
+          <a href="/en/docs/design/" data-i18n="why.more"
+            >Read the full design philosophy →</a
+          >
+        </p>
+      </section>
 
-  <footer class="site-footer">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h4 data-i18n="footer.project">Project</h4>
-        <ul>
-          <li><a href="https://github.com/piex-dev/piex" data-i18n="footer.ghub">GitHub</a></li>
-          <li><a href="https://www.npmjs.com/org/piex-dev" data-i18n="footer.npm">npm</a></li>
-          <li><a href="/en/docs/roadmap/" data-i18n="footer.roadmap">Roadmap</a></li>
+      <section id="packages">
+        <div class="section-header anim-fade">
+          <div class="section-heading">
+            <span class="section-icon">📦</span>
+            <h2 class="section-title" data-i18n="packages.title">Packages</h2>
+          </div>
+          <div class="section-divider"></div>
+          <p class="section-desc" data-i18n="packages.desc" data-i18n-html>
+            All packages are published as <code>@piex-dev/&lt;name&gt;</code>.
+            See README in each package directory for details.
+          </p>
+        </div>
+        <div class="packages-grid">
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">hashline</span>
+              <span class="pkg-tag">edit</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.hashline.desc">
+              Line-anchored, #TAG-verified hashline patch language — fewer
+              mistakes, less token waste.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/hashline
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/hashline/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">dap</span>
+              <span class="pkg-tag">debug</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.dap.desc">
+              DAP debug adapter collection (14 adapters): breakpoints, stepping,
+              variable inspection inside the agent session.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/dap
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/dap/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">lsp</span>
+              <span class="pkg-tag">lsp</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.lsp.desc">
+              Diagnostics (post-edit ERRORs), navigation, rename/code actions
+              &amp; format across ~50 default servers.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/lsp
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/lsp/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">plan</span>
+              <span class="pkg-tag">/plan</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.plan.desc">
+              Read-only exploration, plan drafting &amp; step-by-step execution
+              with progress tracking and tool locking.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/plan
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/plan/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">review</span>
+              <span class="pkg-tag">/review</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.review.desc">
+              Interactive code review command &amp; callable review tool
+              covering diff / commit / branch comparisons.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/review
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/review/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">init</span>
+              <span class="pkg-tag">/init</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.init.desc">
+              Guided /init prompt template: scan the repo and create or improve
+              AGENTS.md.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/init
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/init/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">xai-oauth</span>
+              <span class="pkg-tag">/login</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.xai.desc">
+              xAI Grok OAuth subscription login: SuperGrok / X Premium+, with
+              real-time model discovery.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/xai-oauth
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/xai-oauth/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">theme-dark-terminal</span>
+              <span class="pkg-tag">theme</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.theme.desc">
+              High-contrast dark terminal theme with green/blue/red accents,
+              distributed via pi.themes.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/theme-dark-terminal
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/theme-dark-terminal/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">btw</span>
+              <span class="pkg-tag">/btw</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.btw.desc">
+              Ephemeral side questions with full session context — answers not
+              saved to conversation history.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/btw
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/btw/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+
+          <article class="pkg-card anim-fade">
+            <div class="pkg-head">
+              <span class="pkg-name">context</span>
+              <span class="pkg-tag">/context</span>
+            </div>
+            <p class="pkg-desc" data-i18n="pkg.context.desc">
+              Session usage report: entry distribution, role breakdown, and
+              estimated token allocation.
+            </p>
+            <div
+              class="pkg-install"
+              data-copy-hint="click to copy"
+              data-i18n-attr="data-copy-hint:copy.hint"
+            >
+              pi install npm:@piex-dev/context
+            </div>
+            <a
+              class="pkg-link"
+              href="/en/packages/context/"
+              data-i18n="pkg.overview"
+              >Overview →</a
+            >
+          </article>
+        </div>
+      </section>
+
+      <!-- ===== DOCS ===== -->
+      <section id="docs" class="section-alt">
+        <div class="section-header anim-fade">
+          <div class="section-heading">
+            <span class="section-icon">📚</span>
+            <h2 class="section-title" data-i18n="docs.title">Documentation</h2>
+          </div>
+          <div class="section-divider"></div>
+          <p class="section-desc" data-i18n="docs.desc" data-i18n-html>
+            Synced with the <code>docs/</code> directory in the repository.
+          </p>
+        </div>
+        <ul class="docs-list">
+          <li class="anim-fade">
+            <a href="/en/docs/design/"
+              ><span class="doc-title" data-i18n="docs.design.title"
+                >Design Philosophy</span
+              ><span class="doc-sub" data-i18n="docs.design.sub"
+                >Core principles &amp; architecture patterns</span
+              ></a
+            >
+          </li>
+          <li class="anim-fade">
+            <a href="/en/docs/architecture/"
+              ><span class="doc-title" data-i18n="docs.arch.title"
+                >Architecture Overview</span
+              ><span class="doc-sub" data-i18n="docs.arch.sub"
+                >Structure, tool registration, API mapping</span
+              ></a
+            >
+          </li>
+          <li class="anim-fade">
+            <a href="/en/docs/roadmap/"
+              ><span class="doc-title" data-i18n="docs.roadmap.title"
+                >Roadmap</span
+              ><span class="doc-sub" data-i18n="docs.roadmap.sub"
+                >Completed &amp; planned</span
+              ></a
+            >
+          </li>
+          <li class="anim-fade">
+            <a href="/en/docs/evaluation/"
+              ><span class="doc-title" data-i18n="docs.eval.title"
+                >Evaluation Plan</span
+              ><span class="doc-sub" data-i18n="docs.eval.sub"
+                >Benchmarks, metrics &amp; implementation path</span
+              ></a
+            >
+          </li>
+          <li class="anim-fade">
+            <a href="/en/docs/testing/"
+              ><span class="doc-title" data-i18n="docs.testing.title"
+                >Testing Guide</span
+              ><span class="doc-sub" data-i18n="docs.testing.sub"
+                >Per-package verification commands</span
+              ></a
+            >
+          </li>
+          <li class="anim-fade">
+            <a href="/en/docs/references/"
+              ><span class="doc-title" data-i18n="docs.refs.title"
+                >References</span
+              ><span class="doc-sub" data-i18n="docs.refs.sub"
+                >Pi docs &amp; source projects</span
+              ></a
+            >
+          </li>
         </ul>
-      </div>
-      <div class="footer-col">
-        <h4 data-i18n="footer.docs">Docs</h4>
-        <ul>
-          <li><a href="/en/docs/design/" data-i18n="footer.design">Design</a></li>
-          <li><a href="/en/docs/architecture/" data-i18n="footer.arch">Architecture</a></li>
-          <li><a href="/en/docs/testing/" data-i18n="footer.testing">Testing Guide</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4 data-i18n="footer.ecosystem">Ecosystem</h4>
-        <ul>
-          <li><a href="https://pi.dev" target="_blank" rel="noopener" data-i18n="footer.pi">Pi</a></li>
-          <li><a href="https://github.com/can1357/oh-my-pi" target="_blank" rel="noopener" data-i18n="footer.omp">oh-my-pi</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <a href="https://piex.dev">piex.dev</a> · <span data-i18n="footer.bottom">piex-dev/piex · MIT License · Built on</span> <a href="https://pi.dev">Pi</a>
-    </div>
-  </footer>
+      </section>
 
-  <script src="assets/main.js?v=20260721pkgs"></script>
-</body>
+      <!-- ===== BLOG ===== -->
+      <section id="blog">
+        <div class="section-header anim-fade">
+          <div class="section-heading">
+            <span class="section-icon">✍️</span>
+            <h2 class="section-title" data-i18n="blog.title">Blog</h2>
+          </div>
+          <div class="section-divider"></div>
+          <p class="section-desc" data-i18n="blog.desc">
+            Project-level deep dives: Pi extension mechanics, coding agent
+            design, and tooling.
+          </p>
+        </div>
+        <div class="blog-list">
+          <article class="blog-card anim-fade">
+            <div class="blog-meta">
+              <span class="blog-date">2026-07-14</span>
+              <span class="blog-tag">Pi Extension</span>
+            </div>
+            <h3 class="blog-title">
+              <a
+                href="/en/blogs/pi-extension-mechanism/"
+                data-i18n="blog.ext.title"
+                >Pi Extension Mechanism &amp; Internals</a
+              >
+            </h3>
+            <p class="blog-excerpt" data-i18n="blog.ext.excerpt">
+              Loader, runner, wrapper — how pi stays minimal and extensible.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4 data-i18n="footer.project">Project</h4>
+          <ul>
+            <li>
+              <a href="https://github.com/piex-dev/piex" data-i18n="footer.ghub"
+                >GitHub</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.npmjs.com/org/piex-dev"
+                data-i18n="footer.npm"
+                >npm</a
+              >
+            </li>
+            <li>
+              <a href="/en/docs/roadmap/" data-i18n="footer.roadmap">Roadmap</a>
+            </li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4 data-i18n="footer.docs">Docs</h4>
+          <ul>
+            <li>
+              <a href="/en/docs/design/" data-i18n="footer.design">Design</a>
+            </li>
+            <li>
+              <a href="/en/docs/architecture/" data-i18n="footer.arch"
+                >Architecture</a
+              >
+            </li>
+            <li>
+              <a href="/en/docs/testing/" data-i18n="footer.testing"
+                >Testing Guide</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4 data-i18n="footer.ecosystem">Ecosystem</h4>
+          <ul>
+            <li>
+              <a
+                href="https://pi.dev"
+                target="_blank"
+                rel="noopener"
+                data-i18n="footer.pi"
+                >Pi</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://github.com/can1357/oh-my-pi"
+                target="_blank"
+                rel="noopener"
+                data-i18n="footer.omp"
+                >oh-my-pi</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <a href="https://piex.dev">piex.dev</a> ·
+        <span data-i18n="footer.bottom"
+          >piex-dev/piex · MIT License · Built on</span
+        >
+        <a href="https://pi.dev">Pi</a>
+      </div>
+    </footer>
+
+    <script src="assets/main.js?v=20260721pkgs"></script>
+  </body>
 </html>
