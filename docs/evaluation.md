@@ -6,11 +6,11 @@
 
 核心问题：**piex 能帮助 pi 提升多少？相比 omp 的指标如何？**
 
-| 角色 | Agent | 说明 |
-|------|-------|------|
-| **基准线** | pi (bare) | pi 原生，不加载任何扩展，展示起点 |
-| **评测对象** | pi + piex | 加载全部已实现 piex packages，量化提升 |
-| **参照系** | omp | oh-my-pi，piex 能力来源，行业相对水平参照 |
+| 角色         | Agent     | 说明                                      |
+| ------------ | --------- | ----------------------------------------- |
+| **基准线**   | pi (bare) | pi 原生，不加载任何扩展，展示起点         |
+| **评测对象** | pi + piex | 加载全部已实现 piex packages，量化提升    |
+| **参照系**   | omp       | oh-my-pi，piex 能力来源，行业相对水平参照 |
 
 通过三者同评测集对比，回答：
 
@@ -23,11 +23,11 @@
 
 ### 自测 Agent
 
-| 角色 | Agent | 配置 |
-|------|-------|------|
-| 基准线 | pi (bare) | pi 原生，不加载任何 extension |
+| 角色     | Agent     | 配置                          |
+| -------- | --------- | ----------------------------- |
+| 基准线   | pi (bare) | pi 原生，不加载任何 extension |
 | 评测对象 | pi + piex | pi + 全部已实现 piex packages |
-| 参照系 | omp | oh-my-pi，内建全部能力 |
+| 参照系   | omp       | oh-my-pi，内建全部能力        |
 
 ### 竞品参考（引用公开数据）
 
@@ -39,72 +39,72 @@ SWE-bench Leaderboard、官方 Blog、论文中 Claude Code / Aider / OpenHands 
 
 ### 已实现（评测覆盖）
 
-| Package | 能力 | 评测关联 |
-|---------|------|---------|
-| **hashline** | 覆盖 `edit`（hashline 语法） | SWE-bench（编辑正确率、token 效率）、Can It Edit |
-| **dap** | `debug`（14 个 adapter） | DebugBench、SWE-bench（调试路径） |
-| **lsp** | `lsp`（~50 server 默认；写后 ERROR） | RepoBench、SWE-bench（代码理解） |
-| **plan** | `/plan`、`/todos`（计划模式） | SWE-bench（多步任务规划） |
-| **review** | `/review`、`review` 工具 | CodeReviewer / c-CRAB |
+| Package      | 能力                                 | 评测关联                                         |
+| ------------ | ------------------------------------ | ------------------------------------------------ |
+| **hashline** | 覆盖 `edit`（hashline 语法）         | SWE-bench（编辑正确率、token 效率）、Can It Edit |
+| **dap**      | `debug`（14 个 adapter）             | DebugBench、SWE-bench（调试路径）                |
+| **lsp**      | `lsp`（~50 server 默认；写后 ERROR） | RepoBench、SWE-bench（代码理解）                 |
+| **plan**     | `/plan`、`/todos`（计划模式）        | SWE-bench（多步任务规划）                        |
+| **review**   | `/review`、`review` 工具             | CodeReviewer / c-CRAB                            |
 
 ### 规划中（评测预留）
 
-| Package | 状态 | 评测关联 |
-|---------|------|---------|
-| todo | 📋 P0 | SWE-bench（任务管理） |
-| conflict | 📋 P0 | 自定义合并冲突评测 |
+| Package             | 状态  | 评测关联                     |
+| ------------------- | ----- | ---------------------------- |
+| todo                | 📋 P0 | SWE-bench（任务管理）        |
+| conflict            | 📋 P0 | 自定义合并冲突评测           |
 | ast-grep / ast-edit | 📋 P1 | SWE-bench（搜索/编辑精准度） |
-| web-search | 📋 P1 | 外部知识评测 |
-| eval | 📋 P1 | 数据分析类任务 |
-| memory | 📋 P1 | 跨 session 知识保留 |
-| gh | 📋 P1 | PR/Issue 操作 |
-| browser | 📋 P2 | Web 交互评测 |
+| web-search          | 📋 P1 | 外部知识评测                 |
+| eval                | 📋 P1 | 数据分析类任务               |
+| memory              | 📋 P1 | 跨 session 知识保留          |
+| gh                  | 📋 P1 | PR/Issue 操作                |
+| browser             | 📋 P2 | Web 交互评测                 |
 
 ## 评测集选择
 
 ### Tier 1 — 核心评测
 
-| 评测集 | 规模 | 测什么 | piex 关联 |
-|--------|------|--------|----------|
+| 评测集                 | 规模                   | 测什么                | piex 关联                                      |
+| ---------------------- | ---------------------- | --------------------- | ---------------------------------------------- |
 | **SWE-bench Verified** | 500 题，12 Python 仓库 | 仓库级 bug 修复全链路 | 覆盖编辑、搜索、调试、规划，几乎所有 piex 能力 |
-| **Aider Polyglot** | 225 题，多语言 | 自然语言 → 代码编辑 | hashline 编辑能力 |
-| **Can It Edit** | 多语言编辑指令 | 细粒度代码修改 | hashline / ast-edit 精准度 |
+| **Aider Polyglot**     | 225 题，多语言         | 自然语言 → 代码编辑   | hashline 编辑能力                              |
+| **Can It Edit**        | 多语言编辑指令         | 细粒度代码修改        | hashline / ast-edit 精准度                     |
 
 ### Tier 2 — 专项评测
 
-| 评测集 | 规模 | piex 关联 |
-|--------|------|----------|
-| **DebugBench** | 4,253 bug | dap：自动定位并修复 bug |
-| **RepoBench** | 跨文件补全 | lsp + ast-grep：多文件上下文理解 |
-| **CodeReviewer / c-CRAB** | PR review | review：AI review quality |
+| 评测集                    | 规模       | piex 关联                        |
+| ------------------------- | ---------- | -------------------------------- |
+| **DebugBench**            | 4,253 bug  | dap：自动定位并修复 bug          |
+| **RepoBench**             | 跨文件补全 | lsp + ast-grep：多文件上下文理解 |
+| **CodeReviewer / c-CRAB** | PR review  | review：AI review quality        |
 
 ### Tier 3 — 扩展评测（覆盖规划功能后启用）
 
-| 评测集 | piex 关联 |
-|--------|----------|
+| 评测集               | piex 关联             |
+| -------------------- | --------------------- |
 | SWE-bench Multimodal | browser（图片 issue） |
 
 ## 指标设计
 
 ### 核心指标（三者可对比）
 
-| 指标 | 定义 | 重点关注 |
-|------|------|---------|
+| 指标             | 定义                      | 重点关注                |
+| ---------------- | ------------------------- | ----------------------- |
 | **resolve_rate** | 任务通过率 (pass / total) | pi + piex 与 omp 的差距 |
-| **avg_tokens** | 平均每任务消耗 token | 效率对比 |
-| **avg_time** | 平均 wall time | 速度对比 |
-| **est_cost** | 平均每任务 API 费用 | 成本对比 |
+| **avg_tokens**   | 平均每任务消耗 token      | 效率对比                |
+| **avg_time**     | 平均 wall time            | 速度对比                |
+| **est_cost**     | 平均每任务 API 费用       | 成本对比                |
 
 ### 归因指标（pi 系列内部对比，定位 piex 各 package 的贡献）
 
-| 指标 | 定义 | 关联 package |
-|------|------|------------|
-| **edit_accuracy** | edit 调用中 hashline 语法正确的比例 | hashline |
-| **search_precision** | grep/glob/lsp 结果中相关的比例 | lsp |
-| **first_try_rate** | 第一次 edit 就正确的比例 | hashline |
-| **debug_success** | dap 调用后成功定位到 bug 的比例 | dap |
-| **plan_follow_rate** | Agent 按 plan 执行的比例 | plan |
-| **review_quality** | review 发现真实问题的比例 | review |
+| 指标                 | 定义                                | 关联 package |
+| -------------------- | ----------------------------------- | ------------ |
+| **edit_accuracy**    | edit 调用中 hashline 语法正确的比例 | hashline     |
+| **search_precision** | grep/glob/lsp 结果中相关的比例      | lsp          |
+| **first_try_rate**   | 第一次 edit 就正确的比例            | hashline     |
+| **debug_success**    | dap 调用后成功定位到 bug 的比例     | dap          |
+| **plan_follow_rate** | Agent 按 plan 执行的比例            | plan         |
+| **review_quality**   | review 发现真实问题的比例           | review       |
 
 ## Docker 架构
 
@@ -140,11 +140,11 @@ SWE-bench Leaderboard、官方 Blog、论文中 Claude Code / Aider / OpenHands 
 
 3. Agent Runner:
    docker exec pi pi --model ${MODEL} \
-     -e /piex/packages/hashline/extensions/hashline.ts \
-     -e /piex/packages/dap/extensions/dap.ts \
-     -e /piex/packages/lsp/extensions/lsp.ts \
-     -e /piex/packages/plan/extensions/plan.ts \
-     -e /piex/packages/review/extensions/review.ts \
+     -e /piex/extensions/hashline/src/hashline.ts \
+     -e /piex/extensions/dap/src/dap.ts \
+     -e /piex/extensions/lsp/src/lsp.ts \
+     -e /piex/extensions/plan/src/plan.ts \
+     -e /piex/extensions/review/src/review.ts \
      -p "${ISSUE_TEXT}" > /workspace/result.json
 
 4. 收集: result.json → patch + tool_calls + token_usage
@@ -156,11 +156,11 @@ SWE-bench Leaderboard、官方 Blog、论文中 Claude Code / Aider / OpenHands 
 
 ### Docker 镜像
 
-| 镜像 | 说明 |
-|------|------|
-| `pi.Dockerfile` | pi 基础镜像（Node.js），同时用于 pi bare 和 pi+piex |
-| `omp.Dockerfile` | omp 镜像（Bun 环境） |
-| `swebench.Dockerfile` | SWE-bench 仓库运行环境 |
+| 镜像                  | 说明                                                |
+| --------------------- | --------------------------------------------------- |
+| `pi.Dockerfile`       | pi 基础镜像（Node.js），同时用于 pi bare 和 pi+piex |
+| `omp.Dockerfile`      | omp 镜像（Bun 环境）                                |
+| `swebench.Dockerfile` | SWE-bench 仓库运行环境                              |
 
 pi bare 和 pi+piex 使用同一镜像，通过 `-e` 参数控制扩展加载。
 
@@ -213,28 +213,28 @@ piex/eval/
 
 ### 评测结果
 
-| 角色 | Agent | Model | Resolve Rate | Avg Tokens | Avg Time | Est. Cost |
-|------|-------|-------|-------------|------------|----------|-----------|
-| 基准线 | pi (bare) | deepseek-v3 | 12.4% | 85K | 3.2min | $0.18 |
-| **评测对象** | **pi + piex** | deepseek-v3 | **18.8%** | 62K | 2.8min | $0.14 |
-| 参照系 | omp | deepseek-v3 | 19.2% | 60K | 2.6min | $0.13 |
+| 角色         | Agent         | Model       | Resolve Rate | Avg Tokens | Avg Time | Est. Cost |
+| ------------ | ------------- | ----------- | ------------ | ---------- | -------- | --------- |
+| 基准线       | pi (bare)     | deepseek-v3 | 12.4%        | 85K        | 3.2min   | $0.18     |
+| **评测对象** | **pi + piex** | deepseek-v3 | **18.8%**    | 62K        | 2.8min   | $0.14     |
+| 参照系       | omp           | deepseek-v3 | 19.2%        | 60K        | 2.6min   | $0.13     |
 
 ### pi + piex 效果分析
 
-| 指标 | pi (bare) 基准线 | pi + piex | omp 参照系 | 相对基准提升 | 与 omp 参照差距 |
-|------|-----------------|-----------|---------|------------|-----------|
-| resolve_rate | 12.4% | 18.8% | 19.2% | **+51.6%** | **-2.1%** |
-| avg_tokens | 85K | 62K | 60K | **-27.1%** | **+3.3%** |
-| edit_accuracy | 67% | 91% | 92% | **+35.8%** | **-1.1%** |
-| avg_tool_calls | 42 | 28 | 26 | **-33.3%** | **+7.7%** |
+| 指标           | pi (bare) 基准线 | pi + piex | omp 参照系 | 相对基准提升 | 与 omp 参照差距 |
+| -------------- | ---------------- | --------- | ---------- | ------------ | --------------- |
+| resolve_rate   | 12.4%            | 18.8%     | 19.2%      | **+51.6%**   | **-2.1%**       |
+| avg_tokens     | 85K              | 62K       | 60K        | **-27.1%**   | **+3.3%**       |
+| edit_accuracy  | 67%              | 91%       | 92%        | **+35.8%**   | **-1.1%**       |
+| avg_tool_calls | 42               | 28        | 26         | **-33.3%**   | **+7.7%**       |
 
 ### 公开 Leaderboard 参考（同评测集）
 
-| Agent | Resolve Rate | 来源 |
-|-------|-------------|------|
-| Claude 4 Opus + SWE-agent | 42.6% | anthropic.com/blog |
-| Devin | 35.8% | swebench.com |
-| GPT-5 + OpenHands | 38.2% | openhands.dev |
+| Agent                     | Resolve Rate | 来源               |
+| ------------------------- | ------------ | ------------------ |
+| Claude 4 Opus + SWE-agent | 42.6%        | anthropic.com/blog |
+| Devin                     | 35.8%        | swebench.com       |
+| GPT-5 + OpenHands         | 38.2%        | openhands.dev      |
 
 ### 结论
 
@@ -269,9 +269,9 @@ piex/eval/
 
 ## 约束与风险
 
-| 风险 | 对策 |
-|------|------|
-| SWE-bench 数据污染 | 关注相对提升而非绝对值；后续接入 LiveCodeBench |
+| 风险               | 对策                                             |
+| ------------------ | ------------------------------------------------ |
+| SWE-bench 数据污染 | 关注相对提升而非绝对值；后续接入 LiveCodeBench   |
 | ARM64 x86 模拟性能 | 优先跑 SWE-bench Lite（300 题）；可上 Modal 云端 |
-| pi 非交互模式限制 | 验证 `-p` 模式效果；必要时用 PTY 模拟 |
-| 评测成本 | Lite 先行，按需跑全量 Verified |
+| pi 非交互模式限制  | 验证 `-p` 模式效果；必要时用 PTY 模拟            |
+| 评测成本           | Lite 先行，按需跑全量 Verified                   |

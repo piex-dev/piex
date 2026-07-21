@@ -1,0 +1,36 @@
+{
+  "name": "@piex-dev/theme-dark-terminal",
+  "version": "0.1.1",
+  "type": "module",
+  "description": "Dark Terminal theme for pi — high-contrast terminal-inspired dark theme with vivid green, blue, and red accents",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "themes/theme-dark-terminal"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-theme",
+    "dark-terminal",
+    "terminal-theme",
+    "high-contrast"
+  ],
+  "pi": {
+    "themes": [
+      "./themes"
+    ]
+  },
+  "files": [
+    "themes",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@piex-dev/init",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Guided AGENTS.md setup for pi — /init prompt template that scans the repo and creates or improves project agent rules",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "prompts/init"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-prompt",
+    "init",
+    "agents-md",
+    "AGENTS.md"
+  ],
+  "pi": {
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "files": [
+    "prompts",
+    "README.md"
+  ]
+}

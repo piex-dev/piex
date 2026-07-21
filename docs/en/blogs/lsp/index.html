@@ -162,7 +162,7 @@
         <p>The 0.2.0 lesson: servers like intelephense push a batch of empty diagnostics first, then the real ones — returning immediately misreports a faulty file as clean; on crash only an exit code remained, so debugging was guesswork. 0.3.0 fills in the protocol details — settle quiet-period waits for push to stabilize, pull diagnostics let the server compute on demand, stderr lands in the error message, <code>resolveProvider</code> gating avoids redundant requests to unsupported servers, and overlapping-TextEdit detection prevents file corruption. These are protocol lessons pi-extensions <code>pi-lsp</code> ran first; piex merges them into the persistent-process architecture, paying cold-start only once.</p>
 <h2 id="roadmap">Roadmap</h2>
         <p>
-          Done: correctness, post-edit diagnostics, rename/code_actions, diagnostics settle/pull, overlapping-edit guard. Tests: <code>bun test packages/lsp</code>. Next: project <code>.lsp.json</code>, module split, indexing readiness, directory-wide batch diagnostics. Deferred: lspmux, auto-download, completion.
+          Done: correctness, post-edit diagnostics, rename/code_actions, diagnostics settle/pull, overlapping-edit guard. Tests: <code>bun test extensions/lsp/test</code>. Next: project <code>.lsp.json</code>, module split, indexing readiness, directory-wide batch diagnostics. Deferred: lspmux, auto-download, completion.
         </p>
 
 <hr />

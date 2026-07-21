@@ -1,41 +1,43 @@
 # AGENTS.md
 
-PieX — Pi 扩展集合 monorepo。每个 `packages/<name>/` 是独立 npm 包（`@piex-dev/<name>`），100% 基于 pi Extension API。根目录无 `package.json`、无 workspace。
+PieX — Pi 扩展集合 monorepo。按 pi package 类型分目录：`extensions/<name>/`（TS 扩展）、`prompts/<name>/`（prompt 包）、`themes/<name>/`（theme 包），均发布为 `@piex-dev/<name>`。100% 基于 pi Extension API。根目录无 `package.json`、无 workspace。
 
 ## 关键结构事实
 
-- **入口**：每个包 `extensions/<name>.ts` → `export default function(pi: ExtensionAPI)`。pi 通过 `package.json` 的 `"pi": { "extensions": [...] }` 发现，jiti JIT 加载 `.ts`，无需编译。
+- **入口**：TS 扩展包 `extensions/<name>/src/<name>.ts` → `export default function(pi: ExtensionAPI)`。pi 通过 `package.json` 的 `"pi": { "extensions": ["./src/<name>.ts"] }` 发现，jiti JIT 加载 `.ts`，无需编译。包内代码统一在 `src/`，单测在 `test/`。
+- **三类 pi 包**：`extensions/<name>/`（TS 扩展，走 `pi.extensions`）、`prompts/<name>/`（prompt 包，走 `pi.prompts`）、`themes/<name>/`（theme 包，走 `pi.themes`）。
 - **有运行时依赖的包**（本地开发需 `npm install`）：
-  - `hashline/` — `@oh-my-pi/hashline`，含 `node_modules/`
-  - `ai-code-report/` — `@dp/tea-sdk-node` + `@logsdk/node-plugin-http` + `diff`，需内部 registry
-  - `lsp/` — mock LSP server 依赖（单测用），见 `docs/testing.md`
-- **prompt 包** `init/` 无 TypeScript，`"pi": { "prompts": ["./prompts"] }` → `.md` 变成斜杠命令
-- **plan/ 特殊依赖**：额外 peer dep `@earendil-works/pi-tui`、`@earendil-works/pi-agent-core`、`@earendil-works/pi-ai`（TUI 集成），不同于其他包仅需 `pi-coding-agent`
-- **主题包** `theme-dark-terminal/` 无 TypeScript，`"pi": { "themes": ["./themes"] }` → 安装必须用绝对路径，否则 `/reload` 后丢失
+  - `extensions/hashline/` — `@oh-my-pi/hashline`，含 `node_modules/`
+  - `extensions/ai-code-report/` — `@dp/tea-sdk-node` + `@logsdk/node-plugin-http` + `diff`，需内部 registry；**`private: true`，不发布**
+  - `extensions/lsp/` — mock LSP server 依赖（单测用），见 `docs/testing.md`
+- **prompt 包** `prompts/init/` 无 TypeScript，`"pi": { "prompts": ["./prompts"] }` → `.md` 变成斜杠命令
+- **`extensions/plan/` 特殊依赖**：额外 peer dep `@earendil-works/pi-tui`、`@earendil-works/pi-agent-core`、`@earendil-works/pi-ai`（TUI 集成），不同于其他扩展仅需 `pi-coding-agent`
+- **主题包** `themes/theme-dark-terminal/` 无 TypeScript，`"pi": { "themes": ["./themes"] }` → 安装必须用绝对路径，否则 `/reload` 后丢失
 - **package 自有配置/数据文件**：统一放 `~/.pi/piex-dev/<package>/`。代码里用 `join(dirname(getAgentDir()), "piex-dev", "<package>")` 构造。
 
 ## 开发命令
 
 ```bash
 # 冒烟测试（扩展改动后必跑）
-pi -e ./packages/<name>/extensions/<name>.ts -p "what is 1+1" --no-session
+pi -e ./extensions/<name>/src/<name>.ts -p "what is 1+1" --no-session
 
 # 单元测试
-bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
-cd packages/lsp && npm install && bun test   # mock LSP server，需先 npm install
+bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts
+cd extensions/lsp && npm install && bun test   # mock LSP server，需先 npm install
 
 # 格式化
 npx prettier --write .
 
-# 本地安装
-cd packages/hashline && npm install && cd ../..   # hashline 运行时依赖；ai-code-report 需内部 registry
-pi install packages/<name>                         # 全局
-pi install -l packages/<name>                     # 项目级
+# 本地安装（按类型目录：extensions/ prompts/ themes/）
+cd extensions/hashline && npm install && cd ../..   # hashline 运行时依赖；ai-code-report 需内部 registry
+pi install extensions/<name>                        # 全局（TS 扩展）
+pi install prompts/init                             # 全局（prompt 包）
+pi install themes/theme-dark-terminal               # 全局（theme 包，须绝对路径）
+pi install -l extensions/<name>                     # 项目级
 
-# 发布（发布前 bump 版本号）
+# 发布（发布前 bump 版本号；脚本遍历 extensions/ prompts/ themes/，自动跳过 private 包）
 ./scripts/publish-all.sh
-# 顺序：hashline dap lsp plan review init theme-dark-terminal xai-oauth btw context
-# ai-code-report 暂未加入发布脚本
+# ai-code-report 为 private，发布脚本自动跳过
 
 # 评测（需 Docker）
 cd eval && npm install && npm run build
@@ -100,7 +102,7 @@ cd eval && npm run check   # 需要 tsgo
 
 ### Package 博客
 
-每个 `packages/<name>/` 必须有对应博客源稿 `docs/notes/<name>.md`（slug = 目录名），frontmatter 必填 `title` / `date` / `tags`，各 package `README.md` 须有「深度解读」回链。正文结构：
+每个 `extensions/<name>/`、`prompts/<name>/`、`themes/<name>/` 必须有对应博客源稿 `docs/notes/<name>.md`（slug = 目录名），frontmatter 必填 `title` / `date` / `tags`，各 package `README.md` 须有「深度解读」回链。正文结构：
 
 1. **问题背景** — 要解决的痛点
 2. **技术原理** — 核心机制
@@ -140,4 +142,4 @@ cd eval && npm run check   # 需要 tsgo
 - **plan 模式危险命令拦截**：plan 模式下 `edit`/`write` 被禁用，仅保留 `read`/`bash`/`grep`/`find`/`ls`，且 `plan.ts` 内置 bash 危险命令拦截
 - eval 评测会把宿主机 `API_KEY`/`AUTH_TOKEN`/`ANTHROPIC_*`/`OPENAI_*` 等环境变量传入 Docker——跑不可信任务注意凭据面
 - 发布不可逆：`./scripts/publish-all.sh` 直接 `npm publish`，执行前确认版本号已 bump
-- 不存放密钥；`.gitignore` 忽略 `node_modules/`、`*.log`、`.DS_Store`、`packages/**/package-lock.json`
+- 不存放密钥；`.gitignore` 忽略 `node_modules/`、`*.log`、`.DS_Store`、`extensions/**/package-lock.json`

@@ -18,11 +18,11 @@ export function piAgentConfig(mode: "bare" | "piex"): AgentConfig {
     image: "piex-eval-pi",
     role: "test",
     extensions: [
-      "/piex/packages/hashline/extensions/hashline.ts",
-      "/piex/packages/dap/extensions/dap.ts",
-      "/piex/packages/lsp/extensions/lsp.ts",
-      "/piex/packages/plan/extensions/plan.ts",
-      "/piex/packages/review/extensions/review.ts",
+      "/piex/extensions/hashline/src/hashline.ts",
+      "/piex/extensions/dap/src/dap.ts",
+      "/piex/extensions/lsp/src/lsp.ts",
+      "/piex/extensions/plan/src/plan.ts",
+      "/piex/extensions/review/src/review.ts",
     ],
     extraArgs: [],
   };

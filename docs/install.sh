@@ -30,7 +30,7 @@ Usage:
 
 Options:
   -l, --local   Install project-locally (.pi/settings.json)
-  --dev         Install from local packages/ directory (repo development)
+  --dev         Install from local extensions/ prompts/ themes/ (repo development)
   -h, --help    Show this help
 
 Prerequisites: pi CLI (https://pi.dev), Node.js >= 18
@@ -50,20 +50,13 @@ for arg in "$@"; do
   esac
 done
 
-# ── All PieX packages ──────────────────────────────────
-# Order: hashline first (has npm deps), then core tools, then experience packages.
-PACKAGES=(
-  hashline
-  dap
-  lsp
-  plan
-  review
-  init
-  theme-dark-terminal
-  xai-oauth
-  btw
-  context
-)
+# ── All PieX packages (discovered by pi type dir) ──────
+# Top-level dirs: extensions/ (TS), prompts/ (prompt), themes/ (theme).
+# Private packages (e.g. ai-code-report) are skipped.
+# Discovery is alphabetical within each dir, so hashline is NOT first in the
+# install loop — but that's fine: its runtime dep is installed separately
+# (below) before the loop runs.
+TYPE_DIRS=(extensions prompts themes)
 
 # ── Pre-flight checks ──────────────────────────────────
 echo ""
@@ -91,33 +84,60 @@ if ! command -v node &>/dev/null; then
   exit 1
 fi
 
-NODE_VERSION="$(node -v 2>/dev/null | sed 's/^v//' || echo '0')"
-echo -e "${DIM}node version:${RESET} v$NODE_VERSION"
+# ── Locate repo root (needed for package discovery in BOTH modes) ──
+# We discover packages from the repo so we can skip private ones; registry mode
+# installs them via npm:@piex-dev/<name>, dev mode via local path.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ -d "$SCRIPT_DIR/../extensions" ]]; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+elif [[ "$USE_DEV" == true ]]; then
+  echo -e "${RED}Cannot find extensions/ directory.${RESET}"
+  echo "Run this script from the piex repo, or set REPO_ROOT:"
+  echo "  REPO_ROOT=/path/to/piex bash docs/install.sh --dev"
+  exit 1
+else
+  # registry mode from outside the repo: no local discovery, fall back to full list
+  REPO_ROOT=""
+fi
 
-# ── Dev mode: locate repo root ─────────────────────────
+# ── Build install list (discovered by pi type dir; skip private) ──
+is_private_pkg() {
+  node -e "const p=require('$1/package.json');process.exit(p.private?0:1)" 2>/dev/null
+}
+
+PACKAGES=()
+PKG_PATHS=()
+FAILED=()
+SUCCESS=0
+
+for dir in "${TYPE_DIRS[@]}"; do
+  for pkgdir in "$REPO_ROOT/$dir"/*/; do
+    [[ -f "$pkgdir/package.json" ]] || continue
+    # in registry mode we still want to skip private packages
+    if is_private_pkg "${pkgdir%/}"; then continue; fi
+    name=$(node -e "process.stdout.write(require('${pkgdir}package.json').name || '')" 2>/dev/null)
+    # strip @piex-dev/ scope for the short label / npm:@piex-dev/<name> form
+    short="${name#@piex-dev/}"
+    PACKAGES+=("$short")
+    PKG_PATHS+=("$dir/$short")
+  done
+done
+
+# Fallback: registry mode run from OUTSIDE the repo (no local discovery) →
+# use the full published list (all non-private @piex-dev packages).
+if [[ ${#PACKAGES[@]} -eq 0 ]]; then
+  PACKAGES=(hashline dap lsp plan review init theme-dark-terminal xai-oauth btw context)
+  PKG_PATHS=()
+fi
+
+TOTAL="${#PACKAGES[@]}"
+
 if [[ "$USE_DEV" == true ]]; then
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  # If running from docs/install.sh, repo root is one level up
-  if [[ -d "$SCRIPT_DIR/../packages" ]]; then
-    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-  else
-    echo -e "${RED}Cannot find packages/ directory.${RESET}"
-    echo "Run this script from the piex repo, or set PACKAGES_DIR:"
-    echo "  PACKAGES_DIR=/path/to/piex/packages bash docs/install.sh --dev"
-    exit 1
-  fi
-
-  PACKAGES_DIR="${PACKAGES_DIR:-$REPO_ROOT/packages}"
-  if [[ ! -d "$PACKAGES_DIR" ]]; then
-    echo -e "${RED}Packages directory not found: $PACKAGES_DIR${RESET}"
-    exit 1
-  fi
-
   echo -e "${DIM}mode:${RESET} dev (local paths)"
-  echo -e "${DIM}packages dir:${RESET} $PACKAGES_DIR"
+  echo -e "${DIM}repo:${RESET} $REPO_ROOT"
 
   # hashline: install runtime deps locally
-  HASHLINE_DIR="$PACKAGES_DIR/hashline"
+  HASHLINE_DIR="$REPO_ROOT/extensions/hashline"
   if [[ -d "$HASHLINE_DIR" ]] && [[ ! -d "$HASHLINE_DIR/node_modules" ]]; then
     echo -e "${DIM}Installing hashline runtime dependency (@oh-my-pi/hashline)...${RESET}"
     (cd "$HASHLINE_DIR" && npm install --omit=dev 2>&1 | tail -1)
@@ -140,11 +160,10 @@ echo ""
 TOTAL=${#PACKAGES[@]}
 SUCCESS=0
 FAILED=()
-
 for i in "${!PACKAGES[@]}"; do
   pkg="${PACKAGES[$i]}"
   if [[ "$USE_DEV" == true ]]; then
-    SOURCE="$PACKAGES_DIR/$pkg"
+    SOURCE="$REPO_ROOT/${PKG_PATHS[$i]}"
   else
     SOURCE="npm:@piex-dev/$pkg"
   fi
@@ -171,13 +190,11 @@ if [[ ${#FAILED[@]} -gt 0 ]]; then
     echo "  - $pkg"
   done
   echo ""
-  echo -e "${YELLOW}Tip:${RESET} try installing failed packages individually:"
   if [[ "$USE_DEV" == true ]]; then
-    echo "  pi install $PACKAGES_DIR/<name>"
+    echo "  pi install $REPO_ROOT/extensions/<name>   (or prompts/<name> / themes/<name>)"
   else
     echo "  pi install npm:@piex-dev/<name>"
   fi
-  exit 1
 fi
 
 echo ""

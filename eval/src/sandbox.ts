@@ -46,7 +46,12 @@ export class Sandbox {
     ];
 
     if (opts.extensions.length > 0) {
-      args.push(`--volume=${PIE_ROOT}/packages:/piex/packages:ro`);
+      // Mount the pi type dirs (extensions/ prompts/ themes/) read-only so the
+      // in-container extension paths (e.g. /piex/extensions/<name>/src/<name>.ts)
+      // resolve. Mirror the repo layout under /piex.
+      for (const dir of ["extensions", "prompts", "themes"]) {
+        args.push(`--volume=${PIE_ROOT}/${dir}:/piex/${dir}:ro`);
+      }
     }
 
     if (opts.env) {

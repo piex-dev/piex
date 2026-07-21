@@ -102,7 +102,7 @@ Plan:
 
 ## 实现方案
 
-包路径：[`packages/plan`](https://github.com/piex-dev/piex/tree/main/packages/plan)，入口约 1430 行单文件。
+包路径：[`extensions/plan`](https://github.com/piex-dev/piex/tree/main/extensions/plan)，入口约 1430 行单文件。
 
 ### 用户路径
 

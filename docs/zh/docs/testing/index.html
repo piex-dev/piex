@@ -111,25 +111,25 @@
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>cd piex
 
 # 加载测试（验证扩展不报错）
-pi -e ./packages/hashline/extensions/hashline.ts -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/dap/extensions/dap.ts       -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/lsp/extensions/lsp.ts       -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/plan/extensions/plan.ts     -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/review/extensions/review.ts  -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/hashline/src/hashline.ts -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/dap/src/dap.ts       -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/lsp/src/lsp.ts       -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/plan/src/plan.ts     -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/review/src/review.ts  -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/xai-oauth/src/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
 # init prompt package
-pi --prompt-template ./packages/init/prompts/init.md -p &quot;/init&quot; --no-session
+pi --prompt-template ./prompts/init/prompts/init.md -p &quot;/init&quot; --no-session
 
 # 单元测试
-bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
-cd packages/lsp &amp;&amp; npm install &amp;&amp; bun test</code></pre></div>
+bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts
+cd extensions/lsp &amp;&amp; npm install &amp;&amp; bun test</code></pre></div>
 <h2 id="功能测试">功能测试</h2>
 <h3 id="hashline">hashline</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 创建测试文件
 echo -e &#x27;hello world\nline 2\nline 3&#x27; &gt; /tmp/test.txt
 
 # 测试 read → edit 工作流
-pi -e ./packages/hashline/extensions/hashline.ts \
+pi -e ./extensions/hashline/src/hashline.ts \
   -p &quot;1. Read /tmp/test.txt 2. Use edit tool to replace &#x27;hello world&#x27; with &#x27;hi piex&#x27; using hashline SWAP syntax with [PATH#TAG]&quot; \
   --no-session -nc
 
@@ -137,39 +137,39 @@ pi -e ./packages/hashline/extensions/hashline.ts \
 cat /tmp/test.txt</code></pre></div>
 <h3 id="dap">dap</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 列出 debug sessions
-pi -e ./packages/dap/extensions/dap.ts \
+pi -e ./extensions/dap/src/dap.ts \
   -p &quot;Use the debug tool with action=sessions&quot; --no-session
 
 # 启动调试（需要安装 debug adapter）
-pi -e ./packages/dap/extensions/dap.ts \
+pi -e ./extensions/dap/src/dap.ts \
   -p &quot;Use the debug tool: action=launch, program=script.py, adapter=debugpy, timeout=5&quot; --no-session</code></pre></div>
 <h3 id="lsp">lsp</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 查看 LSP 状态
-pi -e ./packages/lsp/extensions/lsp.ts \
+pi -e ./extensions/lsp/src/lsp.ts \
   -p &quot;Use the lsp tool with action=status&quot; --no-session
 
 # 获取诊断（需要对应的 LSP server）
-pi -e ./packages/lsp/extensions/lsp.ts \
+pi -e ./extensions/lsp/src/lsp.ts \
   -p &quot;Use the lsp tool with action=diagnostics file=src/index.ts（需本机 language server）&quot; --no-session</code></pre></div>
 <h3 id="plan">plan</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 交互式测试（需要 TUI 模式）
-pi -e ./packages/plan/extensions/plan.ts
+pi -e ./extensions/plan/src/plan.ts
 
 # 进入后输入 /plan 切换计划模式</code></pre></div>
 <h3 id="review">review</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 测试 review 工具（无变更）
-pi -e ./packages/review/extensions/review.ts \
+pi -e ./extensions/review/src/review.ts \
   -p &quot;Use the review tool with action=diff&quot; --no-session
 
 # 交互式测试
-pi -e ./packages/review/extensions/review.ts
+pi -e ./extensions/review/src/review.ts
 # 输入 /review 查看评审菜单</code></pre></div>
 
 <h3 id="init">init</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># 本地加载 prompt（不写 settings）
-pi --prompt-template ./packages/init/prompts/init.md
+pi --prompt-template ./prompts/init/prompts/init.md
 # 或 install 后：
-pi install -l packages/init
+pi install -l prompts/init
 pi -p &quot;/init&quot; --no-session</code></pre></div>
 <h2 id="环境要求">环境要求</h2>
 <div class="blog-table-wrap"><table><thead><tr>
@@ -210,7 +210,7 @@ pi -p &quot;/init&quot; --no-session</code></pre></div>
 </tbody></table></div>
 <h2 id="bun-测试">Bun 测试</h2>
 <p>hashline 在 Bun 下使用原生 Bun API，无需 polyfill：</p>
-<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>bun run pi -e ./packages/hashline/extensions/hashline.ts -p &quot;hi&quot; --no-session</code></pre></div>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>bun run pi -e ./extensions/hashline/src/hashline.ts -p &quot;hi&quot; --no-session</code></pre></div>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Doc navigation">

@@ -306,11 +306,11 @@ export default async function myExtension(pi: ExtensionAPI) { ... }</code></pre>
         <ul>
 <li><strong>全局 settings</strong>（<code>~/.pi/agent/settings.json</code>）：本地包路径必须传绝对路径，否则 <code>/reload</code> 后相对路径会按 settings 文件位置解析导致主题丢失。例：</li>
 </ul>
-        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install /abspath-to-piex/packages/theme-dark-terminal</code></pre></div>
+        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install /abspath-to-piex/themes/theme-dark-terminal</code></pre></div>
         <ul>
 <li><strong>项目级 settings</strong>（<code>.pi/settings.json</code>）：可用相对路径，团队共享。例：</li>
 </ul>
-        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install -l ./packages/theme-dark-terminal</code></pre></div>
+        <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>pi install -l ./themes/theme-dark-terminal</code></pre></div>
         <p>主题 JSON 包含 <code>name</code>（唯一主题名）、<code>vars</code>（可选色板变量）和 <code>colors</code>（51 个必需 token）。pi 启动时自动加载，<code>/settings</code> 切换。</p>
       </div>
 

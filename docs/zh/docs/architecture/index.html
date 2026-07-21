@@ -111,46 +111,45 @@
 │   ├── {lang}/docs/&lt;slug&gt;/index.html #   中/英文档 HTML → /{lang}/docs/&lt;slug&gt;/
 │   ├── {lang}/blogs/&lt;slug&gt;/index.html#   中/英博客 HTML → /{lang}/blogs/&lt;slug&gt;/
 │   ├── assets/                       #   style / main / blog 静态资源
-└── packages/                         # 📦 7 个独立 piex package
+└── extensions/                      # 🧩 pi extension 包（TS，走 pi.extensions）
     ├── hashline/
     │   ├── README.md
     │   ├── package.json
-    │   └── extensions/
-    │       ├── hashline.ts
-    │       └── bun-polyfill.ts
+    │   ├── src/                     # hashline.ts, bun-polyfill.ts, filesystem.ts, patches.ts
+    │   └── test/                    # hashline.test.ts
     ├── dap/
     │   ├── README.md
     │   ├── package.json
-    │   └── extensions/
-    │       ├── dap.ts, client.ts, session.ts
-    │       ├── config.ts, types.ts, utils.ts
-    │       ├── defaults.json, non-interactive-env.ts
+    │   └── src/                     # dap.ts, client.ts, session.ts, config.ts, types.ts, utils.ts, defaults.json, non-interactive-env.ts
     ├── lsp/
     │   ├── README.md
     │   ├── package.json
-    │   └── extensions/
-    │       ├── lsp.ts, defaults.json
+    │   ├── src/                     # lsp.ts, defaults.json
+    │   └── test/                    # lsp.test.ts, fixtures/mock-lsp-server.mjs
     ├── plan/
     │   ├── README.md
     │   ├── package.json
-    │   └── extensions/
-    │       └── plan.ts
+    │   ├── src/                     # plan.ts
+    │   └── test/                    # plan.test.ts
     ├── review/
     │   ├── README.md
     │   ├── package.json
-    │   └── extensions/
-    │       └── review.ts
-    ├── init/
-    │   ├── README.md
-    │   ├── package.json              # pi.prompts
-    │   └── prompts/
-    │       └── init.md               # → /init
+    │   └── src/                     # review.ts
     ├── xai-oauth/
     │   ├── README.md
     │   ├── package.json
-    │   └── extensions/
-    │       ├── xai-oauth.ts
-    │       └── models.ts
+    │   ├── src/                     # xai-oauth.ts, models.ts
+    │   └── test/                    # xai-oauth.test.ts, models.test.ts
+    ├── btw/                         # src/btw.ts
+    ├── context/                     # src/context.ts
+    └── ai-code-report/              # src/ai-code-report.ts（private，未发布）
+├── prompts/                          # 📝 pi prompt 包（走 pi.prompts）
+    └── init/
+        ├── README.md
+        ├── package.json             # pi.prompts
+        └── prompts/
+            └── init.md               # → /init
+└── themes/                          # 🎨 pi theme 包（走 pi.themes）
     └── theme-dark-terminal/
         ├── README.md
         ├── package.json

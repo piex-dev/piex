@@ -25,7 +25,7 @@ curl -fsSL https://piex.dev/install.sh | bash -s -- -l  # 项目级安装
 仓库内开发可直接执行本地脚本：
 
 ```bash
-bash docs/install.sh --dev        # 从本地 packages/ 安装
+bash docs/install.sh --dev        # 从本地 extensions/ prompts/ themes/ 安装
 bash docs/install.sh --dev -l     # 项目级 + 本地路径
 ```
 
@@ -41,18 +41,18 @@ pi install npm:@piex-dev/hashline
 
 ```bash
 cd /path/to/piex
-cd packages/hashline && npm install && cd ../..   # 仅 hashline 需先 npm install
-pi install packages/hashline                      # 全局 settings
-pi install -l packages/hashline                   # 项目 .pi/settings.json
+cd extensions/hashline && npm install && cd ../..   # 仅 hashline 需先 npm install
+pi install extensions/hashline                      # 全局 settings
+pi install -l extensions/hashline                   # 项目 .pi/settings.json
 ```
 
 ### 临时加载（`-e`，不写 settings）
 
 ```bash
-pi -e ./packages/hashline/extensions/hashline.ts
+pi -e ./extensions/hashline/src/hashline.ts
 ```
 
-主题包无 `extensions/*.ts`，请用 npm 或本地 `pi install`，见 [theme-dark-terminal](packages/theme-dark-terminal/README.md)。
+主题包无 `extensions/*.ts`，请用 npm 或本地 `pi install`，见 [theme-dark-terminal](themes/theme-dark-terminal/README.md)。
 
 ## Package 总览
 
@@ -86,14 +86,14 @@ pi -e ./packages/hashline/extensions/hashline.ts
 
 ```bash
 # 安装依赖（hashline 需要）
-cd packages/hashline && npm install
+cd extensions/hashline && npm install
 
 # 查看已安装的 packages
 pi list
 
 # 移除 package（全局安装用绝对路径，项目级安装用 -l）
-pi remove /abspath-to-piex/packages/hashline
-pi remove -l ./packages/hashline
+pi remove /abspath-to-piex/extensions/hashline
+pi remove -l ./extensions/hashline
 ```
 
 ## License

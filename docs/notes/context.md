@@ -46,17 +46,17 @@ session entries ──► 按 role 分类（user / assistant / system）
 
 ## 实现方案
 
-包路径：[`packages/context`](https://github.com/piex-dev/piex/tree/main/packages/context)，约 160 行单文件。
+包路径：[`extensions/context`](https://github.com/piex-dev/piex/tree/main/extensions/context)，约 160 行单文件。
 
 ### 核心函数
 
-| 函数 | 职责 |
-|------|------|
+| 函数               | 职责                                                |
+| ------------------ | --------------------------------------------------- |
 | `analyzeEntries()` | 遍历 session entries，按 role/type 统计数量和字符数 |
-| `countChars()` | 适配 string 和 content block 数组两种内容格式 |
-| `buildReport()` | 生成 Markdown 表格 + ASCII 柱状图 |
-| `estimateTokens()` | chars / 3.5 估算法 |
-| `buildBar()` | 生成 █ / ░ 字符柱状图 |
+| `countChars()`     | 适配 string 和 content block 数组两种内容格式       |
+| `buildReport()`    | 生成 Markdown 表格 + ASCII 柱状图                   |
+| `estimateTokens()` | chars / 3.5 估算法                                  |
+| `buildBar()`       | 生成 █ / ░ 字符柱状图                               |
 
 ### 报告结构
 
@@ -83,12 +83,12 @@ Estimated total: ~3.2k tokens (11,234 chars)
 
 ### 与 pi /session 对比
 
-| pi /session | context (piex) |
-|-------------|----------------|
-| 展示 session 列表 | 展示当前 session 内容分布 |
-| 无分布图表 | ASCII bar chart 分布可视化 |
-| 无 token 估算 | chars → tokens 估算 |
-| 无条目分类 | 按 role/type 详细分类 |
+| pi /session       | context (piex)             |
+| ----------------- | -------------------------- |
+| 展示 session 列表 | 展示当前 session 内容分布  |
+| 无分布图表        | ASCII bar chart 分布可视化 |
+| 无 token 估算     | chars → tokens 估算        |
+| 无条目分类        | 按 role/type 详细分类      |
 
 ---
 

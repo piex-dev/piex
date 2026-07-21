@@ -251,11 +251,11 @@
 
 3. Agent Runner:
    docker exec pi pi --model ${MODEL} \
-     -e /piex/packages/hashline/extensions/hashline.ts \
-     -e /piex/packages/dap/extensions/dap.ts \
-     -e /piex/packages/lsp/extensions/lsp.ts \
-     -e /piex/packages/plan/extensions/plan.ts \
-     -e /piex/packages/review/extensions/review.ts \
+     -e /piex/extensions/hashline/src/hashline.ts \
+     -e /piex/extensions/dap/src/dap.ts \
+     -e /piex/extensions/lsp/src/lsp.ts \
+     -e /piex/extensions/plan/src/plan.ts \
+     -e /piex/extensions/review/src/review.ts \
      -p &quot;${ISSUE_TEXT}&quot; &gt; /workspace/result.json
 
 4. Collect: result.json → patch + tool_calls + token_usage

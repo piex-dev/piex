@@ -8,19 +8,19 @@
 cd piex
 
 # 加载测试（验证扩展不报错）
-pi -e ./packages/hashline/extensions/hashline.ts -p "what is 1+1" --no-session
-pi -e ./packages/dap/extensions/dap.ts       -p "what is 1+1" --no-session
-pi -e ./packages/lsp/extensions/lsp.ts       -p "what is 1+1" --no-session
-pi -e ./packages/plan/extensions/plan.ts     -p "what is 1+1" --no-session
-pi -e ./packages/review/extensions/review.ts  -p "what is 1+1" --no-session
-pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p "what is 1+1" --no-session
+pi -e ./extensions/hashline/src/hashline.ts -p "what is 1+1" --no-session
+pi -e ./extensions/dap/src/dap.ts       -p "what is 1+1" --no-session
+pi -e ./extensions/lsp/src/lsp.ts       -p "what is 1+1" --no-session
+pi -e ./extensions/plan/src/plan.ts     -p "what is 1+1" --no-session
+pi -e ./extensions/review/src/review.ts  -p "what is 1+1" --no-session
+pi -e ./extensions/xai-oauth/src/xai-oauth.ts -p "what is 1+1" --no-session
 
 # init 为 prompt 包（无 extensions），用 --prompt-template 或 install 后测
-pi --prompt-template ./packages/init/prompts/init.md -p "/init" --no-session
+pi --prompt-template ./prompts/init/prompts/init.md -p "/init" --no-session
 
 # 单元测试（不依赖真实外部服务）
-bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
-cd packages/lsp && npm install && bun test   # mock LSP server
+bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts
+cd extensions/lsp && npm install && bun test   # mock LSP server
 ```
 
 ## 功能测试
@@ -32,7 +32,7 @@ cd packages/lsp && npm install && bun test   # mock LSP server
 echo -e 'hello world\nline 2\nline 3' > /tmp/test.txt
 
 # 测试 read → edit 工作流
-pi -e ./packages/hashline/extensions/hashline.ts \
+pi -e ./extensions/hashline/src/hashline.ts \
   -p "1. Read /tmp/test.txt 2. Use edit tool to replace 'hello world' with 'hi piex' using hashline SWAP syntax with [PATH#TAG]" \
   --no-session -nc
 
@@ -44,11 +44,11 @@ cat /tmp/test.txt
 
 ```bash
 # 列出 debug sessions
-pi -e ./packages/dap/extensions/dap.ts \
+pi -e ./extensions/dap/src/dap.ts \
   -p "Use the debug tool with action=sessions" --no-session
 
 # 启动调试（需要安装 debug adapter）
-pi -e ./packages/dap/extensions/dap.ts \
+pi -e ./extensions/dap/src/dap.ts \
   -p "Use the debug tool: action=launch, program=script.py, adapter=debugpy, timeout=5" --no-session
 ```
 
@@ -56,17 +56,17 @@ pi -e ./packages/dap/extensions/dap.ts \
 
 ```bash
 # 单元测试（推荐，无需安装 language server）
-cd packages/lsp && npm install && bun test
+cd extensions/lsp && npm install && bun test
 
 # 查看 LSP 状态（按项目 rootMarkers 列出默认 server）
-pi -e ./packages/lsp/extensions/lsp.ts \
+pi -e ./extensions/lsp/src/lsp.ts \
   -p "Call the lsp tool with action=status and show the output" --no-session
 
 # 诊断 / 导航 / 重构（需要本机已装对应 server，如 typescript-language-server、pyright）
-pi -e ./packages/lsp/extensions/lsp.ts \
+pi -e ./extensions/lsp/src/lsp.ts \
   -p "Use lsp action=diagnostics file=src/index.ts" --no-session
 
-pi -e ./packages/lsp/extensions/lsp.ts \
+pi -e ./extensions/lsp/src/lsp.ts \
   -p "Use lsp action=rename file=src/a.ts line=1 column=1 new_name=foo apply=false" --no-session
 
 # 写后诊断：edit/write 成功后 tool 结果应附带 [lsp diagnostics] ERROR 块
@@ -77,7 +77,7 @@ pi -e ./packages/lsp/extensions/lsp.ts \
 
 ```bash
 # 交互式测试（需要 TUI 模式）
-pi -e ./packages/plan/extensions/plan.ts
+pi -e ./extensions/plan/src/plan.ts
 
 # 进入后输入 /plan 切换计划模式
 ```
@@ -86,11 +86,11 @@ pi -e ./packages/plan/extensions/plan.ts
 
 ```bash
 # 测试 review 工具（无变更）
-pi -e ./packages/review/extensions/review.ts \
+pi -e ./extensions/review/src/review.ts \
   -p "Use the review tool with action=diff" --no-session
 
 # 交互式测试
-pi -e ./packages/review/extensions/review.ts
+pi -e ./extensions/review/src/review.ts
 # 输入 /review 查看评审菜单
 # 输入 /review 查看评审菜单
 ```
@@ -99,11 +99,11 @@ pi -e ./packages/review/extensions/review.ts
 
 ```bash
 # 本地加载 prompt（不写 settings）
-pi --prompt-template ./packages/init/prompts/init.md
+pi --prompt-template ./prompts/init/prompts/init.md
 # 交互输入 /init，或：
-pi install -l packages/init
+pi install -l prompts/init
 pi -p "/init" --no-session   # 在目标项目目录执行，会创建/更新 AGENTS.md
-
+```
 ## 环境要求
 
 | Package | 运行时 | 额外工具 |
@@ -121,5 +121,5 @@ pi -p "/init" --no-session   # 在目标项目目录执行，会创建/更新 AG
 hashline 在 Bun 下使用原生 Bun API，无需 polyfill：
 
 ```bash
-bun run pi -e ./packages/hashline/extensions/hashline.ts -p "hi" --no-session
-```
+bun run pi -e ./extensions/hashline/src/hashline.ts -p "hi" --no-session
+````

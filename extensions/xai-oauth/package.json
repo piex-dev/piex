@@ -1,0 +1,42 @@
+{
+  "name": "@piex-dev/xai-oauth",
+  "version": "0.1.1",
+  "type": "module",
+  "description": "xAI Grok OAuth subscription login for pi — use SuperGrok or X Premium+ instead of API key",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "extensions/xai-oauth"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "xai",
+    "grok",
+    "oauth",
+    "supergrok",
+    "x-premium"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/xai-oauth.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/xai-oauth.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "*"
+  }
+}

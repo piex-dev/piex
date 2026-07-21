@@ -66,10 +66,10 @@ const jiti = createJiti(import.meta.url, {
 });
 ```
 
-| 模式 | 解析方式 | 说明 |
-|------|---------|------|
-| Bun 二进制 | `virtualModules` | 将 pi 系列包（typebox、pi-agent-core、pi-tui、pi-coding-agent）直接注入 jiti 模块缓存，不依赖文件系统 |
-| Node.js/开发 | `alias` | 映射到本地 workspace 路径 |
+| 模式         | 解析方式         | 说明                                                                                                  |
+| ------------ | ---------------- | ----------------------------------------------------------------------------------------------------- |
+| Bun 二进制   | `virtualModules` | 将 pi 系列包（typebox、pi-agent-core、pi-tui、pi-coding-agent）直接注入 jiti 模块缓存，不依赖文件系统 |
+| Node.js/开发 | `alias`          | 映射到本地 workspace 路径                                                                             |
 
 这意味着扩展中的 `import { ExtensionAPI } from "@earendil-works/pi-coding-agent"` 在运行时会被重定向到 pi 内部的打包实例，保证版本一致性。
 
@@ -77,11 +77,11 @@ const jiti = createJiti(import.meta.url, {
 
 `discoverAndLoadExtensions()` 按优先级从三个位置扫描：
 
-| 优先级 | 位置 | 作用域 |
-|--------|------|--------|
-| 1 | `{cwd}/.pi/extensions/` | 项目级（需信任项目） |
-| 2 | `~/.pi/agent/extensions/` | 全局（所有项目） |
-| 3 | `settings.json` 中 `extensions` 字段 | 显式配置 |
+| 优先级 | 位置                                 | 作用域               |
+| ------ | ------------------------------------ | -------------------- |
+| 1      | `{cwd}/.pi/extensions/`              | 项目级（需信任项目） |
+| 2      | `~/.pi/agent/extensions/`            | 全局（所有项目）     |
+| 3      | `settings.json` 中 `extensions` 字段 | 显式配置             |
 
 每个目录的解析规则（不递归，只一层）：
 
@@ -106,14 +106,14 @@ extensions/
 
 ```typescript
 interface Extension {
-  sourceInfo: SourceInfo;       // 来源信息（路径、scope、origin）
-  handlers:        Map<string, Function[]>     // 事件处理器
-  tools:           Map<string, RegisteredTool> // 注册的工具
-  commands:        Map<string, RegisteredCommand> // 注册的命令
-  flags:           Map<string, ExtensionFlag>  // CLI 标志
-  shortcuts:       Map<string, ExtensionShortcut> // 键盘快捷键
-  messageRenderers: Map<string, Function>      // 自定义消息渲染器
-  entryRenderers:  Map<string, Function>       // 自定义条目渲染器
+  sourceInfo: SourceInfo; // 来源信息（路径、scope、origin）
+  handlers: Map<string, Function[]>; // 事件处理器
+  tools: Map<string, RegisteredTool>; // 注册的工具
+  commands: Map<string, RegisteredCommand>; // 注册的命令
+  flags: Map<string, ExtensionFlag>; // CLI 标志
+  shortcuts: Map<string, ExtensionShortcut>; // 键盘快捷键
+  messageRenderers: Map<string, Function>; // 自定义消息渲染器
+  entryRenderers: Map<string, Function>; // 自定义条目渲染器
 }
 ```
 
@@ -148,7 +148,7 @@ pi.exec()            ──→  runtime（直接调 execCommand）
 const notInitialized = () => {
   throw new Error(
     "Extension runtime not initialized. " +
-    "Action methods cannot be called during extension loading."
+      "Action methods cannot be called during extension loading.",
   );
 };
 
@@ -197,13 +197,14 @@ Runner 实例化后，需要 `bindCore()` 注入真实的会话后端实现：
 
 ```typescript
 runner.bindCore(
-  actions,         // { sendMessage, sendUserMessage, appendEntry, ... }
-  contextActions,  // { getModel, isIdle, abort, shutdown, compact, getSystemPrompt, ... }
+  actions, // { sendMessage, sendUserMessage, appendEntry, ... }
+  contextActions, // { getModel, isIdle, abort, shutdown, compact, getSystemPrompt, ... }
   providerActions, // { registerProvider, unregisterProvider }（可选）
 );
 ```
 
 调用 `bindCore()` 后：
+
 1. **注入 actions** → runtime 的 throwing stub 被替换为真实函数
 2. **保存 context 闭包** → `getModel`、`isIdle`、`abort` 等作为闭包保存在 Runner 内部
 3. **冲刷 provider 队列** → `pendingProviderRegistrations` 批量注册
@@ -303,11 +304,11 @@ async emitToolResult(event) {
 
 `getShortcuts()` 检查扩展注册的快捷键与内置保留快捷键的冲突：
 
-| 级别 | 处理 |
-|------|------|
-| `restrictOverride: true` | 完全禁止覆盖（如 `Ctrl+C` 退出），输出 warning 并跳过 |
-| `restrictOverride: false` | 允许覆盖但输出 info 警告 |
-| 扩展间冲突 | 后注册覆盖先注册，输出 warning |
+| 级别                      | 处理                                                  |
+| ------------------------- | ----------------------------------------------------- |
+| `restrictOverride: true`  | 完全禁止覆盖（如 `Ctrl+C` 退出），输出 warning 并跳过 |
+| `restrictOverride: false` | 允许覆盖但输出 info 警告                              |
+| 扩展间冲突                | 后注册覆盖先注册，输出 warning                        |
 
 ### 2.6 Stale Context 保护
 
@@ -331,8 +332,9 @@ invalidate(message) {
 
 ```typescript
 export function wrapRegisteredTool(registeredTool, runner) {
-  const tool = wrapToolDefinition(registeredTool.definition,
-    () => runner.createContext());  // ← 每次执行时创建新 context
+  const tool = wrapToolDefinition(registeredTool.definition, () =>
+    runner.createContext(),
+  ); // ← 每次执行时创建新 context
 
   return {
     ...tool,
@@ -342,9 +344,9 @@ export function wrapRegisteredTool(registeredTool, runner) {
       const activeAfter = runner.getActiveTools();
 
       // 检查工具执行过程中是否动态注册了新工具
-      const addedToolNames = activeAfter.filter(n => !activeBefore.has(n));
+      const addedToolNames = activeAfter.filter((n) => !activeBefore.has(n));
       if (addedToolNames.length > 0) {
-        return { ...result, addedToolNames };  // ← 通知系统刷新工具集
+        return { ...result, addedToolNames }; // ← 通知系统刷新工具集
       }
       return result;
     },
@@ -426,15 +428,15 @@ export function wrapRegisteredTool(registeredTool, runner) {
 
 ## 五、设计要点总结
 
-| 设计 | 实现 | 目的 |
-|------|------|------|
-| **数据归属清晰** | 注册类方法 → Extension 对象；行动类方法 → 共享 Runtime | 扩展独立，互不污染 |
-| **延迟绑定** | Runtime 初建全是 throwing stub，bindCore() 后注入 | 加载阶段纯声明，无副作用 |
-| **Context 懒求值** | getter 设计，每次访问实时取值 | 避免闭包快照过时 |
-| **串行事件分发** | 按扩展加载顺序逐个 handler 执行 | 行为可预测 |
-| **错误绝不传播** | try-catch + emitError 通知 | 单扩展 bug 不拖垮 pi |
-| **三种分发模式** | Fire-and-forget / Cancel / Chain | 按事件语义选择合适策略 |
-| **Stale 保护** | invalidate() 后抛异常 | 防止 session 切换后误用旧引用 |
-| **Provider 注册队列** | 加载期入队，bindCore 时批量冲刷 | 解决注册时序问题 |
+| 设计                  | 实现                                                   | 目的                          |
+| --------------------- | ------------------------------------------------------ | ----------------------------- |
+| **数据归属清晰**      | 注册类方法 → Extension 对象；行动类方法 → 共享 Runtime | 扩展独立，互不污染            |
+| **延迟绑定**          | Runtime 初建全是 throwing stub，bindCore() 后注入      | 加载阶段纯声明，无副作用      |
+| **Context 懒求值**    | getter 设计，每次访问实时取值                          | 避免闭包快照过时              |
+| **串行事件分发**      | 按扩展加载顺序逐个 handler 执行                        | 行为可预测                    |
+| **错误绝不传播**      | try-catch + emitError 通知                             | 单扩展 bug 不拖垮 pi          |
+| **三种分发模式**      | Fire-and-forget / Cancel / Chain                       | 按事件语义选择合适策略        |
+| **Stale 保护**        | invalidate() 后抛异常                                  | 防止 session 切换后误用旧引用 |
+| **Provider 注册队列** | 加载期入队，bindCore 时批量冲刷                        | 解决注册时序问题              |
 
 Pi 的 Extension 机制本质上是一个**插件化的事件驱动架构**：内核承担最少职责（四种工具 + TUI 渲染），把行为决策权全部交给 Extension 层。这种设计让 pi 能适配任意工作流，而不会强加一种特定的使用方式。

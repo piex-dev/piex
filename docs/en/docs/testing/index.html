@@ -119,25 +119,25 @@
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>cd piex
 
 # Load test (extension must not throw)
-pi -e ./packages/hashline/extensions/hashline.ts -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/dap/extensions/dap.ts       -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/lsp/extensions/lsp.ts       -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/plan/extensions/plan.ts     -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/review/extensions/review.ts  -p &quot;what is 1+1&quot; --no-session
-pi -e ./packages/xai-oauth/extensions/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/hashline/src/hashline.ts -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/dap/src/dap.ts       -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/lsp/src/lsp.ts       -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/plan/src/plan.ts     -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/review/src/review.ts  -p &quot;what is 1+1&quot; --no-session
+pi -e ./extensions/xai-oauth/src/xai-oauth.ts -p &quot;what is 1+1&quot; --no-session
 # init prompt package
-pi --prompt-template ./packages/init/prompts/init.md -p &quot;/init&quot; --no-session
+pi --prompt-template ./prompts/init/prompts/init.md -p &quot;/init&quot; --no-session
 
 # xai-oauth unit tests (offline)
-bun test packages/xai-oauth/xai-oauth.test.ts packages/xai-oauth/models.test.ts
-cd packages/lsp &amp;&amp; npm install &amp;&amp; bun test</code></pre></div>
+bun test extensions/xai-oauth/test/xai-oauth.test.ts extensions/xai-oauth/test/models.test.ts
+cd extensions/lsp &amp;&amp; npm install &amp;&amp; bun test</code></pre></div>
 <h2 id="functional-tests">Functional tests</h2>
 <h3 id="hashline">hashline</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Create a fixture
 echo -e &#x27;hello world\nline 2\nline 3&#x27; &gt; /tmp/test.txt
 
 # read → edit workflow
-pi -e ./packages/hashline/extensions/hashline.ts \
+pi -e ./extensions/hashline/src/hashline.ts \
   -p &quot;1. Read /tmp/test.txt 2. Use edit tool to replace &#x27;hello world&#x27; with &#x27;hi piex&#x27; using hashline SWAP syntax with [PATH#TAG]&quot; \
   --no-session -nc
 
@@ -145,39 +145,39 @@ pi -e ./packages/hashline/extensions/hashline.ts \
 cat /tmp/test.txt</code></pre></div>
 <h3 id="dap">dap</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># List debug sessions
-pi -e ./packages/dap/extensions/dap.ts \
+pi -e ./extensions/dap/src/dap.ts \
   -p &quot;Use the debug tool with action=sessions&quot; --no-session
 
 # Launch (requires a debug adapter)
-pi -e ./packages/dap/extensions/dap.ts \
+pi -e ./extensions/dap/src/dap.ts \
   -p &quot;Use the debug tool: action=launch, program=script.py, adapter=debugpy, timeout=5&quot; --no-session</code></pre></div>
 <h3 id="lsp">lsp</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># LSP status
-pi -e ./packages/lsp/extensions/lsp.ts \
+pi -e ./extensions/lsp/src/lsp.ts \
   -p &quot;Use the lsp tool with action=status&quot; --no-session
 
 # Diagnostics (requires matching LSP server)
-pi -e ./packages/lsp/extensions/lsp.ts \
+pi -e ./extensions/lsp/src/lsp.ts \
   -p &quot;Use the lsp tool with action=diagnostics, file=README.md&quot; --no-session</code></pre></div>
 <h3 id="plan">plan</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Interactive (TUI)
-pi -e ./packages/plan/extensions/plan.ts
+pi -e ./extensions/plan/src/plan.ts
 
 # Then type /plan to enter plan mode</code></pre></div>
 <h3 id="review">review</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># review tool with no changes
-pi -e ./packages/review/extensions/review.ts \
+pi -e ./extensions/review/src/review.ts \
   -p &quot;Use the review tool with action=diff&quot; --no-session
 
 # Interactive
-pi -e ./packages/review/extensions/review.ts
+pi -e ./extensions/review/src/review.ts
 # Type /review for the review menu</code></pre></div>
 
 <h3 id="init">init</h3>
 <div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code># Load prompt without writing settings
-pi --prompt-template ./packages/init/prompts/init.md
+pi --prompt-template ./prompts/init/prompts/init.md
 # Or after install:
-pi install -l packages/init
+pi install -l prompts/init
 pi -p &quot;/init&quot; --no-session</code></pre></div>
 <h2 id="environment-requirements">Environment requirements</h2>
 <div class="blog-table-wrap"><table>
@@ -196,7 +196,7 @@ pi -p &quot;/init&quot; --no-session</code></pre></div>
 </tbody></table></div>
 <h2 id="bun">Bun</h2>
 <p>Under Bun, hashline uses native Bun APIs (no polyfill):</p>
-<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>bun run pi -e ./packages/hashline/extensions/hashline.ts -p &quot;hi&quot; --no-session</code></pre></div>
+<div class="blog-code" data-lang="bash"><div class="blog-code-bar"><span>bash</span><button type="button" class="blog-code-copy">Copy</button></div><pre><code>bun run pi -e ./extensions/hashline/src/hashline.ts -p &quot;hi&quot; --no-session</code></pre></div>
       </div>
 
       <nav class="blog-footer-nav" aria-label="Doc navigation">

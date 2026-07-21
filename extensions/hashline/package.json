@@ -1,0 +1,43 @@
+{
+  "name": "@piex-dev/hashline",
+  "version": "0.1.1",
+  "type": "module",
+  "description": "Hashline patch language extension for pi — compact, line-anchored, tag-verified file edits",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "extensions/hashline"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "hashline",
+    "patch",
+    "edit"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/hashline.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/hashline.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "dependencies": {
+    "@oh-my-pi/hashline": "^16.4.0"
+  }
+}

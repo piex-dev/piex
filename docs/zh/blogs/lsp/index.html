@@ -165,7 +165,7 @@
         <p>0.2.0 的教训：intelephense 这类 server 会先推一批空诊断、再推真诊断，到即返会把有错的文件报成干净；server 崩溃时只有 exit code，排障全靠猜。0.3.0 把协议细节补齐——settle 静默期等推送稳定、pull 诊断让 server 按需算、stderr 进错误消息、<code>resolveProvider</code> 门控避免对不支持的 server 发多余请求、重叠 TextEdit 检测防写坏文件。这些都是 pi-extensions <code>pi-lsp</code> 先跑通的协议经验，piex 融进常驻进程架构，冷启动只付一次。</p>
 <h2 id="roadmap">优化计划</h2>
         <p>
-          已完成正确性、写后诊断、rename/code_actions、诊断 settle/pull、重叠 edit 防护。单测：<code>bun test packages/lsp</code>。下一步：项目级 <code>.lsp.json</code>、模块拆分、indexing ready、目录级批量诊断。暂缓 lspmux/自动下载/completion。
+          已完成正确性、写后诊断、rename/code_actions、诊断 settle/pull、重叠 edit 防护。单测：<code>bun test extensions/lsp/test</code>。下一步：项目级 <code>.lsp.json</code>、模块拆分、indexing ready、目录级批量诊断。暂缓 lspmux/自动下载/completion。
 
         </p>
 <hr />
