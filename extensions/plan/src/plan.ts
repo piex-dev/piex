@@ -12,7 +12,9 @@
  * - The agent submits plans through the structured plan_complete tool and
  *   asks clarifying questions through plan_question; "Plan:"-heading text
  *   parsing remains as a fallback.
- * - Execution progress is tracked with todo widgets and [DONE:n] tags.
+ * - Execution progress is tracked with todo widgets; the agent marks steps
+ *   done via the structured plan_step_complete tool (with [DONE:n] text tags
+ *   as a legacy fallback), and execution auto-exits after stalled turns.
  */
 
 import type {
@@ -48,6 +50,7 @@ interface PlanModeState {
 
 const PLAN_QUESTION_TOOL = "plan_question";
 const PLAN_COMPLETE_TOOL = "plan_complete";
+const PLAN_STEP_COMPLETE_TOOL = "plan_step_complete";
 const PLAN_MODE_TOOLS = [
   "read",
   "bash",
@@ -58,8 +61,15 @@ const PLAN_MODE_TOOLS = [
   PLAN_COMPLETE_TOOL,
 ];
 const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
+// Built-in tools disabled in plan mode (mutating file operations).
 const PLAN_DISABLED = new Set(["edit", "write"]);
-const PLAN_MANAGED = new Set([...PLAN_MODE_TOOLS, ...NORMAL_MODE_TOOLS]);
+// Plan-mode-only structured tools; excluded from execution mode.
+const PLAN_ONLY_TOOLS = new Set([PLAN_QUESTION_TOOL, PLAN_COMPLETE_TOOL]);
+const PLAN_MANAGED = new Set([
+  ...PLAN_MODE_TOOLS,
+  ...NORMAL_MODE_TOOLS,
+  PLAN_STEP_COMPLETE_TOOL,
+]);
 
 // ══════════════════════════════════════════════════════════════════════════
 // Bash safety: shell-lexer allowlist
@@ -656,12 +666,8 @@ ${todoList}
 
 Execute each step in order.
 
-CRITICAL: You MUST include a [DONE:n] tag at the END of your response for EVERY step you complete (e.g. "[DONE:1][DONE:2]" for steps 1 and 2). Without these tags, progress tracking breaks and todo items will never update.`;
+PROGRESS TRACKING: After finishing each step, call the plan_step_complete tool with { steps: [n] } for every step you completed in this turn (e.g. { steps: [1, 2] }). This is the primary, reliable way to mark progress. Do NOT rely on writing [DONE:n] text tags. When every step is done the plan completes automatically; if you have finished all real work, mark every remaining step complete rather than narrating "done".`;
 }
-
-// ══════════════════════════════════════════════════════════════════════════
-// Todo parsing
-// ══════════════════════════════════════════════════════════════════════════
 
 function cleanStepText(text: string): string {
   let cleaned = text
@@ -875,6 +881,14 @@ function getNormalTools(active: string[]): string[] {
   ]);
 }
 
+function getExecutionTools(active: string[]): string[] {
+  return unique([
+    ...active.filter((n) => !PLAN_ONLY_TOOLS.has(n)),
+    ...NORMAL_MODE_TOOLS,
+    PLAN_STEP_COMPLETE_TOOL,
+  ]);
+}
+
 const PLAN_FILE = "PLAN.md";
 const PLAN_MAX_CHARS = 50_000;
 
@@ -884,6 +898,7 @@ const PLAN_EPHEMERAL_TYPES = new Set([
   "plan-mode-context",
   "plan-execution-context",
   "plan-done-reminder",
+  "plan-stalled",
 ]);
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -1066,6 +1081,76 @@ export default function planExtension(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerTool({
+    name: PLAN_STEP_COMPLETE_TOOL,
+    label: "Complete plan step",
+    description:
+      "Mark one or more plan steps as completed during execution. Call this right after finishing each step; pass every step number completed in the current turn. Do not narrate 'done' instead of calling this tool — only this tool advances progress.",
+    promptSnippet:
+      "Mark plan steps completed after finishing them during execution",
+    promptGuidelines: [
+      "During plan execution, after finishing a step call plan_step_complete with the step number(s) you completed this turn.",
+      "Do not rely on [DONE:n] text tags; use this tool instead.",
+      "When all steps are done, mark every remaining step complete — the plan completes automatically.",
+    ],
+    parameters: Type.Object({
+      steps: Type.Array(Type.Integer({ minimum: 1 }), {
+        minItems: 1,
+        description: "Step numbers completed in this turn, e.g. [1] or [1, 2].",
+      }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      if (!executionMode) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "plan_step_complete is only available while a plan is executing.",
+            },
+          ],
+          details: { accepted: false, reason: "not_executing" },
+        };
+      }
+      const requested = Array.isArray(params?.steps)
+        ? [...new Set(params.steps)].filter(
+            (n) => Number.isInteger(n) && n >= 1,
+          )
+        : [];
+      const accepted: number[] = [];
+      for (const step of requested) {
+        const item = todoItems.find((t) => t.step === step);
+        if (item && !item.completed) {
+          item.completed = true;
+          accepted.push(step);
+        }
+      }
+      if (accepted.length > 0) {
+        progressMarkedThisTurn = true;
+        updateStatus(ctx);
+        persistState();
+      }
+      const total = todoItems.length;
+      const done = todoItems.filter((t) => t.completed).length;
+      const remainingSteps = todoItems
+        .filter((t) => !t.completed)
+        .map((t) => t.step);
+      const allDone = done === total && total > 0;
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: allDone
+              ? `Steps ${accepted.join(", ")} marked complete. All ${total} steps done — plan completing.`
+              : accepted.length > 0
+                ? `Steps ${accepted.join(", ")} marked complete (${done}/${total}). Remaining: ${remainingSteps.join(", ") || "none"}.`
+                : `No new steps marked (${done}/${total}). Remaining: ${remainingSteps.join(", ") || "none"}.`,
+          },
+        ],
+        details: { accepted, done, total, allDone },
+      };
+    },
+  });
+
   // ── Status display ─────────────────────────────────
 
   function buildTodoWidgetLines(): ((ctx: ExtensionContext) => string)[] {
@@ -1232,24 +1317,65 @@ export default function planExtension(pi: ExtensionAPI) {
 
   // Track consecutive turns without DONE tags to inject reminders
   let turnsWithoutProgress = 0;
+  // Set by plan_step_complete when it marks steps this turn; prevents turn_end
+  // from counting a tool-driven turn as "no progress" and falsely stalling.
+  let progressMarkedThisTurn = false;
 
   pi.on("turn_end", async (event, ctx) => {
-    if (!executionMode || todoItems.length === 0) return;
-    if (!isAssistantMessage(event.message)) return;
+    if (!executionMode || todoItems.length === 0) {
+      progressMarkedThisTurn = false;
+      return;
+    }
+    if (!isAssistantMessage(event.message)) {
+      progressMarkedThisTurn = false;
+      return;
+    }
 
     const text = getTextContent(event.message);
     const completed = markCompletedSteps(text, todoItems);
-    if (completed > 0) {
-      updateStatus(ctx);
+    // Progress counts if the agent emitted [DONE:n] text tags OR called
+    // plan_step_complete this turn (the tool sets progressMarkedThisTurn).
+    const progressed = completed > 0 || progressMarkedThisTurn;
+    progressMarkedThisTurn = false;
+    if (progressed) {
+      if (completed > 0) updateStatus(ctx);
       turnsWithoutProgress = 0;
     } else {
       turnsWithoutProgress++;
+      // Stall guard: the agent neither marked progress nor called tools this
+      // turn. It has likely finished real work but failed to mark progress —
+      // the classic loop ("done, standby" repeated while the execution prompt
+      // keeps nagging). Rather than keep nagging forever, auto-exit execution
+      // so control returns to the user.
+      const madeToolCalls = event.message.content.some(
+        (block) => block.type === "toolCall",
+      );
+      const remaining = todoItems.filter((t) => !t.completed);
+      if (!madeToolCalls && turnsWithoutProgress >= 2) {
+        pi.sendMessage(
+          {
+            customType: "plan-stalled",
+            content: `Plan execution appears stalled: no progress markers and no tool calls for ${turnsWithoutProgress} turn(s). Remaining steps: ${remaining.map((t) => t.step).join(", ") || "none"}. Exiting execution mode; review the plan with /plan or mark steps complete manually.`,
+            display: true,
+          },
+          { triggerTurn: false },
+        );
+        executionMode = false;
+        todosWidgetVisible = false;
+        turnsWithoutProgress = 0;
+        pi.setActiveTools(
+          toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()),
+        );
+        toolsBeforePlanMode = undefined;
+        updateStatus(ctx);
+        persistState();
+        return;
+      }
       if (turnsWithoutProgress >= 2) {
-        const remaining = todoItems.filter((t) => !t.completed);
         pi.sendMessage(
           {
             customType: "plan-done-reminder",
-            content: `⚠️ You have not included any [DONE:n] tags for ${turnsWithoutProgress} consecutive turns. Remaining steps: ${remaining.map((t) => t.step).join(", ")}. End your next response with [DONE:n] for each completed step.`,
+            content: `⚠️ No progress markers for ${turnsWithoutProgress} turn(s). Mark completed steps by calling plan_step_complete({ steps: [n] }) (or end your response with [DONE:n]). Remaining: ${remaining.map((t) => t.step).join(", ") || "none"}.`,
             display: false,
           },
           { triggerTurn: false },
@@ -1277,6 +1403,9 @@ export default function planExtension(pi: ExtensionAPI) {
         executionMode = false;
         todoItems = [];
         todosWidgetVisible = false;
+        pi.setActiveTools(
+          toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()),
+        );
         toolsBeforePlanMode = undefined;
         updateStatus(ctx);
         persistState();
@@ -1335,7 +1464,7 @@ export default function planExtension(pi: ExtensionAPI) {
       turnsWithoutProgress = 0;
       todosWidgetVisible = true;
       pi.setActiveTools(
-        toolsBeforePlanMode ?? getNormalTools(pi.getActiveTools()),
+        getExecutionTools(toolsBeforePlanMode ?? pi.getActiveTools()),
       );
       toolsBeforePlanMode = undefined;
       updateStatus(ctx);
@@ -1346,7 +1475,7 @@ export default function planExtension(pi: ExtensionAPI) {
       pi.sendMessage(
         {
           customType: "plan-mode-execute",
-          content: `Execute the plan.\n\nPlan file: ${planFilePath}\n\nRemaining steps:\n${remaining}\n\nStart with: ${first.text}\n\n[CRITICAL] After completing each step, you MUST add a [DONE:n] tag at the end of your response. Example: if you finished steps 1 and 3, end with "[DONE:1][DONE:3]". Missing tags = broken progress tracking.`,
+          content: `Execute the plan.\n\nPlan file: ${planFilePath}\n\nRemaining steps:\n${remaining}\n\nStart with: ${first.text}\n\n[CRITICAL] After finishing each step, call the plan_step_complete tool with { steps: [n] } for every step you completed this turn (e.g. { steps: [1, 2] }). Do NOT rely on [DONE:n] text tags; use the tool instead. When all steps are done, mark every remaining step complete and the plan completes automatically.`,
           display: true,
         },
         { triggerTurn: true, deliverAs: "followUp" },
