@@ -112,6 +112,7 @@ const DEBUG_DIR = path.join(
 let _debugFile: string | null = null;
 
 function debugFilePath(): string {
+  const d = new Date();
   const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
   _debugFile = path.join(DEBUG_DIR, `${ymd}.jsonl`);
   return _debugFile;
