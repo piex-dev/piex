@@ -89,6 +89,8 @@
         "Ephemeral side questions with full session context — answers not saved to conversation history.",
       "pkg.context.desc":
         "Session usage report: entry distribution, role breakdown, and estimated token allocation.",
+      "pkg.goal.desc":
+        "Autonomous goal completion: agent_settled-gated continuation, goal_id stale guard, goal_blocked impasse, and token-budget wrap-up.",
       "pkg.theme.desc":
         "High-contrast dark terminal theme with green/blue/red accents, distributed via pi.themes.",
 
@@ -187,6 +189,8 @@
       "docs.design.title": "设计理念",
       "pkg.btw.desc": "临时提问，用满会话上下文回答，答案不进入后续对话历史。",
       "pkg.context.desc": "会话用量报告：条目分布、角色占比与 token 估算。",
+      "pkg.goal.desc":
+        "自主目标完成：agent_settled 空闲边界续跑、goal_id stale 守卫、goal_blocked 阻塞通道、token 预算 wrap-up。",
       "docs.design.sub": "核心原则与架构模式",
       "docs.arch.title": "架构概览",
       "docs.arch.sub": "结构、工具注册、API 映射",

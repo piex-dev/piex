@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>goal — 让 agent 自主跑到目标完成 — PieX</title>
+  <meta name="description" content="/goal 让 agent 不停在计划或半成品处中断：设定目标后从空闲边界自动续跑，直到用证据证明完成、遇到真实阻塞、或 token 预算耗尽。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/goal/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/goal/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/goal/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/goal/" />
+  <meta property="og:title" content="goal — 让 agent 自主跑到目标完成 — PieX" />
+  <meta property="og:description" content="/goal 让 agent 不停在计划或半成品处中断：设定目标后从空闲边界自动续跑，直到用证据证明完成、遇到真实阻塞、或 token 预算耗尽。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/goal/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="false" role="radio">EN</button><button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <a href="/zh/packages/goal/" class="is-active">goal</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <a href="/zh/packages/goal/" class="is-active">goal</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>本页目录</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Goal</span><span class="blog-tag">Autonomous</span><code class="pkg-tag">@piex-dev/goal</code></div><h1>goal — 让 agent 自主跑到目标完成</h1></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">导语</p><p><code>/goal</code> 让 agent 不停在计划或半成品处中断：设定目标后从空闲边界自动续跑，直到用证据证明完成、遇到真实阻塞、或 token 预算耗尽。</p></div></div>
+
+        <h2 id="intro">简介</h2>
+        <p>coding agent 跑长任务时常有两个失败：一是停在计划或半成品就等确认（premature yield），二是没验证就谎报完成（false completion）。<code>goal</code> 模式把这两件事都用机制兜住：强制续跑直到可验证完成，并要求完成调用带上当前 <code>goal_id</code> 和完成证据摘要。</p>
+        <p>pi 内置没有 autonomous completion 循环。<code>@piex-dev/goal</code> 以纯扩展补上：注册 <code>/goal</code> 命令与两个终端工具（<code>goal_complete</code> / <code>goal_blocked</code>），靠 pi 的 <code>agent_settled</code> 生命周期从「完全空闲」边界派发续跑，retry、compaction、steering、follow-up 全部排干后才继续，不重复入队。</p>
+
+        <h2 id="theory">技术原理</h2>
+        <h3 id="agent-settled">agent_settled 续跑模型</h3>
+        <p>续跑不是在 <code>agent_end</code> 立刻派发。agent 一轮结束后，pi 可能还在做 retry、自动 compaction、steering、或排队 follow-up；此刻插续跑会和这些工作撞车。<code>goal</code> 把续跑意图记成一张 ticket，只在 <code>agent_settled</code>（agent 真正空闲、无 pending message）时派发一次。重复的 settled 事件不会派发同一意图两次。manual compaction 不发 <code>agent_settled</code>，所以 compaction hook 里用同一个 single-flight dispatcher 作为窄路径 fallback。</p>
+        <h3 id="owned-prompt">防陈旧续跑：owned-prompt marker</h3>
+        <p>goal 拥有的 prompt（kickoff、resume、续跑）都注入一个 marker 注释。若一个延迟的旧 prompt 在 goal 被替换/暂停后才送达，marker 匹配会被消费掉、不再触发模型轮，避免旧 goal 的续跑盖过新 goal。stale tool-call block 还会在 goal 停止后拦截陈旧工具调用，直到新的非 goal 用户输入或成功 resume。</p>
+        <h3 id="goal-id">goal_id stale 守卫</h3>
+        <p><code>goal_complete</code> / <code>goal_blocked</code> 必须传入当前 <code>goal_id</code>，与活跃 goal 不符即拒。resume / edit 会轮换 <code>goal_id</code>，使上一代延迟的 turn 无法完成新 goal。这是 owned-prompt marker 之外的第二道防线，挡住「跨代误完成」。</p>
+        <h3 id="blocked">blocked 通道：真实阻塞要证据</h3>
+        <p><code>goal_blocked</code> 不是普通暂停。它要求当前 <code>goal_id</code>、具体 reason、concrete evidence、且同一阻塞连续复发至少 3 个 goal turn（<code>repeated_turns ≥ 3</code>）。空 reason/evidence、stale id、非整数、小于 3 轮一律拒。它的意义不只是工具本身：审计措辞写进每个 goal prompt，持续塑造「不要轻易 yield、impasse 要证据」的行为，即便工具不被调用也有效。</p>
+        <h3 id="accounting">记账：累计 totalTokens − baseline</h3>
+        <p>每条持久化的 assistant message，用 <code>usage.totalTokens</code>（不可用时回退 <code>input + output + cacheRead + cacheWrite</code>）。goal 用量 = 当前 session branch 累计 assistant 总量 − 起始时捕获的 baseline，rewind 后 clamp 到 0。provider usage 只在 assistant message 完成时才权威，所以预算可能超一个 model call。</p>
+        <h3 id="budget">预算 wrap-up</h3>
+        <p>预算首次在完成的工具活动后暴露耗尽时，goal 转一次 <code>budget_limited</code>，取消续跑，并排一条 bounded wrap-up 指令：只准简要总结进度/结果/阻塞，禁 substantive 工具。工具寻求型模型若在 wrap-up 中调 substantive 工具会被 abort，防无界循环。被拒的 <code>goal_complete</code> 也终止 wrap-up；被接受的完成仍需既有证据证明每项要求，但预算耗尽本身不等于完成。</p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/goal</code></pre></div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/goal" target="_blank" rel="noopener"><code>extensions/goal</code></a></p>
+        <h3 id="example">命令</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>text</span></div><pre><code>/goal                          # 查看当前目标、状态、轮数、用时、token
+/goal implement snake game     # 启动 goal 模式
+/goal --tokens 100k fix tests  # 带 token 预算启动
+/goal edit ship smaller fix    # 改目标，保留计数
+/goal pause                    # 暂停续跑
+/goal resume                   # 恢复
+/goal clear                    # 清除目标</code></pre></div>
+        <p><code>--tokens</code> 支持 <code>k</code>/<code>m</code> 后缀（<code>100k</code>、<code>1.5m</code>）。目标文本上限 4000 字符，超长请放文件里再在 <code>/goal</code> 引用路径。</p>
+        <h3 id="verify">验证流程</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>1. /goal &lt;objective&gt; 启动，agent 收到 kickoff prompt 与 goal_id
+2. agent 自主工作；一轮结束若未完成，agent_settled 自动续跑
+3. 完成时调 goal_complete({ goal_id, summary })，summary 被审计
+4. 真实阻塞时调 goal_blocked({ goal_id, reason, evidence, repeated_turns })</code></pre></div>
+        <h3 id="config">配置</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>json</span></div><pre><code>{
+  "toolVisibility": "always"
+}</code></pre></div>
+        <p>路径 <code>~/.pi/piex-dev/goal/goal.json</code>。<code>toolVisibility</code>：<code>"always"</code>（默认，工具恒在 schema）或 <code>"after-first-goal"</code>（首次激活或恢复未完成 goal 后才显露，保持非 goal 会话 prompt-cache 稳定）。非法配置回退默认并告警，扩展不自动建文件。</p>
+
+        <h2 id="impl">实现方案</h2>
+        <p>以 <code>@narumitw/pi-goal</code>（pi-extensions）的扩展机制为基线移植，不是参考、是改写。</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>模块</th><th>职责</th></tr></thead><tbody>
+<tr><td>goal.ts</td><td>入口：工具定义 + /goal 命令 + 生命周期 hook 编排</td></tr>
+<tr><td>runtime.ts</td><td>per-session 状态、记账、续跑派发、prompt 所有权、工具策略</td></tr>
+<tr><td>persistence.ts</td><td>ActiveGoal 类型 + session-entry 序列化/加载</td></tr>
+<tr><td>settings.ts</td><td>读 ~/.pi/piex-dev/goal/goal.json</td></tr>
+<tr><td>prompts.ts</td><td>内联 prompt builder（信任边界 + 完成审计 + 续跑）</td></tr>
+</tbody></table></div>
+        <h3 id="trim">裁剪</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>裁剪项</th><th>原因</th></tr></thead><tbody>
+<tr><td>实验性有序队列（add/prioritize/drop-last/skip）</td><td>pi-goal 自己标 experimental，v1 不引入</td></tr>
+<tr><td>跨扩展 RPC 契约（rpc:start/pause、state 事件）</td><td>piex 暂无 subagent 扩展消费方，YAGNI</td></tr>
+<tr><td>/guided-goal LLM 访谈</td><td>耦合 oh-my-pi internals，属目标精炼而非完成，留待后续独立 prompt 包</td></tr>
+</tbody></table></div>
+        <h3 id="piex">piex 化</h3>
+        <p>包名 <code>@piex-dev/goal</code>（去 <code>pi-</code> 前缀，与 hashline/plan 一致）；配置统一放 <code>~/.pi/piex-dev/goal/</code>；双引号 + 分号、<code>node:</code> 前缀、相对导入 <code>.js</code>；不读上游 <code>~/.pi/agent/pi-goal-state.json</code>（新包无历史用户，干净起步）。</p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead><tbody>
+<tr><td><strong>pi-extensions/pi-goal</strong></td><td>纯 pi 扩展：双工具 + agent_settled 续跑 + goal_id 守卫 + 状态分类 + recovery</td><td><strong>采纳</strong>：扩展机制、双工具、续跑模型、状态机全部移植为基线</td></tr>
+<tr><td><strong>oh-my-pi</strong></td><td>goal 内置 coding-agent 核心（ToolSession/obfuscator/framedBlock/provider transport）</td><td><strong>不采纳</strong>：无法脱离内核运行，违反 piex「100% Extension API」约束。参考其完成审计 prompt 措辞与 token delta 记账思路</td></tr>
+</tbody></table></div>
+<p>核心取舍：autonomous loop 最危险是「谎报完成」与「死循环」，所以保留 goal_id 守卫、summary 矛盾检测、blocked 证据门槛这三个 schema 级强制；单 op 工具更简洁但在这三点裸奔，故不取。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-07-19</td><td>初始版本：单目标生命周期 + agent_settled 续跑 + token 预算 + wrap-up；双工具（goal_complete/goal_blocked）+ goal_id 守卫；裁剪实验性队列与 RPC 契约</td></tr>
+</tbody></table></div>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>方向</th><th>打算</th></tr></thead><tbody>
+<tr><td>评测对比</td><td>single op vs 双工具的误完成率 / 死循环率，用数据决定是否简化</td></tr>
+<tr><td>有序队列</td><td>按需加实验性 add/prioritize/drop-last/skip</td></tr>
+<tr><td>RPC 契约</td><td>有 subagent 扩展消费方后加 rpc:start/pause + state 事件</td></tr>
+<tr><td>guided-goal</td><td>独立 prompt 包形式引入目标精炼访谈</td></tr>
+</tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/context/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">context</span></a><a class="blog-nav-card is-next" href="/#packages"><span class="blog-nav-label">← 全部</span><span class="blog-nav-title">回到 Packages 列表</span></a></nav>
+      <p class="blog-source-link">源稿 Markdown：<a href="https://github.com/piex-dev/piex/blob/main/docs/packages/goal.md" target="_blank" rel="noopener">docs/packages/goal.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">本页目录</p><nav><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

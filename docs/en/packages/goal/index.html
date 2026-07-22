@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>goal — Run the Agent to Verifiable Completion — PieX</title>
+  <meta name="description" content="/goal stops the agent from halting at a plan or partial work: after you set a goal it auto-continues from the idle boundary until completion is proven with evidence, a true blocker hits, or the token budget runs out." />
+  <link rel="canonical" href="https://piex.dev/en/packages/goal/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/goal/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/goal/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/goal/" />
+  <meta property="og:title" content="goal — Run the Agent to Verifiable Completion — PieX" />
+  <meta property="og:description" content="/goal stops the agent from halting at a plan or partial work: after you set a goal it auto-continues from the idle boundary until completion is proven with evidence, a true blocker hits, or the token budget runs out." />
+  <meta property="og:url" content="https://piex.dev/en/packages/goal/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="true" class="active" role="radio">EN</button><button data-lang="zh" aria-checked="false" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <a href="/en/packages/goal/" class="is-active">goal</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <a href="/en/packages/goal/" class="is-active">goal</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Goal</span><span class="blog-tag">Autonomous</span><code class="pkg-tag">@piex-dev/goal</code></div><h1>goal — Run the Agent to Verifiable Completion</h1></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">Lead</p><p><code>/goal</code> stops the agent from halting at a plan or partial work: after you set a goal it auto-continues from the idle boundary until completion is proven with evidence, a true blocker hits, or the token budget runs out.</p></div></div>
+
+        <h2 id="intro">Overview</h2>
+        <p>Long coding-agent tasks fail two ways: they stop at a plan or half-finished work waiting for confirmation (premature yield), or they claim done without verification (false completion). <code>goal</code> mode guards both — it forces continuation until verifiable completion, and requires the completion call to carry the current <code>goal_id</code> and a summary of completion evidence.</p>
+        <p>Pi has no built-in autonomous completion loop. <code>@piex-dev/goal</code> adds one as a pure extension: it registers a <code>/goal</code> command and two terminal tools (<code>goal_complete</code> / <code>goal_blocked</code>), and dispatches continuation from the fully-settled idle boundary via pi's <code>agent_settled</code> lifecycle — only after retries, compaction, steering, and follow-ups have drained, with no duplicate dispatch.</p>
+
+        <h2 id="theory">How it works</h2>
+        <h3 id="agent-settled">The agent_settled continuation model</h3>
+        <p>Continuation is not dispatched immediately at <code>agent_end</code>. After an agent turn, pi may still be retrying, auto-compacting, steering, or queuing follow-ups; firing continuation then would collide with that work. <code>goal</code> records the continuation intent as a ticket and dispatches it once at <code>agent_settled</code> (agent truly idle, no pending message). Repeated settled events cannot dispatch the same intent twice. Manual compaction does not emit <code>agent_settled</code>, so the compaction hook reuses the same single-flight dispatcher as a narrow fallback.</p>
+        <h3 id="owned-prompt">Stale-continuation guard: owned-prompt markers</h3>
+        <p>Goal-owned prompts (kickoff, resume, continuation) inject a marker comment. If a delayed old prompt arrives after the goal is replaced or paused, the marker match is consumed and fires no model turn, so an old goal's continuation cannot override a newer goal. A stale tool-call block also intercepts stale tool calls after a goal stops, until fresh non-goal user input or a successful resume.</p>
+        <h3 id="goal-id">The goal_id stale guard</h3>
+        <p><code>goal_complete</code> / <code>goal_blocked</code> must carry the current <code>goal_id</code> and are rejected on mismatch. resume / edit rotate the <code>goal_id</code> so a delayed turn from a previous generation cannot complete the newer goal. This is the second line of defense beyond owned-prompt markers, blocking cross-generation false completion.</p>
+        <h3 id="blocked">The blocked channel: real impasses need evidence</h3>
+        <p><code>goal_blocked</code> is not an ordinary pause. It requires the current <code>goal_id</code>, a specific reason, concrete evidence, and the same blocker recurring for at least three consecutive goal turns (<code>repeated_turns ≥ 3</code>). Empty reason/evidence, stale id, non-integer, or fewer than three turns are all rejected. Its value is not just the tool itself — the audit wording is repeated in every goal prompt, continually shaping a "don't yield lightly, impasses need evidence" behavior even when the tool is never called.</p>
+        <h3 id="accounting">Accounting: cumulative totalTokens − baseline</h3>
+        <p>For each persisted assistant message it uses <code>usage.totalTokens</code> (falling back to <code>input + output + cacheRead + cacheWrite</code> when unavailable). Goal usage = the current session branch's cumulative assistant total minus the baseline captured at start, clamped to zero after a rewind. Provider usage is authoritative only when an assistant message finishes, so a budget can overshoot by one model call.</p>
+        <h3 id="budget">Budget wrap-up</h3>
+        <p>When exhaustion is first exposed after completed tool activity, the goal transitions once to <code>budget_limited</code>, cancels continuation, and queues one bounded wrap-up instruction: summarize progress/results/blockers only, no substantive tools. A tool-seeking model that calls a substantive tool during wrap-up is aborted to prevent an unbounded loop. A rejected <code>goal_complete</code> also terminates the wrap-up; an accepted completion still requires existing evidence proving every requirement — budget exhaustion itself is never completion.</p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/goal</code></pre></div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/goal" target="_blank" rel="noopener"><code>extensions/goal</code></a></p>
+        <h3 id="example">Commands</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>text</span></div><pre><code>/goal                          # show current goal, status, turns, time, tokens
+/goal implement snake game     # start goal mode
+/goal --tokens 100k fix tests  # start with a token budget
+/goal edit ship smaller fix    # change the objective, keep counters
+/goal pause                    # pause continuation
+/goal resume                   # resume
+/goal clear                    # clear the goal</code></pre></div>
+        <p><code>--tokens</code> accepts <code>k</code>/<code>m</code> suffixes (<code>100k</code>, <code>1.5m</code>). Objective text is capped at 4,000 characters; for longer instructions put them in a file and reference the path from <code>/goal</code>.</p>
+        <h3 id="verify">Verification flow</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>1. /goal &lt;objective&gt; starts; agent gets the kickoff prompt and goal_id
+2. agent works autonomously; if incomplete at turn end, agent_settled auto-continues
+3. on completion call goal_complete({ goal_id, summary }); summary is audited
+4. on a real impasse call goal_blocked({ goal_id, reason, evidence, repeated_turns })</code></pre></div>
+        <h3 id="config">Configuration</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>json</span></div><pre><code>{
+  "toolVisibility": "always"
+}</code></pre></div>
+        <p>Path <code>~/.pi/piex-dev/goal/goal.json</code>. <code>toolVisibility</code>: <code>"always"</code> (default, tools stay in the schema) or <code>"after-first-goal"</code> (revealed only after the first activation or an unfinished-goal restore, keeping non-goal sessions prompt-cache stable). Invalid config falls back to defaults with a warning; the extension never creates the file.</p>
+
+        <h2 id="impl">Implementation</h2>
+        <p>Ported from <code>@narumitw/pi-goal</code> (pi-extensions) as a baseline rewrite, not a reference.</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>Module</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td>goal.ts</td><td>entry: tool definitions + /goal command + lifecycle hook orchestration</td></tr>
+<tr><td>runtime.ts</td><td>per-session state, accounting, continuation dispatch, prompt ownership, tool policy</td></tr>
+<tr><td>persistence.ts</td><td>ActiveGoal type + session-entry serialize/load</td></tr>
+<tr><td>settings.ts</td><td>read ~/.pi/piex-dev/goal/goal.json</td></tr>
+<tr><td>prompts.ts</td><td>inline prompt builders (trust boundary + completion audit + continuation)</td></tr>
+</tbody></table></div>
+        <h3 id="trim">Trimmed</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Removed</th><th>Reason</th></tr></thead><tbody>
+<tr><td>Experimental ordered queue (add/prioritize/drop-last/skip)</td><td>pi-goal itself marks it experimental; not in v1</td></tr>
+<tr><td>Cross-extension RPC contract (rpc:start/pause, state events)</td><td>piex has no subagent extension consumer yet — YAGNI</td></tr>
+<tr><td>/guided-goal LLM interview</td><td>couples oh-my-pi internals; it is objective refinement, not completion; deferred to a later prompt package</td></tr>
+</tbody></table></div>
+        <h3 id="piex">piex-ified</h3>
+        <p>Package name <code>@piex-dev/goal</code> (drops the <code>pi-</code> prefix, matching hashline/plan); config lives under <code>~/.pi/piex-dev/goal/</code>; double quotes + semicolons, <code>node:</code> prefix, relative imports <code>.js</code>; does not read the upstream <code>~/.pi/agent/pi-goal-state.json</code> (new package, no legacy users, clean slate).</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex decision</th></tr></thead><tbody>
+<tr><td><strong>pi-extensions/pi-goal</strong></td><td>pure pi extension: two tools + agent_settled continuation + goal_id guard + status taxonomy + recovery</td><td><strong>adopted</strong>: extension mechanism, two tools, continuation model, state machine ported wholesale as the baseline</td></tr>
+<tr><td><strong>oh-my-pi</strong></td><td>goal built into the coding-agent core (ToolSession/obfuscator/framedBlock/provider transport)</td><td><strong>not adopted</strong>: cannot run without the core, violating piex's "100% Extension API" constraint. Borrowed its completion-audit prompt wording and token-delta accounting idea</td></tr>
+</tbody></table></div>
+<p>Key tradeoff: an autonomous loop's worst failures are false completion and infinite spinning, so the schema-level enforcement of goal_id guard, summary contradiction check, and blocked evidence threshold are all kept; a single op tool is simpler but leaves these three bare, so it is not chosen.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="versions">Versions</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-07-19</td><td>Initial release: single-goal lifecycle + agent_settled continuation + token budget + wrap-up; two tools (goal_complete/goal_blocked) + goal_id guard; experimental queue and RPC contract trimmed</td></tr>
+</tbody></table></div>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Direction</th><th>Plan</th></tr></thead><tbody>
+<tr><td>Evaluation</td><td>compare single op vs two tools on false-completion / spin rates; let data decide whether to simplify</td></tr>
+<tr><td>Ordered queue</td><td>add experimental add/prioritize/drop-last/skip on demand</td></tr>
+<tr><td>RPC contract</td><td>add rpc:start/pause + state events once a subagent extension consumer exists</td></tr>
+<tr><td>guided-goal</td><td>introduce objective-refinement interview as a separate prompt package</td></tr>
+</tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/en/packages/context/"><span class="blog-nav-label">← Previous</span><span class="blog-nav-title">context</span></a><a class="blog-nav-card is-next" href="/#packages"><span class="blog-nav-label">← All</span><span class="blog-nav-title">Back to Packages list</span></a></nav>
+      <p class="blog-source-link">Source Markdown: <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/goal.md" target="_blank" rel="noopener">docs/packages/goal.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">On this page</p><nav><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>
