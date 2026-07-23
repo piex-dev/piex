@@ -22,13 +22,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/style.css?v=20260721pkgs" />
+    <link rel="stylesheet" href="assets/style.css?v=20260722pidev" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%23050505' rx='4' width='32' height='32'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='monospace' font-weight='800' font-size='16' fill='%2300ff00'%3Eπ%3C/text%3E%3C/svg%3E"
     />
     <!-- Google Analytics -->
     <script
@@ -56,6 +56,7 @@
           class="nav-toggle"
           aria-label="Menu"
           aria-expanded="false"
+          aria-controls="navSheet"
         >
           ☰
         </button>
@@ -87,6 +88,29 @@
       </nav>
     </header>
 
+    <!-- mobile nav-sheet drawer -->
+    <div class="nav-sheet-backdrop" id="navBackdrop" aria-hidden="true"></div>
+    <aside class="nav-sheet" id="navSheet" aria-label="Navigation menu" aria-hidden="true">
+      <button class="nav-sheet-close" id="navSheetClose" aria-label="Close menu">✕ ESC</button>
+      <div class="nav-sheet-links">
+        <a class="nav-sheet-link" href="#why"><span data-i18n="nav.why">Philosophy</span><span class="nav-sheet-arrow">→</span></a>
+        <a class="nav-sheet-link" href="#packages"><span data-i18n="nav.packages">Packages</span><span class="nav-sheet-arrow">→</span></a>
+        <a class="nav-sheet-link" href="#docs"><span data-i18n="nav.docs">Docs</span><span class="nav-sheet-arrow">→</span></a>
+        <a class="nav-sheet-link" href="#blog"><span data-i18n="nav.blog">Blog</span><span class="nav-sheet-arrow">→</span></a>
+      </div>
+      <div class="nav-sheet-separator" aria-hidden="true"></div>
+      <div class="nav-sheet-socials">
+        <a class="nav-sheet-social" href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <a class="nav-sheet-social" href="https://www.npmjs.com/org/piex-dev" target="_blank" rel="noopener">npm</a>
+        <a class="nav-sheet-social" href="https://pi.dev" target="_blank" rel="noopener">Pi</a>
+      </div>
+      <div class="nav-sheet-separator" aria-hidden="true"></div>
+      <div class="lang-switch" role="radiogroup" aria-label="Language">
+        <button data-lang="en" class="active" aria-checked="true" role="radio">EN</button>
+        <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+      </div>
+    </aside>
+
     <main>
       <!-- ===== HERO ===== -->
       <div class="hero">
@@ -105,6 +129,22 @@
           <code>@piex-dev/*</code> npm packages. Install with
           <code>pi install</code>.
         </p>
+
+        <!-- install switcher (pi.dev install-switcher pattern) -->
+        <div class="install-switcher" data-install-switcher>
+          <div class="install-tabs" role="tablist" aria-label="Install method">
+            <button class="install-tab is-active" type="button" role="tab" aria-selected="true" data-install-tab="all">all-in-one</button>
+            <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-tab="npm">npm</button>
+            <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-tab="curl">curl</button>
+          </div>
+          <div class="install-command-row">
+            <code class="shell-prompt" data-install-panel="all"><span class="prefix">$</span> curl -fsSL piex.dev/scripts/install.sh | bash</code>
+            <code class="shell-prompt" data-install-panel="npm" hidden><span class="prefix">$</span> pi install npm:@piex-dev/hashline</code>
+            <code class="shell-prompt" data-install-panel="curl" hidden><span class="prefix">$</span> curl -fsSL piex.dev/scripts/install.sh | bash -s -- -l</code>
+            <button type="button" class="copy-btn" data-copy-from="[data-install-panel]:not([hidden])" data-i18n="copy.label">Copy</button>
+          </div>
+        </div>
+
         <div class="cta-row">
           <a class="btn btn-primary" href="#packages" data-i18n="hero.cta1"
             >Get Started</a
@@ -119,7 +159,12 @@
           >
         </div>
 
-        <div class="hero-terminal">
+        <!-- hero terminal — surface-panel with four corners -->
+        <div class="hero-terminal surface-panel">
+          <span class="figure-corner figure-corner--tl" aria-hidden="true"></span>
+          <span class="figure-corner figure-corner--tr" aria-hidden="true"></span>
+          <span class="figure-corner figure-corner--bl" aria-hidden="true"></span>
+          <span class="figure-corner figure-corner--br" aria-hidden="true"></span>
           <div class="terminal-bar">
             <span class="dot dot-r"></span><span class="dot dot-y"></span
             ><span class="dot dot-g"></span>
@@ -136,29 +181,6 @@
 <span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash</pre>
         </div>
 
-        <div class="stats-row anim-fade">
-          <div class="stat">
-            <span class="stat-num">10</span
-            ><span class="stat-label" data-i18n="stats.pkg">Packages</span>
-          </div>
-          <div class="stat">
-            <span class="stat-num">~6k+</span
-            ><span class="stat-label" data-i18n="stats.lines">Core Lines</span>
-          </div>
-          <div class="stat">
-            <span class="stat-num">14</span
-            ><span class="stat-label" data-i18n="stats.adapters"
-              >Debug Adapters</span
-            >
-          </div>
-          <div class="stat">
-            <span class="stat-num">50+</span
-            ><span class="stat-label" data-i18n="stats.servers"
-              >LSP Servers</span
-            >
-          </div>
-        </div>
-      </div>
       <section id="why" class="section-alt">
         <div class="section-header anim-fade">
           <div class="section-heading">
@@ -671,6 +693,6 @@
       </div>
     </footer>
 
-    <script src="assets/main.js?v=20260721pkgs"></script>
+    <script src="assets/main.js?v=20260722pidev"></script>
   </body>
 </html>

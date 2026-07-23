@@ -1,12 +1,13 @@
 /**
  * piex.dev — shared client scripts
  * Language toggle (EN/ZH), content-page language routing, scroll animations,
- * copy-on-click, mobile nav.
+ * copy-on-click, install switcher, mobile nav-sheet drawer.
  *
  * URL convention (multi-lang ready):
  *   /                         homepage (JS dictionary i18n)
  *   /{lang}/docs/<slug>/      docs (static HTML per language)
  *   /{lang}/blogs/<slug>/     blogs (static HTML per language)
+ *   /{lang}/packages/<slug>/  package intros (static HTML per language)
  * Supported langs today: en, zh. New langs = new path segment + static pages.
  */
 (function () {
@@ -32,16 +33,14 @@
       "hero.cta2": "GitHub",
       "hero.term.title": "pi — piex",
       "hero.term.body":
-        '<span class="comment"># Pick any package:</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># All-in-one:</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash</span>',
-      "stats.pkg": "Packages",
-      "stats.lines": "Core Lines",
-      "stats.adapters": "Debug Adapters",
-      "stats.servers": "LSP Servers",
+        '<span class="comment"># Pick any package:</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># All-in-one:</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash',
       "nav.why": "Philosophy",
       "nav.packages": "Packages",
       "nav.docs": "Docs",
       "nav.blog": "Blog",
       "nav.principles": "Principles",
+      "copy.label": "Copy",
+      "copy.copied": "Copied",
 
       "why.title": "Design Philosophy",
       "why.desc":
@@ -133,16 +132,14 @@
       "hero.cta2": "GitHub",
       "hero.term.title": "pi — piex",
       "hero.term.body":
-        '<span class="comment"># 按需安装，逐包自由组合：</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># 一键全部：</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash</span>',
-      "stats.pkg": "Packages",
-      "stats.lines": "核心代码行",
-      "stats.adapters": "调试适配器",
-      "stats.servers": "LSP 服务器",
+        '<span class="comment"># 按需安装，逐包自由组合：</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># 一键全部：</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash',
       "nav.why": "理念",
       "nav.packages": "Packages",
       "nav.docs": "文档",
       "nav.blog": "博客",
       "nav.principles": "原则",
+      "copy.label": "复制",
+      "copy.copied": "已复制",
 
       "why.title": "设计理念",
       "why.desc": "充分拓展 pi 而非 fork，按需自由切换，知其所以然，评测优先。",
@@ -312,10 +309,7 @@
       btn.setAttribute("aria-checked", active ? "true" : "false");
     });
 
-    // Homepage (and any non-prefixed page): keep content links in sync with LANG
     // Keep content links (docs|blogs|packages) in sync with the active language.
-    // On content pages links are already language-prefixed in static HTML, so
-    // this is a no-op there; on the homepage it rewrites /en/packages/... etc.
     localizeContentHrefs(lang);
 
     localStorage.setItem("piex-lang", lang);
@@ -343,7 +337,7 @@
   };
   window.piexSwitchLang = switchLang;
 
-  // bind lang buttons
+  // bind lang buttons (topbar + nav-sheet both carry .lang-switch)
   document.querySelectorAll(".lang-switch button").forEach(function (btn) {
     btn.addEventListener("click", function () {
       switchLang(this.getAttribute("data-lang"));
@@ -376,7 +370,97 @@
     observer.observe(el);
   });
 
-  /* ---- copy install command on click ---- */
+  /* ---- clipboard helper ---- */
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+      document.body.removeChild(ta);
+    });
+  }
+
+  var switcher = document.querySelector("[data-install-switcher]");
+  if (switcher) {
+    var tabs = Array.prototype.slice.call(
+      switcher.querySelectorAll("[data-install-tab]"),
+    );
+    var panels = switcher.querySelectorAll("[data-install-panel]");
+
+    function activateTab(tab) {
+      var name = tab.getAttribute("data-install-tab");
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.classList.toggle("is-active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        t.setAttribute("tabindex", on ? "0" : "-1");
+      });
+      panels.forEach(function (p) {
+        if (p.getAttribute("data-install-panel") === name)
+          p.removeAttribute("hidden");
+        else p.setAttribute("hidden", "");
+      });
+    }
+
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener("click", function () {
+        activateTab(tab);
+      });
+      tab.addEventListener("keydown", function (e) {
+        var idx = i;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          idx = (i + 1) % tabs.length;
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          idx = (i - 1 + tabs.length) % tabs.length;
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          idx = 0;
+        } else if (e.key === "End") {
+          e.preventDefault();
+          idx = tabs.length - 1;
+        } else {
+          return;
+        }
+        tabs[idx].focus();
+        activateTab(tabs[idx]);
+      });
+    });
+  }
+
+  /* ---- generic copy buttons ([data-copy-from]) ---- */
+  document.querySelectorAll("[data-copy-from]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var sel = btn.getAttribute("data-copy-from");
+      var src = document.querySelector(sel);
+      if (!src) return;
+      var text = (src.textContent || "").replace(/^\s*\$\s*/, "").trim();
+      copyText(text).then(function () {
+        var orig = btn.textContent;
+        btn.classList.add("copied");
+        btn.textContent = window.piexT("copy.copied");
+        setTimeout(function () {
+          btn.classList.remove("copied");
+          btn.textContent = orig;
+        }, 1500);
+      });
+    });
+  });
+
+  /* ---- copy install command on click (pkg-install cards) ---- */
   document.querySelectorAll(".pkg-install").forEach(function (el) {
     el.addEventListener("click", function () {
       var text = (el.textContent || "")
@@ -384,24 +468,9 @@
         .replace(/\s*点击复制\s*$/i, "")
         .trim();
       if (!text) return;
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () {
-          showHint(el);
-        });
-      } else {
-        var ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        try {
-          document.execCommand("copy");
-          showHint(el);
-        } catch (_) {}
-        document.body.removeChild(ta);
-      }
+      copyText(text).then(function () {
+        showHint(el);
+      });
     });
   });
 
@@ -417,45 +486,58 @@
     }, 1500);
   }
 
-  /* ---- mobile nav toggle ---- */
+  /* ---- mobile nav-sheet drawer (pi.dev nav-sheet pattern) ---- */
   var toggle = document.getElementById("nav-toggle");
-  var nav = document.getElementById("nav-links");
+  var sheet = document.getElementById("navSheet");
+  var backdrop = document.getElementById("navBackdrop");
+  var closeBtn = document.getElementById("navSheetClose");
 
-  function closeNav() {
-    if (!toggle || !nav) return;
-    nav.classList.remove("open");
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.textContent = "\u2630";
+  function openSheet() {
+    if (!sheet || !backdrop) return;
+    sheet.classList.add("open");
+    backdrop.classList.add("open");
+    sheet.setAttribute("aria-hidden", "false");
+    if (toggle) toggle.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+    // move focus into the sheet for keyboard/SR users
+    var focusTarget = closeBtn || (sheet.querySelector ? sheet.querySelector("a") : null);
+    if (focusTarget) focusTarget.focus();
   }
 
-  function openNav() {
-    if (!toggle || !nav) return;
-    nav.classList.add("open");
-    toggle.setAttribute("aria-expanded", "true");
-    toggle.textContent = "\u2715";
+  // restoreFocus=false when closing via a nav link (let the anchor scroll win).
+  function closeSheet(restoreFocus) {
+    if (!sheet || !backdrop) return;
+    if (!sheet.classList.contains("open")) return;
+    sheet.classList.remove("open");
+    backdrop.classList.remove("open");
+    sheet.setAttribute("aria-hidden", "true");
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+    if (restoreFocus && toggle) toggle.focus();
   }
 
-  if (toggle && nav) {
+  if (toggle && sheet) {
     toggle.addEventListener("click", function (e) {
       e.stopPropagation();
-      if (nav.classList.contains("open")) closeNav();
-      else openNav();
-    });
-
-    nav.querySelectorAll("a").forEach(function (a) {
-      a.addEventListener("click", function () {
-        closeNav();
-      });
-    });
-
-    document.addEventListener("click", function (e) {
-      if (!nav.classList.contains("open")) return;
-      if (nav.contains(e.target) || toggle.contains(e.target)) return;
-      closeNav();
-    });
-
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeNav();
+      if (sheet.classList.contains("open")) closeSheet(true);
+      else openSheet();
     });
   }
+  if (backdrop) backdrop.addEventListener("click", function () { closeSheet(true); });
+  if (closeBtn) closeBtn.addEventListener("click", function () { closeSheet(true); });
+  if (sheet) {
+    sheet.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", function () { closeSheet(false); });
+    });
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      closeSheet(true);
+      // also close the legacy topbar dropdown if present
+      var nav = document.getElementById("nav-links");
+      if (nav && nav.classList.contains("open")) {
+        nav.classList.remove("open");
+      }
+    }
+  });
 })();
