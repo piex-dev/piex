@@ -63,12 +63,19 @@ pi install npm:@piex-dev/review
 
 ### 前提条件
 
-当前目录是 git 仓库，本机有 `git`。
+当前目录是 git 仓库（或通过参数指定任意 git 仓库路径），本机有 `git`。
 
 ### 用法
 
 - 人：交互命令 `/review`，列出模式菜单（Uncommitted / Staged / vs base branch / Custom）
 - 模型：调用 `review` 工具，传 `action` 参数（`diff` / `staged` / `commit` / `branch`）
+
+**跨仓库**：默认评审 cwd 所在仓库；可指定任意 git 仓库路径——
+
+- `/review piex` 或 `/review @piex/` — 评审 `piex` 子目录仓库（`@` 是 pi 的路径引用语法，自动去除前缀）
+- `/review ./path/to/repo` — 评审任意相对路径仓库
+- 菜单中选「Switch repository path…」可运行时切换仓库
+- `review` 工具传 `repo` 参数（相对 cwd 解析），如 `{ action: "diff", repo: "piex" }`
 
 选中后生成 prompt，经 `pi.sendUserMessage(..., { deliverAs: "followUp" })` 丢回会话，由当前模型继续当 reviewer。
 
@@ -127,4 +134,5 @@ pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session
 
 | 版本  | 日期       | 变更                                                                                                                                                                                                                                                                                                               |
 | ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0.2.0 | 2026-07-22 | 跨仓库评审：`/review [path]` 命令、`review` 工具 `repo` 参数、菜单「Switch repository path…」；`resolveRepo` 校验路径与 git 仓库（`rev-parse --show-toplevel`，支持 worktree/submodule）并剥离 pi 路径引用前缀 `@`（`/review @piex/` 同 `/review piex`）；安全硬化 `git()` 改用 `execFileSync` 透传 argv，杜绝 `base`/`commit`/`file` 参数的 shell 注入；修复 `parseDiff` 重复累加（excluded 文件不再计入 totals） |
 | 0.1.1 | 2026-07-19 | 初始版本：diff 引擎（`parseDiff`）+ 噪声过滤（`EXCLUDED_PATTERNS`，lock/build/vendor/generated/binary）；5 种模式（uncommitted/staged/branch/commit/custom）；`buildReviewPrompt` 结构化 prompt（过大 diff 不内嵌）；人机共用引擎（`/review` 命令 + `review` 工具）；omp 轻量版（不做多 agent 并行与 TUI overlay） |

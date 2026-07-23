@@ -151,9 +151,20 @@
         </div>
         <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/review" target="_blank" rel="noopener"><code>extensions/review</code></a></p>
         <h3 id="prereq">Prerequisites</h3>
-        <p>The current directory is a git repo; <code>git</code> is on the machine.</p>
+        <p>The current directory is a git repo (or pass any git repo path via a param); <code>git</code> is on the machine.</p>
         <h3 id="example">Usage</h3>
-        <p>Human: <code>/review</code> lists the mode menu. Model: call the <code>review</code> tool with <code>action</code> (<code>diff</code>/<code>staged</code>/<code>commit</code>/<code>branch</code>). After selection a prompt is generated and sent back via <code>pi.sendUserMessage(..., { deliverAs: "followUp" })</code> for the current model to act as reviewer.</p>
+        <ul>
+          <li>Human: <code>/review</code> lists the mode menu (Uncommitted / Staged / vs base branch / Custom)</li>
+          <li>Model: call the <code>review</code> tool with <code>action</code> (<code>diff</code>/<code>staged</code>/<code>commit</code>/<code>branch</code>)</li>
+        </ul>
+        <p><strong>Cross-repo</strong>: reviews the cwd repo by default; any git repo path can be specified —</p>
+        <ul>
+          <li><code>/review piex</code> or <code>/review @piex/</code> — review the <code>piex</code> subdirectory repo (<code>@</code> is pi's path-mention syntax, prefix auto-stripped)</li>
+          <li><code>/review ./path/to/repo</code> — review any relative-path repo</li>
+          <li>Pick "Switch repository path…" in the menu to switch at runtime</li>
+          <li>Pass <code>repo</code> to the <code>review</code> tool (resolved against cwd), e.g. <code>{ action: "diff", repo: "piex" }</code></li>
+        </ul>
+        <p>After selection a prompt is generated and sent back via <code>pi.sendUserMessage(..., { deliverAs: "followUp" })</code> for the current model to act as reviewer.</p>
         <h3 id="verify">Verify</h3>
         <div class="blog-code">
           <div class="blog-code-bar"><span>bash</span></div>
@@ -200,6 +211,7 @@
           <table>
             <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
             <tbody>
+              <tr><td>0.2.0</td><td>2026-07-22</td><td>Cross-repo review: <code>/review [path]</code> command, <code>repo</code> param on the <code>review</code> tool, "Switch repository path…" menu entry; <code>resolveRepo</code> validates path and git repo (<code>rev-parse --show-toplevel</code>, supports worktree/submodule) and strips pi's path-mention prefix <code>@</code> (<code>/review @piex/</code> works like <code>/review piex</code>); hardened <code>git()</code> to use <code>execFileSync</code> (argv passed literally — no shell injection from <code>base</code>/<code>commit</code>/<code>file</code>); fixed <code>parseDiff</code> double-counting (excluded files no longer added to totals)</td></tr>
               <tr><td>0.1.1</td><td>2026-07-19</td><td>Initial release: diff engine (<code>parseDiff</code>) + noise filter (<code>EXCLUDED_PATTERNS</code>); 5 modes; <code>buildReviewPrompt</code> structured prompt (oversized diff not inlined); shared engine for human/model; omp lightweight (no multi-agent parallel or TUI overlay)</td></tr>
             </tbody>
           </table>
