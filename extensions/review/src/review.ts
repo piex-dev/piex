@@ -7,7 +7,8 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import * as fs from "node:fs";
 import * as path from "node:path";
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -98,8 +99,6 @@ function parseDiff(raw: string): DiffSummary {
       totalAdded += added;
       totalRemoved += removed;
     }
-    totalAdded += added;
-    totalRemoved += removed;
   }
   return { files, excluded, totalAdded, totalRemoved, rawDiff: raw };
 }
@@ -110,7 +109,9 @@ function parseDiff(raw: string): DiffSummary {
 
 function git(cwd: string, args: string[]): string {
   try {
-    return execSync(`git ${args.join(" ")}`, {
+    // execFileSync bypasses the shell so LLM-supplied refs (base/commit/file)
+    // are passed as literal argv — no shell interpolation.
+    return execFileSync("git", args, {
       cwd,
       encoding: "utf-8",
       maxBuffer: 50 * 1024 * 1024,
@@ -124,6 +125,45 @@ function getDefaultBranch(cwd: string): string {
   const result = git(cwd, ["rev-parse", "--abbrev-ref", "origin/HEAD"]).trim();
   if (result) return result.replace(/^origin\//, "");
   return git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]).trim() || "main";
+}
+
+/**
+ * Resolve a git repository path.
+ *
+ * - With no `repo`, validates that `cwd` itself is a git repository.
+ * - With `repo` (relative or absolute), resolves it against `cwd` and
+ *   validates it is a git repository, returning the repository root.
+ *
+ * Returns `{ ok: true, path }` on success or `{ ok: false, error }` with a
+ * user-facing message otherwise.
+ */
+function resolveRepo(
+  cwd: string,
+  repo?: string,
+): { ok: true; path: string } | { ok: false; error: string } {
+  const target = repo ? path.resolve(cwd, repo) : cwd;
+  if (!fs.existsSync(target)) {
+    return {
+      ok: false,
+      error: `Path does not exist: ${repo ?? cwd}${repo ? ` (resolved to ${target})` : ""}`,
+    };
+  }
+  const toplevel = git(target, ["rev-parse", "--show-toplevel"]).trim();
+  if (!toplevel) {
+    return {
+      ok: false,
+      error: repo
+        ? `Not a git repository: ${repo} (resolved to ${target})`
+        : `Not a git repository: ${cwd}`,
+    };
+  }
+  return { ok: true, path: toplevel };
+}
+
+/** Display the repo path relative to cwd when it is inside cwd. */
+function shortRepo(repo: string, cwd: string): string {
+  const rel = path.relative(cwd, repo);
+  return rel && !rel.startsWith("..") ? rel : repo;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -169,17 +209,23 @@ function buildReviewPrompt(
   mode: string,
   summary: DiffSummary,
   instructions?: string,
+  repo?: string,
 ): string {
   const { files, excluded, totalAdded, totalRemoved, rawDiff } = summary;
   const totalLines = totalAdded + totalRemoved;
   const skipDiff = rawDiff.length > 50_000 || files.length > 20;
+  const repoLabel = repo ? ` — repo: ${repo}` : "";
 
-  let prompt = `## Code Review — ${mode}
+  let prompt = `## Code Review — ${mode}${repoLabel}
 
 ### Summary
 ${files.length} files changed, +${totalAdded}/-${totalRemoved} lines (${totalLines} total)
 
 `;
+
+  if (repo) {
+    prompt += `> File paths in the diff are relative to the repository root: \`${repo}\`\n\n`;
+  }
 
   if (files.length > 0) {
     prompt += `### Changed Files\n\n`;
@@ -224,43 +270,73 @@ export default function reviewExtension(pi: ExtensionAPI) {
   // ── /review command ────────────────────────────────
 
   pi.registerCommand("review", {
-    description: "Code review: uncommitted, staged, branch, or commit",
-    handler: async (_args, ctx) => {
+    description:
+      "Code review: uncommitted, staged, branch, or commit. Optional repo path: /review [path]",
+    handler: async (args, ctx) => {
       if (!ctx.hasUI) {
         ctx.ui.notify("/review requires interactive mode", "error");
         return;
       }
 
       const cwd = ctx.cwd;
-      const defaultBranch = getDefaultBranch(cwd);
+      // Optional repo path from the first argument token: /review piex
+      const argRepo = args.trim().split(/\s+/)[0] || undefined;
+      const initial = resolveRepo(cwd, argRepo);
+      if (!initial.ok) {
+        ctx.ui.notify(initial.error, "error");
+        return;
+      }
 
-      const choice = await ctx.ui.select("Review what?", [
-        `Uncommitted changes (working tree)`,
-        `Staged changes (ready to commit)`,
-        `Changes vs ${defaultBranch} (PR-style)`,
-        `Custom instructions (no auto-diff)`,
-      ]);
-
-      if (!choice) return;
+      let repo = initial.path;
+      let defaultBranch = getDefaultBranch(repo);
 
       let summary: DiffSummary | null = null;
       let mode = "";
       let customInstructions: string | undefined;
 
-      if (choice.startsWith("Uncommitted")) {
-        summary = await reviewUncommitted(cwd);
-        mode = "Uncommitted Changes";
-      } else if (choice.startsWith("Staged")) {
-        summary = await reviewStaged(cwd);
-        mode = "Staged Changes";
-      } else if (choice.startsWith("Changes vs")) {
-        summary = await reviewBaseBranch(cwd);
-        mode = `Changes vs ${defaultBranch}`;
-      } else if (choice.startsWith("Custom")) {
-        const instr = await ctx.ui.input("Review instructions:");
-        if (!instr?.trim()) return;
-        customInstructions = instr.trim();
-        mode = "Custom Review";
+      while (true) {
+        const choice = await ctx.ui.select(
+          `Review what? (repo: ${shortRepo(repo, cwd)})`,
+          [
+            `Uncommitted changes (working tree)`,
+            `Staged changes (ready to commit)`,
+            `Changes vs ${defaultBranch} (PR-style)`,
+            `Custom instructions (no auto-diff)`,
+            `Switch repository path…`,
+          ],
+        );
+
+        if (!choice) return;
+
+        if (choice.startsWith("Switch repository")) {
+          const inputRepo = await ctx.ui.input("Repository path:", cwd);
+          if (!inputRepo?.trim()) continue;
+          const next = resolveRepo(cwd, inputRepo.trim());
+          if (!next.ok) {
+            ctx.ui.notify(next.error, "error");
+            continue;
+          }
+          repo = next.path;
+          defaultBranch = getDefaultBranch(repo);
+          continue;
+        }
+
+        if (choice.startsWith("Uncommitted")) {
+          summary = await reviewUncommitted(repo);
+          mode = "Uncommitted Changes";
+        } else if (choice.startsWith("Staged")) {
+          summary = await reviewStaged(repo);
+          mode = "Staged Changes";
+        } else if (choice.startsWith("Changes vs")) {
+          summary = await reviewBaseBranch(repo);
+          mode = `Changes vs ${defaultBranch}`;
+        } else if (choice.startsWith("Custom")) {
+          const instr = await ctx.ui.input("Review instructions:");
+          if (!instr?.trim()) return;
+          customInstructions = instr.trim();
+          mode = "Custom Review";
+        }
+        break;
       }
 
       if (customInstructions) {
@@ -275,6 +351,7 @@ export default function reviewExtension(pi: ExtensionAPI) {
             rawDiff: "",
           },
           customInstructions,
+          repo,
         );
         pi.sendUserMessage(prompt, { deliverAs: "followUp" });
         return;
@@ -285,7 +362,7 @@ export default function reviewExtension(pi: ExtensionAPI) {
         return;
       }
 
-      const prompt = buildReviewPrompt(mode, summary);
+      const prompt = buildReviewPrompt(mode, summary, undefined, repo);
       pi.sendUserMessage(prompt, { deliverAs: "followUp" });
     },
   });
@@ -303,7 +380,9 @@ Actions:
   staged   — Review staged changes only
   commit   — Review a specific commit (requires 'commit' param)
   file     — Review a specific file (requires 'file' param)
-  branch   — Review changes vs a base branch (requires 'base' param)`,
+  branch   — Review changes vs a base branch (requires 'base' param)
+
+Optional 'repo' param: path to the git repository (defaults to cwd; relative paths resolve against cwd)`,
     parameters: Type.Object({
       action: Type.String({
         description: "Review action: diff, staged, commit, file, branch",
@@ -324,11 +403,29 @@ Actions:
       instructions: Type.Optional(
         Type.String({ description: "Custom review focus or instructions" }),
       ),
+      repo: Type.Optional(
+        Type.String({
+          description:
+            "Path to the git repository to review. Defaults to the current working directory. Relative paths resolve against cwd.",
+        }),
+      ),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd;
       const action = String(params.action ?? "").trim();
+
+      const resolved = resolveRepo(
+        cwd,
+        typeof params.repo === "string" ? params.repo : undefined,
+      );
+      if (!resolved.ok) {
+        return {
+          content: [{ type: "text", text: `Review failed: ${resolved.error}` }],
+          details: { action, error: true },
+        };
+      }
+      const repo = resolved.path;
 
       try {
         let summary: DiffSummary | null = null;
@@ -336,26 +433,26 @@ Actions:
 
         switch (action) {
           case "diff":
-            summary = await reviewUncommitted(cwd);
+            summary = await reviewUncommitted(repo);
             mode = "Uncommitted Changes";
             break;
           case "staged":
-            summary = await reviewStaged(cwd);
+            summary = await reviewStaged(repo);
             mode = "Staged Changes";
             break;
           case "commit":
             if (typeof params.commit !== "string" || !params.commit) {
               throw new Error("'commit' parameter required for action=commit");
             }
-            summary = await reviewCommit(cwd, params.commit);
+            summary = await reviewCommit(repo, params.commit);
             mode = `Commit ${params.commit.slice(0, 8)}`;
             break;
           case "branch":
             if (typeof params.base !== "string" || !params.base) {
               throw new Error("'base' parameter required for action=branch");
             }
-            git(cwd, ["fetch", "origin", params.base]);
-            const diff = git(cwd, [
+            git(repo, ["fetch", "origin", params.base]);
+            const diff = git(repo, [
               "diff",
               `origin/${params.base}...HEAD`,
               "--unified=3",
@@ -367,7 +464,7 @@ Actions:
             if (typeof params.file !== "string" || !params.file) {
               throw new Error("'file' parameter required for action=file");
             }
-            const fileDiff = git(cwd, [
+            const fileDiff = git(repo, [
               "diff",
               "--unified=3",
               "--",
@@ -395,12 +492,14 @@ Actions:
           typeof params.instructions === "string"
             ? params.instructions
             : undefined,
+          repo,
         );
         return {
           content: [{ type: "text", text: prompt }],
           details: {
             action,
             mode,
+            repo,
             files: summary.files.length,
             added: summary.totalAdded,
             removed: summary.totalRemoved,
