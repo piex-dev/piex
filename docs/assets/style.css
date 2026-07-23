@@ -527,8 +527,7 @@ code {
 .hero-terminal pre .prompt { color: var(--green); user-select: none; }
 .hero-terminal pre .comment { color: var(--dark-gray); }
 
-/* ---- stats ---- */
-}
+
 
 /* ================================================================
    SECTIONS
@@ -939,9 +938,44 @@ section + section { padding-top: 3.25rem; }
     min-height: 44px;
   }
 
-  /* desktop nav hidden on phone; nav-sheet takes over */
+  /* On phone: desktop nav links hidden; content pages (no nav-sheet) toggle
+     .open to reveal a dropdown. Homepage uses the nav-sheet drawer instead. */
+  .nav-links {
+    display: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    width: 100%;
+    background: rgba(5, 5, 5, 0.97);
+    backdrop-filter: blur(14px);
+    padding: 0.55rem 0.75rem 0.7rem;
+    border-bottom: 1px solid var(--line);
+    gap: 0.35rem;
+    z-index: 99;
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a {
+    padding: 0.4rem 0.65rem;
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    min-height: 0;
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .lang-switch {
+    margin-left: auto;
+    margin-top: 0;
+    align-self: center;
+  }
+  .lang-switch button {
+    min-height: 0;
+    padding: 0.3rem 0.55rem;
+  }
   .nav-links { display: none; }
-
   .hero {
     padding: 2rem 1rem 1.25rem;
     width: 100%;

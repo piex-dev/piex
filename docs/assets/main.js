@@ -540,4 +540,29 @@
       }
     }
   });
+  /* ---- legacy #nav-links dropdown fallback (content pages have no nav-sheet) ---- */
+  var navLinks = document.getElementById("nav-links");
+  if (toggle && !sheet && navLinks) {
+    function closeNav() {
+      navLinks.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+    function openNav() {
+      navLinks.classList.add("open");
+      toggle.setAttribute("aria-expanded", "true");
+    }
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (navLinks.classList.contains("open")) closeNav();
+      else openNav();
+    });
+    navLinks.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", closeNav);
+    });
+    document.addEventListener("click", function (e) {
+      if (!navLinks.classList.contains("open")) return;
+      if (navLinks.contains(e.target) || toggle.contains(e.target)) return;
+      closeNav();
+    });
+  }
 })();
