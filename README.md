@@ -1,12 +1,12 @@
 # PieX — Pi Extensions
 
-[中文](./README.zh.md)
+**Extend Pi without forking.**
 
-A collection of functional extensions built on the [Pi](https://pi.dev) Extension API — core capabilities extracted from oh-my-pi, Claude Code, OpenCode, and other top coding agents, distributed as independent `@piex-dev/*` npm packages.
+A collection of extensions built on the [Pi](https://pi.dev) Extension API — core capabilities extracted from oh-my-pi, Claude Code, OpenCode, and other top coding agents, distributed as independent `@piex-dev/*` npm packages you install on demand.
 
 ## Why PieX?
 
-- **Extend, never fork**: omp forks the core and bundles everything; PieX extends via the official Extension API — never touching the core, upgrading with Pi.
+- **Extend, never fork**: oh-my-pi (omp) forks the Pi core and bundles everything; PieX extends via the official Extension API — never touching the core, upgrading with Pi.
 - **On demand, switch freely**: independent packages — install & remove at will. Minimal and in control: pay tokens only for what you use.
 - **Know how it works**: borrow the best from top agents — understand their designs, then rebuild as extensions you fully control.
 - **Eval first**: behavior-changing extensions ship with eval criteria & data (see [Evaluation](docs/evaluation.md)). No measurement, no adoption.

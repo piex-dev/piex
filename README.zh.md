@@ -2,13 +2,15 @@
 
 [English](./README.md)
 
-基于 [Pi](https://pi.dev) Extension API 构建的功能扩展集合，从 oh-my-pi、Claude Code、OpenCode 等优秀 coding agent 中提取核心能力，以独立 `@piex-dev/*` npm 包形式分发。
+**充分扩展 Pi，而非 fork。**
+
+基于 [Pi](https://pi.dev) Extension API 构建的功能扩展集合，从 oh-my-pi、Claude Code、OpenCode 等优秀 coding agent 中提取核心能力，以独立 `@piex-dev/*` npm 包形式按需安装。
 
 ## 为什么选 PieX？
 
-- **充分扩展，而非 fork**：omp 选择 fork + 全量内置；PieX 只走官方 Extension API，不碰内核，随 Pi 升级而升级。
+- **充分扩展，而非 fork**：oh-my-pi（omp）fork 了 pi 内核并全量内置；PieX 只走官方 Extension API，不碰内核，随 pi 升级而升级。
 - **按需扩展，自由切换**：包相互独立、即装即卸；克制可控，只为用到的能力付出 token。
-- **知其所以然**：取百家之长，借鉴主流 agent 的优秀设计，搞懂底层原理再以扩展引入——每个功能自己选择、自己理解、自己掌控。
+- **知其所以然**：取百家之长，借鉴主流 agent 的优秀设计，搞懂底层原理再以扩展引入，每个功能自己选择、自己理解、自己掌控。
 - **评测优先**：影响 agent 行为的扩展都有评测标准与数据支撑（见[评测方案](docs/evaluation.md)）；无法度量效果，就不引入。
 
 完整论述见[设计理念](docs/design.md)。
