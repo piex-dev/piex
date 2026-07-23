@@ -22,6 +22,7 @@ pi install npm:@piex-dev/review
 指定仓库路径：
 
 - `/review piex` — 评审 `piex` 子目录仓库的变更
+- `/review @piex/` — 也支持 pi 的 `@` 路径引用语法（`@` 前缀自动去除）
 - `/review ./path/to/repo` — 评审任意相对路径仓库
 - 菜单中选「Switch repository path…」可运行时切换仓库
 - `review` 工具传 `repo` 参数（相对 cwd 解析），如 `{ action: "diff", repo: "piex" }`

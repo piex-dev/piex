@@ -141,19 +141,23 @@ function resolveRepo(
   cwd: string,
   repo?: string,
 ): { ok: true; path: string } | { ok: false; error: string } {
-  const target = repo ? path.resolve(cwd, repo) : cwd;
+  // pi path-mention syntax ("@piex/") enters command args verbatim; strip
+  // the leading "@" so it resolves like a normal relative path. Matches pi's
+  // own normalizePath({ stripAtPrefix: true }) convention.
+  const input = repo?.replace(/^@+/, "");
+  const target = input ? path.resolve(cwd, input) : cwd;
   if (!fs.existsSync(target)) {
     return {
       ok: false,
-      error: `Path does not exist: ${repo ?? cwd}${repo ? ` (resolved to ${target})` : ""}`,
+      error: `Path does not exist: ${input ?? cwd}${input ? ` (resolved to ${target})` : ""}`,
     };
   }
   const toplevel = git(target, ["rev-parse", "--show-toplevel"]).trim();
   if (!toplevel) {
     return {
       ok: false,
-      error: repo
-        ? `Not a git repository: ${repo} (resolved to ${target})`
+      error: input
+        ? `Not a git repository: ${input} (resolved to ${target})`
         : `Not a git repository: ${cwd}`,
     };
   }
