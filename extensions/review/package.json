@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/review",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Code Review extension for pi — interactive /review command and LLM-callable review tool",
   "license": "MIT",
@@ -35,6 +35,9 @@
   ],
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
     "typebox": "*"
   }
 }

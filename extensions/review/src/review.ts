@@ -128,6 +128,84 @@ function getDefaultBranch(cwd: string): string {
 }
 
 /**
+ * Take the first path-like argument from a slash-command arg string.
+ * Supports bare tokens, `@path`, and quoted forms used by pi autocomplete
+ * (`@"path with spaces"`, `"path"`, `'path'`, and common curly quotes).
+ */
+function takeFirstPathArg(args: string): string | undefined {
+  const s = args.trim();
+  if (!s) return undefined;
+
+  let i = 0;
+  if (s[i] === "@") i++;
+
+  const open = s[i];
+  const close =
+    open === '"'
+      ? '"'
+      : open === "'"
+        ? "'"
+        : open === "\u201c"
+          ? "\u201d"
+          : open === "\u2018"
+            ? "\u2019"
+            : undefined;
+
+  if (close) {
+    const end = s.indexOf(close, i + 1);
+    // Include the leading @ (if any) and the closing quote when present.
+    return end === -1 ? s : s.slice(0, end + 1);
+  }
+
+  const rest = s.slice(i).match(/^\S+/);
+  if (!rest) return undefined;
+  return s.slice(0, i) + rest[0];
+}
+
+/**
+ * Normalize a repo path argument from `/review` or the review tool.
+ *
+ * pi path-mention / autocomplete may produce forms like `@piex/`, `@"piex"`,
+ * or `"piex"`. Strip leading `@` and one matching quote layer so the path
+ * resolves like a normal relative/absolute path.
+ */
+function normalizeRepoArg(raw?: string): string | undefined {
+  if (raw == null) return undefined;
+  let s = raw.trim();
+  if (!s) return undefined;
+
+  // pi path-mention syntax ("@piex/") enters command args verbatim.
+  s = s.replace(/^@+/, "");
+
+  // Autocomplete wraps paths that need quoting: @"piex" / "my repo".
+  // Also accept curly quotes that some input methods insert.
+  const pairs: [string, string][] = [
+    ['"', '"'],
+    ["'", "'"],
+    ["\u201c", "\u201d"],
+    ["\u2018", "\u2019"],
+  ];
+  for (const [open, close] of pairs) {
+    if (s.startsWith(open)) {
+      // Strip the opening quote always; strip the matching trailing close
+      // quote too when balanced. Tolerates unbalanced forms (@"piex) so no
+      // literal quote leaks into the resolved path or error message.
+      const balanced =
+        s.endsWith(close) && s.length >= open.length + close.length;
+      s = balanced
+        ? s.slice(open.length, s.length - close.length)
+        : s.slice(open.length);
+      break;
+    }
+  }
+
+  // Handle quoted-then-@ forms like "@piex" after the outer quotes were stripped.
+  s = s.replace(/^@+/, "").trim();
+  return s || undefined;
+  return s || undefined;
+}
+
+/**
  * Resolve a git repository path.
  *
  * - With no `repo`, validates that `cwd` itself is a git repository.
@@ -141,10 +219,7 @@ function resolveRepo(
   cwd: string,
   repo?: string,
 ): { ok: true; path: string } | { ok: false; error: string } {
-  // pi path-mention syntax ("@piex/") enters command args verbatim; strip
-  // the leading "@" so it resolves like a normal relative path. Matches pi's
-  // own normalizePath({ stripAtPrefix: true }) convention.
-  const input = repo?.replace(/^@+/, "");
+  const input = normalizeRepoArg(repo);
   const target = input ? path.resolve(cwd, input) : cwd;
   if (!fs.existsSync(target)) {
     return {
@@ -284,7 +359,8 @@ export default function reviewExtension(pi: ExtensionAPI) {
 
       const cwd = ctx.cwd;
       // Optional repo path from the first argument token: /review piex
-      const argRepo = args.trim().split(/\s+/)[0] || undefined;
+      // Also accepts pi @-mention / autocomplete forms: /review @piex/, /review @"piex"
+      const argRepo = takeFirstPathArg(args);
       const initial = resolveRepo(cwd, argRepo);
       if (!initial.ok) {
         ctx.ui.notify(initial.error, "error");
@@ -523,3 +599,10 @@ Optional 'repo' param: path to the git repository (defaults to cwd; relative pat
     },
   });
 }
+
+/** Test-only exports for path-arg normalization helpers. */
+export const __test__ = {
+  takeFirstPathArg,
+  normalizeRepoArg,
+  resolveRepo,
+};

@@ -159,7 +159,7 @@
         </ul>
         <p><strong>Cross-repo</strong>: reviews the cwd repo by default; any git repo path can be specified —</p>
         <ul>
-          <li><code>/review piex</code> or <code>/review @piex/</code> — review the <code>piex</code> subdirectory repo (<code>@</code> is pi's path-mention syntax, prefix auto-stripped)</li>
+          <li><code>/review piex</code>, <code>/review @piex/</code>, <code>/review @"piex"</code> — review the <code>piex</code> subdirectory repo (<code>@</code> and autocomplete quotes are auto-stripped)</li>
           <li><code>/review ./path/to/repo</code> — review any relative-path repo</li>
           <li>Pick "Switch repository path…" in the menu to switch at runtime</li>
           <li>Pass <code>repo</code> to the <code>review</code> tool (resolved against cwd), e.g. <code>{ action: "diff", repo: "piex" }</code></li>
@@ -211,6 +211,7 @@
           <table>
             <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
             <tbody>
+              <tr><td>0.2.1</td><td>2026-07-23</td><td>Fix <code>/review @"piex"</code>: strip pi autocomplete quotes (<code>@"…"</code> / <code>"…"</code> / curly quotes) in <code>resolveRepo</code> so quoted path mentions no longer resolve as literal quote-wrapped paths</td></tr>
               <tr><td>0.2.0</td><td>2026-07-22</td><td>Cross-repo review: <code>/review [path]</code> command, <code>repo</code> param on the <code>review</code> tool, "Switch repository path…" menu entry; <code>resolveRepo</code> validates path and git repo (<code>rev-parse --show-toplevel</code>, supports worktree/submodule) and strips pi's path-mention prefix <code>@</code> (<code>/review @piex/</code> works like <code>/review piex</code>); hardened <code>git()</code> to use <code>execFileSync</code> (argv passed literally — no shell injection from <code>base</code>/<code>commit</code>/<code>file</code>); fixed <code>parseDiff</code> double-counting (excluded files no longer added to totals)</td></tr>
               <tr><td>0.1.1</td><td>2026-07-19</td><td>Initial release: diff engine (<code>parseDiff</code>) + noise filter (<code>EXCLUDED_PATTERNS</code>); 5 modes; <code>buildReviewPrompt</code> structured prompt (oversized diff not inlined); shared engine for human/model; omp lightweight (no multi-agent parallel or TUI overlay)</td></tr>
             </tbody>

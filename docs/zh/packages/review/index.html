@@ -159,7 +159,7 @@
         </ul>
         <p><strong>跨仓库</strong>：默认评审 cwd 所在仓库；可指定任意 git 仓库路径——</p>
         <ul>
-          <li><code>/review piex</code> 或 <code>/review @piex/</code> — 评审 <code>piex</code> 子目录仓库（<code>@</code> 是 pi 的路径引用语法，自动去除前缀）</li>
+          <li><code>/review piex</code>、<code>/review @piex/</code>、<code>/review @"piex"</code> — 评审 <code>piex</code> 子目录仓库（<code>@</code> 与 autocomplete 引号均自动剥离）</li>
           <li><code>/review ./path/to/repo</code> — 评审任意相对路径仓库</li>
           <li>菜单中选「Switch repository path…」可运行时切换仓库</li>
           <li><code>review</code> 工具传 <code>repo</code> 参数（相对 cwd 解析），如 <code>{ action: "diff", repo: "piex" }</code></li>
@@ -211,6 +211,7 @@
           <table>
             <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
             <tbody>
+              <tr><td>0.2.1</td><td>2026-07-23</td><td>修复 <code>/review @"piex"</code>：pi autocomplete 产生的引号路径（<code>@"…"</code> / <code>"…"</code> / 弯引号）在 <code>resolveRepo</code> 中自动剥离，不再解析成带引号的错误路径</td></tr>
               <tr><td>0.2.0</td><td>2026-07-22</td><td>跨仓库评审：<code>/review [path]</code> 命令、<code>review</code> 工具 <code>repo</code> 参数、菜单「Switch repository path…」；<code>resolveRepo</code> 校验路径与 git 仓库（<code>rev-parse --show-toplevel</code>，支持 worktree/submodule）并剥离 pi 路径引用前缀 <code>@</code>（<code>/review @piex/</code> 同 <code>/review piex</code>）；安全硬化 <code>git()</code> 改用 <code>execFileSync</code> 透传 argv，杜绝 <code>base</code>/<code>commit</code>/<code>file</code> 参数的 shell 注入；修复 <code>parseDiff</code> 重复累加（excluded 文件不再计入 totals）</td></tr>
               <tr><td>0.1.1</td><td>2026-07-19</td><td>初始版本：diff 引擎（<code>parseDiff</code>）+ 噪声过滤（<code>EXCLUDED_PATTERNS</code>）；5 种模式；<code>buildReviewPrompt</code> 结构化 prompt（过大 diff 不内嵌）；人机共用引擎；omp 轻量版（不做多 agent 并行与 TUI overlay）</td></tr>
             </tbody>
