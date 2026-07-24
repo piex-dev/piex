@@ -6,11 +6,10 @@
  *
  * Based on the RFC 8628 Device Authorization Grant flow, ported from
  * oh-my-pi's xai-oauth provider (which itself draws from NousResearch/hermes-agent).
- *
  * Models include live catalog discovery: on login, both api.x.ai/v1/models and
- * cli-chat-proxy.grok.com/v1/models are fetched in the background. Models
- * available on the proxy route through the subscription quota path; the rest
- * use the public API.  New models appear on the next /reload.
+ * cli-chat-proxy.grok.com/v1/models are fetched in the background. Models only
+ * on the proxy are routed there (they are absent from api.x.ai); both endpoints
+ * run on the subscription quota under an OAuth token.  New models appear on the next /reload.
  *
  * Usage:
  *   pi install /path/to/piex/extensions/xai-oauth

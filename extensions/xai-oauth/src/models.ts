@@ -6,9 +6,10 @@
  *   cli-chat-proxy.grok.com refreshes the discovery cache. The next
  *   `/reload` (or model load) applies the new catalog.
  * - PI_XAI_OAUTH_MODELS env var filters / reorders models.
- * - Proxy-preferred routing: models available on cli-chat-proxy ride the
- *   subscription quota path; everything else hits the public API.
- *
+ * - Proxy routing: models only available on cli-chat-proxy.grok.com (e.g.
+ *   grok-composer) are routed there, since they are absent from the api.x.ai
+ *   catalog. Both endpoints run on the subscription quota when an OAuth
+ *   (subscription) token is used; proxy is for model availability, not billing.
  * Ported & adapted from stnly/pi-grok (MIT).
  */
 
@@ -46,8 +47,7 @@ export interface XaiModelConfig {
 
 /** Public API base. */
 export const XAI_PUBLIC_BASE_URL = "https://api.x.ai/v1";
-
-/** CLI chat proxy — models here ride the subscription quota instead of API billing. */
+/** CLI chat proxy — host for subscription-only models (e.g. grok-composer) absent from the api.x.ai catalog. */
 export const CLI_PROXY_BASE_URL = "https://cli-chat-proxy.grok.com/v1";
 
 /** Client version matching the shipped grok-build CLI. Override with PI_XAI_CLIENT_VERSION. */
@@ -91,12 +91,11 @@ const COST_CODE_FAST = {
 /**
  * Hardcoded fallback catalog.  Ordered so the most generally useful models
  * appear first in the picker.  Live discovery can reorder and add new entries.
- *
- * Proxy-only models carry their own baseUrl + headers so they route through
- * the subscription quota path even before discovery has run.
+ * Proxy-only models carry their own baseUrl + headers so they reach the
+ * proxy even before discovery has run (they are absent from api.x.ai).
  */
 export const FALLBACK_MODELS: XaiModelConfig[] = [
-  // ── Proxy-only (subscription quota) ──
+  // ── Proxy-only (absent from api.x.ai) ──
   {
     id: "grok-composer-2.5-fast",
     name: "Composer 2.5",
@@ -298,8 +297,8 @@ async function fetchRawCatalog(
  *
  * - Live catalog is authoritative for context_window and max_tokens.
  * - Base list fills name / cost / reasoning / compat.
- * - proxyIds drives routing: ids in the set get the proxy base URL so they
- *   ride the subscription quota path; others fall back to the public API.
+ * - proxyIds drives routing: ids only on the proxy get its base URL (they are
+ *   absent from api.x.ai); others stay on the public API.
  */
 export function mergeLiveModels(
   base: XaiModelConfig[],
