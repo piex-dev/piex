@@ -1,0 +1,52 @@
+{
+  "name": "@piex-dev/subagent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Subagent delegation for pi — delegate focused tasks to isolated child agents (subprocess transport)",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "extensions/subagent"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "subagent",
+    "delegation"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/subagent.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/subagent.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-agent-core": "^0.81.1",
+    "@earendil-works/pi-ai": "^0.81.1",
+    "@earendil-works/pi-coding-agent": "^0.81.1",
+    "@earendil-works/pi-tui": "^0.81.1",
+    "typebox": "*",
+    "typescript": "^7.0.2"
+  }
+}

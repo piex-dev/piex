@@ -36,42 +36,43 @@ pi -e ./extensions/hashline/src/hashline.ts
 
 ### Extensions
 
-| Package     | npm                  | Description                                                                                |
-| ----------- | -------------------- | ------------------------------------------------------------------------------------------ |
-| hashline    | `@piex-dev/hashline` | Hashline patch language — compact, line-anchored, tag-verified file edits                  |
-| dap         | `@piex-dev/dap`      | Debug Adapter Protocol — debug programs with 14 adapters directly from Pi                  |
-| lsp         | `@piex-dev/lsp`      | Language Server Protocol — diagnostics, navigation, rename, code actions, format (50+ servers) |
-| plan        | `@piex-dev/plan`     | Plan Mode — read-only exploration, plan creation, and step-by-step execution               |
-| review      | `@piex-dev/review`   | Code Review — interactive `/review` command and LLM-callable review tool                   |
-| xai-oauth   | `@piex-dev/xai-oauth`| xAI Grok OAuth login — use SuperGrok or X Premium+ instead of API key                      |
-| btw         | `@piex-dev/btw`      | By-the-way — ask side questions with session context, answered out-of-band                 |
-| context     | `@piex-dev/context`  | Context usage report — `/context` command showing token usage breakdown                    |
-| goal        | `@piex-dev/goal`     | Autonomous goal completion — `/goal` command with token-budget wrap-up and impasse channel |
+| Package   | npm                   | Description                                                                                    |
+| --------- | --------------------- | ---------------------------------------------------------------------------------------------- |
+| hashline  | `@piex-dev/hashline`  | Hashline patch language — compact, line-anchored, tag-verified file edits                      |
+| dap       | `@piex-dev/dap`       | Debug Adapter Protocol — debug programs with 14 adapters directly from Pi                      |
+| lsp       | `@piex-dev/lsp`       | Language Server Protocol — diagnostics, navigation, rename, code actions, format (50+ servers) |
+| plan      | `@piex-dev/plan`      | Plan Mode — read-only exploration, plan creation, and step-by-step execution                   |
+| review    | `@piex-dev/review`    | Code Review — interactive `/review` command and LLM-callable review tool                       |
+| subagent  | `@piex-dev/subagent`  | Subagent delegation — isolated child agents via subprocess (single + parallel)                 |
+| xai-oauth | `@piex-dev/xai-oauth` | xAI Grok OAuth login — use SuperGrok or X Premium+ instead of API key                          |
+| btw       | `@piex-dev/btw`       | By-the-way — ask side questions with session context, answered out-of-band                     |
+| context   | `@piex-dev/context`   | Context usage report — `/context` command showing token usage breakdown                        |
+| goal      | `@piex-dev/goal`      | Autonomous goal completion — `/goal` command with token-budget wrap-up and impasse channel     |
 
 ### Prompts
 
-| Package | npm              | Description                                                    |
-| ------- | ---------------- | -------------------------------------------------------------- |
+| Package | npm              | Description                                                                          |
+| ------- | ---------------- | ------------------------------------------------------------------------------------ |
 | init    | `@piex-dev/init` | Guided AGENTS.md setup — `/init` prompt that creates or improves project agent rules |
 
 ### Themes
 
-| Package     | npm                          | Description                                                                 |
-| ----------- | ---------------------------- | --------------------------------------------------------------------------- |
+| Package       | npm                             | Description                                                                        |
+| ------------- | ------------------------------- | ---------------------------------------------------------------------------------- |
 | dark-terminal | `@piex-dev/theme-dark-terminal` | High-contrast terminal-inspired dark theme with vivid green, blue, and red accents |
 
 > **ai-code-report** (`@piex-dev/ai-code-report`) is private — AI code edit telemetry with internal dependencies, not published to npm.
 
 ## Docs
 
-| Doc                                | Topic                                 |
-| ---------------------------------- | ------------------------------------- |
-| [Design Philosophy](docs/design.md) | Motivation, design principles, patterns |
+| Doc                                  | Topic                                             |
+| ------------------------------------ | ------------------------------------------------- |
+| [Design Philosophy](docs/design.md)  | Motivation, design principles, patterns           |
 | [Architecture](docs/architecture.md) | Project structure, tool registration, API mapping |
-| [Roadmap](docs/roadmap.md)          | Completed & planned                    |
-| [Evaluation](docs/evaluation.md)    | Benchmark selection, Docker setup, metrics |
-| [Testing](docs/testing.md)          | Per-package smoke tests & verification |
-| [References](docs/references.md)    | Pi docs, upstream project index        |
+| [Roadmap](docs/roadmap.md)           | Completed & planned                               |
+| [Evaluation](docs/evaluation.md)     | Benchmark selection, Docker setup, metrics        |
+| [Testing](docs/testing.md)           | Per-package smoke tests & verification            |
+| [References](docs/references.md)     | Pi docs, upstream project index                   |
 
 ## Development
 
