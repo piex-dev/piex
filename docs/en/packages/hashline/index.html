@@ -167,7 +167,7 @@ SWAP 2.=2:
           <div class="blog-code-bar"><span>bash</span></div>
           <pre><code>cd extensions/hashline &amp;&amp; npm install &amp;&amp; cd ../..</code></pre>
         </div>
-        <p>Deps: <code>@oh-my-pi/hashline</code> ^16.4.0 (runtime), <code>@earendil-works/pi-coding-agent</code> (peer), <code>typebox</code> (peer).</p>
+        <p>Deps: <code>@oh-my-pi/hashline</code> ^17.1.3 (runtime), <code>patch-package</code> ^8.0.1 (runtime), <code>@earendil-works/pi-coding-agent</code> (peer), <code>typebox</code> (peer).</p>
         <h3 id="workflow">Workflow</h3>
         <div class="blog-code">
           <div class="blog-code-bar"><span>flow</span></div>
@@ -224,6 +224,7 @@ Phase 3    Undo · Auto/Raw Read · LSP integration · denser tests</code></pre>
           <table>
             <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
             <tbody>
+              <tr><td>0.1.2</td><td>2026-07-25</td><td>Upgraded <code>@oh-my-pi/hashline</code> to ^17.1.3; auto-apply two upstream patches via <code>patch-package</code> + <code>postinstall</code> (<code>findDuplicateSuffix</code>/<code>findDuplicatePrefix</code> boundary echo false-positive fix, <code>import.meta.dir</code> Node 18 compatibility fix)</td></tr>
               <tr><td>0.1.1</td><td>2026-07-14</td><td>Initial release: wraps <code>@oh-my-pi/hashline</code>, overrides built-in edit; Phase 1 guards (Noop Loop / Duplicate Edit / dialect normalize); Node.js native FS + realpath path normalization</td></tr>
             </tbody>
           </table>

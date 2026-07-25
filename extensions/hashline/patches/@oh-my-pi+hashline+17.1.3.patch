@@ -1,0 +1,36 @@
+diff --git a/node_modules/@oh-my-pi/hashline/src/apply.ts b/node_modules/@oh-my-pi/hashline/src/apply.ts
+index eff2175..7d0109d 100644
+--- a/node_modules/@oh-my-pi/hashline/src/apply.ts
++++ b/node_modules/@oh-my-pi/hashline/src/apply.ts
+@@ -409,7 +409,14 @@ function findDuplicateSuffix(group: ReplacementGroup, fileLines: readonly string
+ 			}
+ 		}
+ 		if (!matches) continue;
+-		if (balanceEqual(computeDelimiterBalance(payload.slice(payload.length - k)), delta)) return k;
++		if (!balanceEqual(computeDelimiterBalance(payload.slice(payload.length - k)), delta)) continue;
++		// A duplicate suffix is a restated boundary only when the echoed lines
++		// are all non-blank structural edges. A payload that merely starts with
++		// lines coincidentally matching the range's suffix — including blank
++		// lines common in code — is a larger rewrite, not a restated boundary;
++		// dropping them corrupts it.
++		if (payload.slice(payload.length - k).some(l => l.trim() === "")) continue;
++		return k;
+ 	}
+ 	return 0;
+ }
+@@ -432,7 +439,14 @@ function findDuplicatePrefix(group: ReplacementGroup, fileLines: readonly string
+ 			}
+ 		}
+ 		if (!matches) continue;
+-		if (balanceEqual(computeDelimiterBalance(payload.slice(0, j)), delta)) return j;
++		if (!balanceEqual(computeDelimiterBalance(payload.slice(0, j)), delta)) continue;
++		// A duplicate prefix is a restated boundary only when the echoed lines
++		// are all non-blank structural edges. A payload that merely ends with
++		// lines coincidentally matching the range's prefix — including blank
++		// lines common in code — is a larger rewrite, not a restated boundary;
++		// dropping them corrupts it.
++		if (payload.slice(0, j).some(l => l.trim() === "")) continue;
++		return j;
+ 	}
+ 	return 0;
+ }

@@ -1,0 +1,22 @@
+diff --git a/node_modules/@oh-my-pi/pi-natives/native/loader-state.js b/node_modules/@oh-my-pi/pi-natives/native/loader-state.js
+index 2e6778c..a3dc1ed 100644
+--- a/node_modules/@oh-my-pi/pi-natives/native/loader-state.js
++++ b/node_modules/@oh-my-pi/pi-natives/native/loader-state.js
+@@ -3,7 +3,7 @@ import * as fs from "node:fs";
+ import { createRequire } from "node:module";
+ import * as os from "node:os";
+ import * as path from "node:path";
+-import * as zlib from "node:zlib";
++import { fileURLToPath } from "node:url";
+ import packageJson from "../package.json" with { type: "json" };
+ import { embeddedAddon } from "./embedded-addon.js";
+ 
+@@ -684,7 +684,7 @@ function buildHelpMessage(ctx) {
+ function initLoaderContext() {
+ 	const platformTag = `${process.platform}-${process.arch}`;
+ 	const packageVersion = packageJson.version;
+-	const nativeDir = path.join(import.meta.dir, "..", "native");
++	const nativeDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "native");
+ 	const execDir = path.dirname(process.execPath);
+ 	const nativesDir = getNativesDir();
+ 	const versionedDir = path.join(nativesDir, packageVersion);

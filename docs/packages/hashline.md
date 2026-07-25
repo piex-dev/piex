@@ -1,6 +1,6 @@
 ---
 title: hashline — 用内容锚点，而不是脆弱行号，改代码
-date: 2026-07-14
+date: 2026-07-25
 tags: [Hashline, Edit, Extension]
 package: hashline
 npm: "@piex-dev/hashline"
@@ -109,9 +109,10 @@ cd extensions/hashline && npm install && cd ../..
 
 依赖：
 
-- `@oh-my-pi/hashline` ^16.4.0（运行时）
+- `@oh-my-pi/hashline` ^17.1.3（运行时）
 - `@earendil-works/pi-coding-agent`（peer）
 - `typebox`（peer）
+- `patch-package` ^8.0.1（运行时，安装时自动应用 patches/ 下的上游补丁）
 
 ### 工作流
 
@@ -147,7 +148,7 @@ patches.ts          # EditGuard：noop loop + duplicate edit
 @oh-my-pi/hashline  # Patch 解析、Patcher 应用、快照、prompt.md
 ```
 
-这是 piex 里**唯一带运行时 npm 依赖**的包（`@oh-my-pi/hashline`）。
+这是 piex 里**唯一带运行时 npm 依赖**的包（`@oh-my-pi/hashline`、`patch-package`）。
 
 ### 端到端工作流
 
@@ -251,10 +252,10 @@ Phase 3    Undo · Auto/Raw Read · LSP 联动 · 更密的封装层测试
 
 | 版本  | 日期       | 变更                                                                                                                                                 |
 | ----- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.1.2 | 2026-07-25 | 升级 `@oh-my-pi/hashline` 至 ^17.1.3；通过 `patch-package` + `postinstall` 自动应用两个上游补丁（`findDuplicateSuffix`/`findDuplicatePrefix` 边界回显误判修复、`import.meta.dir` Node 18 兼容性修复） |
 | 0.1.1 | 2026-07-14 | 初始版本：封装 `@oh-my-pi/hashline`，覆盖内置 edit；Phase 1 容错层（Noop Loop / Duplicate Edit / 方言归一化）；Node.js 原生 FS + realpath 路径规范化 |
 
 ---
-
 ## 附录：与其它 hashline 实现的对比
 
 > 供实现者深入阅读；一般读者看「简介 / 技术原理 / 使用说明 / 实现方案 / 迭代记录」即可。

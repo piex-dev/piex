@@ -29,9 +29,19 @@ pi -e ./extensions/hashline/src/hashline.ts -p "what is 1+1" --no-session
 
 ## 依赖
 
-- `@oh-my-pi/hashline` ^16.4.0（运行时）
+- `@oh-my-pi/hashline` ^17.1.3（运行时）
 - `@earendil-works/pi-coding-agent`（peer）
 - `typebox`（peer）
+- `patch-package` ^8.0.1（运行时，安装时自动应用 patches/ 下的补丁）
+
+## Patches
+
+`patches/` 目录包含两个上游补丁，通过 `postinstall` 脚本 + `patch-package` 自动应用：
+
+- `@oh-my-pi+hashline+17.1.3.patch` — 修复 `findDuplicateSuffix`/`findDuplicatePrefix` 在较大重写 payload 中误判边界回显的问题
+- `@oh-my-pi+pi-natives+17.1.3.patch` — 用 `fileURLToPath` 替代 Node 21.2+ 才支持的 `import.meta.dir`
+
+补丁针对 `@oh-my-pi/hashline@17.1.3` 的精确文件内容生成。升级 `@oh-my-pi/hashline` 版本时需重新生成补丁，`postinstall` 应用失败即为版本不兼容的明确信号。
 
 ## 延伸阅读
 
