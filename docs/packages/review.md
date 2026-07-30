@@ -77,6 +77,13 @@ pi install npm:@piex-dev/review
 - 菜单中选「Switch repository path…」可运行时切换仓库
 - `review` 工具传 `repo` 参数（相对 cwd 解析），如 `{ action: "diff", repo: "piex" }`
 
+**多仓库联动评审**：同时改了多个仓库时一次审完，生成一条合并 prompt 并要求模型检查跨仓库一致性——
+
+- `/review "piex" "oh-my-pi"`、`/review piex oh-my-pi`、`/review @piex @oh-my-pi` — 指定多个仓库（引号 / `@` / 弯引号可混用）
+- 菜单选一个模式（Uncommitted / Staged / vs 默认分支 / Custom）**统一应用到所有仓库**；vs 默认分支时每个仓库用各自默认分支，菜单可「Edit repository list…」重编辑列表
+- `review` 工具传 `repos` 数组：`{ action: "diff", repos: ["piex", "oh-my-pi"] }`，返回合并 prompt；`repos` 优先于 `repo`，多仓库仅支持 `diff`/`staged`/`branch`（`base` 应用到每个仓库，`commit`/`file` 为仓库专属需用单 `repo`）
+- 任一仓库路径非法时列出全部错误并中止；同一仓库的多个子路径自动去重
+
 选中后生成 prompt，经 `pi.sendUserMessage(..., { deliverAs: "followUp" })` 丢回会话，由当前模型继续当 reviewer。
 
 ### 验证
@@ -100,6 +107,10 @@ pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session
 ### Prompt 生成策略
 
 `buildReviewPrompt`：写 Summary → 列 Changed Files 表 → 列 Excluded → 附加自定义 instructions → **过大则不内嵌全文 diff**（diff > 50k 字符或文件数 > 20 时提示模型用 `read` 按需查看，防止打爆上下文）→ 统一评审指令（按 critical / warning / info 分级，给文件与行号，最后 overall assessment）。实用主义：宁可少喂一点，也别让会话 OOM 式膨胀。
+
+### 多仓库联动 prompt（buildMultiRepoPrompt）
+
+`/review "a" "b"` 或工具 `repos` 数组触发：`resolveRepos` 逐个校验并去重，所选模式统一应用到每个仓库（`reviewUncommitted`/`reviewStaged`/`reviewBaseBranch`，vs 默认分支时各仓库用各自默认分支），最后 `buildMultiRepoPrompt` 合成一条 prompt——顶部总览（仓库清单 + 跨仓库合计 +/−），每仓库一节（Changed Files / Excluded / Diff，**过大 diff 按仓库独立 skip**，一个仓库撑不爆全局），末尾评审指令额外要求**跨仓库联动**：共享接口/类型契约、import 路径、API surface 变化、重复或分叉逻辑，finding 标注 repo + 文件 + 行号。价值在于「联动」而非简单拼接：模型被显式引导去看仓库之间的契约一致性。任一仓库路径非法则汇总全部错误并中止。**vs 默认分支时额外用 `canCompareToBase` 区分「比较失败」与「确实无变更」**：仓库无 remote / 分支没 fetch 到 / 默认分支名对不上时，该仓库在 prompt 里标注 ⚠️「比较失败」并要求模型不要当成「无变更」，而不是静默显示 no changes。
 
 ### 与 omp 对比
 
@@ -132,8 +143,9 @@ pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session
 
 ### 版本记录
 
-| 版本  | 日期       | 变更                                                                                                                                                                                                                                                                                                               |
-| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.2.1 | 2026-07-23 | 修复 `/review @"piex"`：pi autocomplete 产生的引号路径（`@"…"` / `"…"` / 弯引号）在 `resolveRepo` 中自动剥离，不再解析成带引号的错误路径 |
-| 0.2.0 | 2026-07-22 | 跨仓库评审：`/review [path]` 命令、`review` 工具 `repo` 参数、菜单「Switch repository path…」；`resolveRepo` 校验路径与 git 仓库（`rev-parse --show-toplevel`，支持 worktree/submodule）并剥离 pi 路径引用前缀 `@`（`/review @piex/` 同 `/review piex`）；安全硬化 `git()` 改用 `execFileSync` 透传 argv，杜绝 `base`/`commit`/`file` 参数的 shell 注入；修复 `parseDiff` 重复累加（excluded 文件不再计入 totals） |
-| 0.1.1 | 2026-07-19 | 初始版本：diff 引擎（`parseDiff`）+ 噪声过滤（`EXCLUDED_PATTERNS`，lock/build/vendor/generated/binary）；5 种模式（uncommitted/staged/branch/commit/custom）；`buildReviewPrompt` 结构化 prompt（过大 diff 不内嵌）；人机共用引擎（`/review` 命令 + `review` 工具）；omp 轻量版（不做多 agent 并行与 TUI overlay） |
+| 版本  | 日期       | 变更                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.3.0 | 2026-07-30 | 多仓库联动评审：`/review "piex" "oh-my-pi"` 一次指定多个仓库（`parseRepoArgs` 解析多 token，引号 / `@` / 弯引号可混用），统一模式应用到所有仓库并合成一条合并 prompt（`buildMultiRepoPrompt`），要求模型检查跨仓库一致性（共享接口/契约/import 路径/重复逻辑）；`resolveRepos` 逐个校验并去重、任一非法汇总全部错误中止；`review` 工具新增 `repos` 数组参数（优先于 `repo`，多仓库仅支持 `diff`/`staged`/`branch`）；过大 diff 按仓库独立 skip；vs 默认分支时用 `canCompareToBase` 区分「比较失败」（无 remote / 没 fetch 到 / 默认分支名不对）与「确实无变更」，失败仓库标注 ⚠️ 不静默当成无变更；单仓库/零仓库行为完全不变 |
+| 0.2.1 | 2026-07-23 | 修复 `/review @"piex"`：pi autocomplete 产生的引号路径（`@"…"` / `"…"` / 弯引号）在 `resolveRepo` 中自动剥离，不再解析成带引号的错误路径                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 0.2.0 | 2026-07-22 | 跨仓库评审：`/review [path]` 命令、`review` 工具 `repo` 参数、菜单「Switch repository path…」；`resolveRepo` 校验路径与 git 仓库（`rev-parse --show-toplevel`，支持 worktree/submodule）并剥离 pi 路径引用前缀 `@`（`/review @piex/` 同 `/review piex`）；安全硬化 `git()` 改用 `execFileSync` 透传 argv，杜绝 `base`/`commit`/`file` 参数的 shell 注入；修复 `parseDiff` 重复累加（excluded 文件不再计入 totals）                                                                                                                                                                                                           |
+| 0.1.1 | 2026-07-19 | 初始版本：diff 引擎（`parseDiff`）+ 噪声过滤（`EXCLUDED_PATTERNS`，lock/build/vendor/generated/binary）；5 种模式（uncommitted/staged/branch/commit/custom）；`buildReviewPrompt` 结构化 prompt（过大 diff 不内嵌）；人机共用引擎（`/review` 命令 + `review` 工具）；omp 轻量版（不做多 agent 并行与 TUI overlay）                                                                                                                                                                                                                                                                                                           |

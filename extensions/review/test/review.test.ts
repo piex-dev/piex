@@ -7,7 +7,14 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { __test__ } from "../src/review.ts";
 
-const { takeFirstPathArg, normalizeRepoArg, resolveRepo } = __test__;
+const {
+  takeFirstPathArg,
+  parseRepoArgs,
+  normalizeRepoArg,
+  resolveRepo,
+  resolveRepos,
+  canCompareToBase,
+} = __test__;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const reviewPkgRoot = path.resolve(here, "..");
@@ -121,5 +128,169 @@ describe("resolveRepo", () => {
     expect(got.error).toContain("does-not-exist-xyz");
     expect(got.error).not.toContain('"does-not-exist');
     expect(got.error).not.toMatch(/[“”]/);
+  });
+});
+
+describe("parseRepoArgs", () => {
+  test("empty / whitespace", () => {
+    expect(parseRepoArgs("")).toEqual([]);
+    expect(parseRepoArgs("   ")).toEqual([]);
+    expect(parseRepoArgs("  \t\n ")).toEqual([]);
+  });
+
+  test("single bare token", () => {
+    expect(parseRepoArgs("piex")).toEqual(["piex"]);
+    expect(parseRepoArgs("./path/to/repo")).toEqual(["./path/to/repo"]);
+  });
+
+  test("multiple bare tokens", () => {
+    expect(parseRepoArgs("piex oh-my-pi")).toEqual(["piex", "oh-my-pi"]);
+    expect(parseRepoArgs("  piex   oh-my-pi  ")).toEqual(["piex", "oh-my-pi"]);
+  });
+
+  test('multiple straight-quoted tokens (the /review "a" "b" form)', () => {
+    // Tokens stay RAW (quotes/@ intact) — normalization happens in resolveRepo,
+    // mirroring takeFirstPathArg which returns '"piex"' verbatim.
+    expect(parseRepoArgs('"piex" "oh-my-pi"')).toEqual([
+      '"piex"',
+      '"oh-my-pi"',
+    ]);
+    expect(parseRepoArgs('@"piex" @"oh-my-pi"')).toEqual([
+      '@"piex"',
+      '@"oh-my-pi"',
+    ]);
+  });
+
+  test("quoted tokens containing spaces", () => {
+    expect(parseRepoArgs('"my repo" "other repo"')).toEqual([
+      '"my repo"',
+      '"other repo"',
+    ]);
+    expect(parseRepoArgs('@"my repo" plain')).toEqual(['@"my repo"', "plain"]);
+  });
+
+  test("@-prefixed tokens, mixed forms", () => {
+    expect(parseRepoArgs("@piex @oh-my-pi")).toEqual(["@piex", "@oh-my-pi"]);
+    expect(parseRepoArgs('piex @"oh-my-pi" @extensions/review')).toEqual([
+      "piex",
+      '@"oh-my-pi"',
+      "@extensions/review",
+    ]);
+  });
+
+  test("curly-quoted tokens", () => {
+    expect(parseRepoArgs("\u201cpiex\u201d \u201coh-my-pi\u201d")).toEqual([
+      "\u201cpiex\u201d",
+      "\u201coh-my-pi\u201d",
+    ]);
+    expect(parseRepoArgs("@\u201cpiex\u201d @\u201coh-my-pi\u201d")).toEqual([
+      "@\u201cpiex\u201d",
+      "@\u201coh-my-pi\u201d",
+    ]);
+  });
+
+  test("unbalanced opening quote swallows rest of string as one token", () => {
+    expect(parseRepoArgs('@"piex')).toEqual(['@"piex']);
+    expect(parseRepoArgs('piex @"oh-my-pi')).toEqual(["piex", '@"oh-my-pi']);
+  });
+
+  test("trailing @-prefix slashes survive (resolved later by resolveRepo)", () => {
+    expect(parseRepoArgs("@piex/ @oh-my-pi/")).toEqual([
+      "@piex/",
+      "@oh-my-pi/",
+    ]);
+  });
+
+  test("takeFirstPathArg stays consistent with parseRepoArgs[0]", () => {
+    const samples = [
+      "",
+      "piex",
+      "piex oh-my-pi",
+      '"piex" "oh-my-pi"',
+      "@piex more",
+      '@"my repo" trailing',
+      "\u201cpiex\u201d",
+    ];
+    for (const s of samples) {
+      expect(takeFirstPathArg(s)).toBe(parseRepoArgs(s)[0]);
+    }
+  });
+});
+
+describe("resolveRepos", () => {
+  test("resolves multiple subpaths to (deduped) git roots", () => {
+    const single = resolveRepo(monorepoRoot, "extensions/review");
+    expect(single.ok).toBe(true);
+    if (!single.ok) return;
+
+    const got = resolveRepos(monorepoRoot, [
+      "extensions/review",
+      "extensions/hashline",
+    ]);
+    expect(got.ok).toBe(true);
+    if (!got.ok) return;
+    // Both subpaths are inside the same piex git repo → dedup to one root.
+    expect(got.repos.length).toBe(1);
+    expect(got.repos[0]).toBe(single.path);
+  });
+
+  test('accepts mixed @/quoted/bare forms like /review "a" "b"', () => {
+    const forms = [
+      "extensions/review",
+      "@extensions/review",
+      '"extensions/review"',
+      '@"extensions/review"',
+      "\u201cextensions/review\u201d",
+    ];
+    const got = resolveRepos(monorepoRoot, forms);
+    expect(got.ok).toBe(true);
+    if (!got.ok) return;
+    expect(got.repos.length).toBe(1); // all resolve to the same root
+  });
+
+  test("collects every failure when any path is invalid (abort-all)", () => {
+    const got = resolveRepos(monorepoRoot, [
+      "extensions/review", // valid
+      '@"does-not-exist-aaa"', // invalid
+      "also-missing-bbb", // invalid
+    ]);
+    expect(got.ok).toBe(false);
+    if (got.ok) return;
+    expect(got.errors.length).toBe(2);
+    expect(got.errors.join("\n")).toContain("does-not-exist-aaa");
+    expect(got.errors.join("\n")).toContain("also-missing-bbb");
+    // No literal quotes leak into the error messages.
+    expect(got.errors.join("\n")).not.toContain('"does-not-exist');
+  });
+
+  test("empty input resolves to zero repos (ok)", () => {
+    const got = resolveRepos(monorepoRoot, []);
+    expect(got.ok).toBe(true);
+    if (!got.ok) return;
+    expect(got.repos).toEqual([]);
+  });
+});
+
+describe("canCompareToBase", () => {
+  test("false for a base ref that does not exist", () => {
+    // Deterministic: no such remote branch can exist in the monorepo.
+    expect(
+      canCompareToBase(monorepoRoot, "does-not-exist-review-test-xyz"),
+    ).toBe(false);
+  });
+
+  test("false for a path that is not a git repo", () => {
+    // /tmp is not a git repo → git() fail-softs to "" → not comparable.
+    expect(canCompareToBase("/tmp", "main")).toBe(false);
+  });
+
+  test("true for origin/HEAD in a clone with a remote", () => {
+    // origin/HEAD always resolves in a normal clone with a remote — a
+    // deterministic "real ref" to exercise the success path (base="HEAD"
+    // → checks `origin/HEAD`).
+    const single = resolveRepo(monorepoRoot, "extensions/review");
+    expect(single.ok).toBe(true);
+    if (!single.ok) return;
+    expect(canCompareToBase(single.path, "HEAD")).toBe(true);
   });
 });

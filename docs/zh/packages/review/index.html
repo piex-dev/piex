@@ -164,6 +164,13 @@
           <li>菜单中选「Switch repository path…」可运行时切换仓库</li>
           <li><code>review</code> 工具传 <code>repo</code> 参数（相对 cwd 解析），如 <code>{ action: "diff", repo: "piex" }</code></li>
         </ul>
+        <p><strong>多仓库联动评审</strong>：同时改了多个仓库时一次审完，生成一条合并 prompt 并要求模型检查跨仓库一致性——</p>
+        <ul>
+          <li><code>/review "piex" "oh-my-pi"</code>、<code>/review piex oh-my-pi</code>、<code>/review @piex @oh-my-pi</code> — 指定多个仓库（引号 / <code>@</code> / 弯引号可混用）</li>
+          <li>菜单选一个模式（Uncommitted / Staged / vs 默认分支 / Custom）<strong>统一应用到所有仓库</strong>；vs 默认分支时每个仓库用各自默认分支，菜单可「Edit repository list…」重编辑列表</li>
+          <li><code>review</code> 工具传 <code>repos</code> 数组：<code>{ action: "diff", repos: ["piex", "oh-my-pi"] }</code>，返回合并 prompt；<code>repos</code> 优先于 <code>repo</code>，多仓库仅支持 <code>diff</code>/<code>staged</code>/<code>branch</code>（<code>base</code> 应用到每个仓库，<code>commit</code>/<code>file</code> 为仓库专属需用单 <code>repo</code>）</li>
+          <li>任一仓库路径非法时列出全部错误并中止；同一仓库的多个子路径自动去重</li>
+        </ul>
         <p>选中后生成 prompt，经 <code>pi.sendUserMessage(..., { deliverAs: "followUp" })</code> 丢回会话由当前模型当 reviewer。</p>
         <h3 id="verify">验证</h3>
         <div class="blog-code">
@@ -175,6 +182,7 @@
         <p>
           约 350 行单文件。<strong>噪声过滤（EXCLUDED_PATTERNS）</strong>自动排除 lock/构建产物/vendor/生成物/媒体二进制；被排除文件仍出现在「Excluded」小节（路径+原因+行数），模型知道有东西被滤掉但不吞全文。<strong>Diff 解析</strong>按 <code>diff --git</code> 切块统计 +/-。<strong>Prompt 生成</strong>：过大则不内嵌全文 diff（&gt;50k 字符或 &gt;20 文件时提示用 <code>read</code>），统一指令按 critical/warning/info 分级给文件行号。
         </p>
+        <p><strong>多仓库联动 prompt（buildMultiRepoPrompt）</strong>：<code>/review "a" "b"</code> 或工具 <code>repos</code> 数组触发——<code>resolveRepos</code> 逐个校验并去重，所选模式统一应用到每个仓库，最后 <code>buildMultiRepoPrompt</code> 合成一条 prompt：顶部总览（仓库清单 + 跨仓库合计 +/−），每仓库一节（Changed Files / Excluded / Diff，过大 diff <strong>按仓库独立 skip</strong>），末尾评审指令额外要求<strong>跨仓库联动</strong>（共享接口/类型契约、import 路径、API surface 变化、重复或分叉逻辑），finding 标注 repo + 文件 + 行号。价值在「联动」而非拼接：模型被显式引导看仓库间契约一致性。任一仓库路径非法则汇总全部错误并中止。<strong>vs 默认分支时用 <code>canCompareToBase</code> 区分「比较失败」与「确实无变更」</strong>：仓库无 remote / 分支没 fetch 到 / 默认分支名对不上时，该仓库标注 ⚠️「比较失败」并要求模型不要当成「无变更」，而不是静默显示 no changes。</p>
         <div class="blog-table-wrap"><table><thead><tr><th>omp</th><th>piex review</th></tr></thead>
 <tbody>
 <tr><td>多 agent 并行审</td><td>当前 agent 直接审</td></tr>
@@ -211,6 +219,7 @@
           <table>
             <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
             <tbody>
+              <tr><td>0.3.0</td><td>2026-07-30</td><td>多仓库联动评审：<code>/review "piex" "oh-my-pi"</code> 一次指定多个仓库（<code>parseRepoArgs</code> 解析多 token，引号 / <code>@</code> / 弯引号可混用），统一模式应用到所有仓库并合成一条合并 prompt（<code>buildMultiRepoPrompt</code>），要求模型检查跨仓库一致性（共享接口/契约/import 路径/重复逻辑）；<code>resolveRepos</code> 逐个校验并去重、任一非法汇总全部错误中止；<code>review</code> 工具新增 <code>repos</code> 数组参数（优先于 <code>repo</code>，多仓库仅支持 <code>diff</code>/<code>staged</code>/<code>branch</code>）；过大 diff 按仓库独立 skip；vs 默认分支时用 <code>canCompareToBase</code> 区分「比较失败」（无 remote / 没 fetch 到 / 默认分支名不对）与「确实无变更」，失败仓库标注 ⚠️ 不静默当成无变更；单仓库/零仓库行为完全不变</td></tr>
               <tr><td>0.2.1</td><td>2026-07-23</td><td>修复 <code>/review @"piex"</code>：pi autocomplete 产生的引号路径（<code>@"…"</code> / <code>"…"</code> / 弯引号）在 <code>resolveRepo</code> 中自动剥离，不再解析成带引号的错误路径</td></tr>
               <tr><td>0.2.0</td><td>2026-07-22</td><td>跨仓库评审：<code>/review [path]</code> 命令、<code>review</code> 工具 <code>repo</code> 参数、菜单「Switch repository path…」；<code>resolveRepo</code> 校验路径与 git 仓库（<code>rev-parse --show-toplevel</code>，支持 worktree/submodule）并剥离 pi 路径引用前缀 <code>@</code>（<code>/review @piex/</code> 同 <code>/review piex</code>）；安全硬化 <code>git()</code> 改用 <code>execFileSync</code> 透传 argv，杜绝 <code>base</code>/<code>commit</code>/<code>file</code> 参数的 shell 注入；修复 <code>parseDiff</code> 重复累加（excluded 文件不再计入 totals）</td></tr>
               <tr><td>0.1.1</td><td>2026-07-19</td><td>初始版本：diff 引擎（<code>parseDiff</code>）+ 噪声过滤（<code>EXCLUDED_PATTERNS</code>）；5 种模式；<code>buildReviewPrompt</code> 结构化 prompt（过大 diff 不内嵌）；人机共用引擎；omp 轻量版（不做多 agent 并行与 TUI overlay）</td></tr>

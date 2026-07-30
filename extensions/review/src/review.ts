@@ -67,6 +67,21 @@ interface DiffSummary {
   rawDiff: string;
 }
 
+/**
+ * Per-repository result for a linked multi-repo review.
+ *
+ * `summary` is the parsed diff, or `null` when the repo has no changes OR the
+ * comparison could not run. `error` distinguishes the failure case: set when
+ * the diff could not be computed (e.g. the base ref is unfetchable in a
+ * "vs default branch" review), so the prompt can flag the repo as *unverified*
+ * instead of falsely reporting "no changes".
+ */
+interface RepoReviewResult {
+  repo: string;
+  summary: DiffSummary | null;
+  error?: string;
+}
+
 function parseDiff(raw: string): DiffSummary {
   const files: FileDiff[] = [];
   const excluded: DiffSummary["excluded"] = [];
@@ -132,34 +147,73 @@ function getDefaultBranch(cwd: string): string {
  * Supports bare tokens, `@path`, and quoted forms used by pi autocomplete
  * (`@"path with spaces"`, `"path"`, `'path'`, and common curly quotes).
  */
-function takeFirstPathArg(args: string): string | undefined {
+/**
+ * Tokenize a slash-command arg string into path-like tokens.
+ *
+ * Handles every form pi autocomplete / @-mention can produce, across one or
+ * many tokens: bare (`piex oh-my-pi`), straight-quoted (`"piex" "oh-my-pi"`),
+ * `@`-prefixed (`@piex @oh-my-pi`), `@"quoted"`, curly quotes, and any mix.
+ * Each returned token keeps its leading `@` and quotes intact — normalization
+ * (`normalizeRepoArg`) happens later in `resolveRepo`, exactly like the
+ * single-arg path. Whitespace separates tokens; quotes may contain spaces.
+ */
+function parseRepoArgs(args: string): string[] {
   const s = args.trim();
-  if (!s) return undefined;
+  if (!s) return [];
 
+  const out: string[] = [];
   let i = 0;
-  if (s[i] === "@") i++;
+  while (i < s.length) {
+    // Skip whitespace between tokens.
+    while (i < s.length && /\s/.test(s[i])) i++;
+    if (i >= s.length) break;
 
-  const open = s[i];
-  const close =
-    open === '"'
-      ? '"'
-      : open === "'"
-        ? "'"
-        : open === "\u201c"
-          ? "\u201d"
-          : open === "\u2018"
-            ? "\u2019"
-            : undefined;
+    const start = i;
+    // Optional leading @ (pi path-mention syntax).
+    if (s[i] === "@") i++;
 
-  if (close) {
-    const end = s.indexOf(close, i + 1);
-    // Include the leading @ (if any) and the closing quote when present.
-    return end === -1 ? s : s.slice(0, end + 1);
+    const open = s[i];
+    const close =
+      open === '"'
+        ? '"'
+        : open === "'"
+          ? "'"
+          : open === "\u201c"
+            ? "\u201d"
+            : open === "\u2018"
+              ? "\u2019"
+              : undefined;
+
+    if (close) {
+      const end = s.indexOf(close, i + 1);
+      // Include the leading @ (if any) and the closing quote when present;
+      // an unbalanced opener swallows the rest of the string for that token.
+      if (end === -1) {
+        out.push(s.slice(start));
+        i = s.length;
+      } else {
+        out.push(s.slice(start, end + 1));
+        i = end + 1;
+      }
+      continue;
+    }
+
+    const rest = s.slice(i).match(/^\S+/);
+    if (!rest) break;
+    out.push(s.slice(start, i + rest[0].length));
+    i += rest[0].length;
   }
+  return out;
+}
 
-  const rest = s.slice(i).match(/^\S+/);
-  if (!rest) return undefined;
-  return s.slice(0, i) + rest[0];
+/**
+ * Take the first path-like argument from a slash-command arg string.
+ * Thin wrapper over {@link parseRepoArgs}; kept for backward compatibility
+ * and single-arg callers. Supports bare tokens, `@path`, and quoted forms used
+ * by pi autocomplete (`@"path with spaces"`, `"path"`, `'path'`, curly quotes).
+ */
+function takeFirstPathArg(args: string): string | undefined {
+  return parseRepoArgs(args)[0];
 }
 
 /**
@@ -201,7 +255,6 @@ function normalizeRepoArg(raw?: string): string | undefined {
 
   // Handle quoted-then-@ forms like "@piex" after the outer quotes were stripped.
   s = s.replace(/^@+/, "").trim();
-  return s || undefined;
   return s || undefined;
 }
 
@@ -245,6 +298,37 @@ function shortRepo(repo: string, cwd: string): string {
   return rel && !rel.startsWith("..") ? rel : repo;
 }
 
+/**
+ * Resolve multiple git repository paths at once.
+ *
+ * Each raw token is normalized + validated via {@link resolveRepo}. Duplicate
+ * roots (e.g. two subpaths of the same repo) collapse to one. Returns
+ * `{ ok: true, repos }` only when every token resolves; otherwise returns
+ * `{ ok: false, errors }` listing every failure so the caller can report all
+ * bad paths at once instead of failing on the first.
+ */
+function resolveRepos(
+  cwd: string,
+  rawArgs: string[],
+): { ok: true; repos: string[] } | { ok: false; errors: string[] } {
+  const errors: string[] = [];
+  const repos: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of rawArgs) {
+    const r = resolveRepo(cwd, raw);
+    if (!r.ok) {
+      errors.push(r.error);
+      continue;
+    }
+    if (!seen.has(r.path)) {
+      seen.add(r.path);
+      repos.push(r.path);
+    }
+  }
+  if (errors.length > 0) return { ok: false, errors };
+  return { ok: true, repos };
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // Review modes
 // ══════════════════════════════════════════════════════════════════════════
@@ -261,6 +345,20 @@ async function reviewStaged(cwd: string): Promise<DiffSummary | null> {
   const diff = git(cwd, ["diff", "--cached", "--unified=3"]);
   if (!diff.trim()) return null;
   return parseDiff(diff);
+}
+
+/**
+ * Whether the "vs default branch" comparison is possible for `repo`: does
+ * `origin/${base}` resolve to a real ref? Uses `rev-parse --verify --quiet`
+ * (empty via git()'s fail-soft path when the ref is missing — no remote,
+ * branch never fetched, or a wrong default-branch name). Lets callers tell
+ * "comparison failed" apart from "genuinely no changes".
+ */
+function canCompareToBase(repo: string, base: string): boolean {
+  return (
+    git(repo, ["rev-parse", "--verify", "--quiet", `origin/${base}`]).trim() !==
+    ""
+  );
 }
 
 async function reviewBaseBranch(cwd: string): Promise<DiffSummary | null> {
@@ -341,6 +439,112 @@ ${files.length} files changed, +${totalAdded}/-${totalRemoved} lines (${totalLin
   return prompt;
 }
 
+/**
+ * Build a single combined review prompt spanning multiple repositories.
+ *
+ * The value of a linked (联动) review over plain concatenation: the prompt
+ * explicitly asks the model to hunt for cross-repository issues — shared
+ * interfaces/type contracts, import paths, API-surface changes, and duplicated
+ * or divergent logic — not just per-file bugs. Each repo gets its own section
+ * (so file paths stay unambiguous), with the large-diff skip applied per repo
+ * so one huge repo cannot blow up the whole context.
+ */
+function buildMultiRepoPrompt(
+  mode: string,
+  perRepo: RepoReviewResult[],
+  cwd: string,
+  instructions?: string,
+): string {
+  const reposWithLabel = perRepo.map((p) => ({
+    repo: p.repo,
+    label: shortRepo(p.repo, cwd),
+    summary: p.summary,
+    error: p.error,
+  }));
+  let totalFiles = 0;
+  let totalAdded = 0;
+  let totalRemoved = 0;
+  for (const { summary } of reposWithLabel) {
+    if (!summary) continue;
+    totalFiles += summary.files.length;
+    totalAdded += summary.totalAdded;
+    totalRemoved += summary.totalRemoved;
+  }
+
+  let prompt = `## Code Review — ${mode} — ${reposWithLabel.length} repositories\n\n`;
+  prompt += `> Linked review across ${reposWithLabel.length} repositories. Beyond per-file issues, scrutinize cross-repository consistency: shared interfaces and type/API contracts, import paths, coordinated changes, and duplicated or divergent logic.\n\n`;
+
+  prompt += `### Repositories\n`;
+  for (const { label, summary, error } of reposWithLabel) {
+    if (error) {
+      prompt += `- \`${label}\` — ⚠️ comparison failed (see below)\n`;
+    } else if (summary && summary.files.length > 0) {
+      prompt += `- \`${label}\` — ${summary.files.length} files, +${summary.totalAdded}/-${summary.totalRemoved}\n`;
+    } else {
+      prompt += `- \`${label}\` — no changes\n`;
+    }
+  }
+
+  prompt += `\n### Overall Summary\n${totalFiles} files changed across ${reposWithLabel.length} repositories, +${totalAdded}/-${totalRemoved} lines\n`;
+
+  for (const { repo, label, summary, error } of reposWithLabel) {
+    prompt += `\n### Repository: \`${label}\`\n\n`;
+    prompt += `> File paths in this section are relative to the repository root: \`${repo}\`\n\n`;
+
+    if (error) {
+      prompt += `> ⚠️ **Comparison failed — do NOT treat this repository as clean.** ${error}\n\n`;
+      prompt += `_The diff for this repository could not be computed, so its changes are unknown and unverified._\n`;
+      continue;
+    }
+
+    if (!summary || summary.files.length === 0) {
+      prompt += `_No changes in this repository._\n`;
+      continue;
+    }
+
+    prompt += `#### Changed Files\n\n`;
+    prompt += `| File | +/− | Type |\n|------|-----|------|\n`;
+    for (const f of summary.files) {
+      prompt += `| ${f.path} | +${f.linesAdded}/-${f.linesRemoved} | ${f.ext} |\n`;
+    }
+
+    if (summary.excluded.length > 0) {
+      prompt += `\n#### Excluded Files (${summary.excluded.length})\n`;
+      for (const e of summary.excluded) {
+        prompt += `- \`${e.path}\` (+${e.linesAdded}/-${e.linesRemoved}) — ${e.reason}\n`;
+      }
+    }
+
+    const skipDiff =
+      summary.rawDiff.length > 50_000 || summary.files.length > 20;
+    if (skipDiff) {
+      prompt += `\n#### Diff\n_Diff too large (${summary.rawDiff.length} chars, ${summary.files.length} files). Use \`read\` to inspect files in \`${repo}\`._\n`;
+    } else {
+      prompt += `\n#### Diff\n\n\`\`\`diff\n${summary.rawDiff}\n\`\`\`\n`;
+    }
+  }
+
+  if (instructions) {
+    prompt += `\n### Custom Instructions\n${instructions}\n`;
+  }
+
+  prompt += `\n### Instructions
+1. Review each changed file for bugs, security issues, performance problems, and style issues
+2. Focus on the actual changes (the diff), not the entire file
+3. **Cross-repository linkage**: check shared interfaces, type/API contracts, import paths, and coordinated changes — does a change in one repository break consumers or assumptions in another? Flag duplicated or divergent logic introduced across repositories
+4. Categorize findings by severity: **critical**, **warning**, **info**
+5. For each finding, specify the repository, file, line range, and a clear explanation
+6. End with an overall assessment covering both per-repo and cross-repository findings`;
+
+  // Surface comparison failures explicitly so the reviewer does not mistake
+  // an unverifiable repo for a clean one.
+  if (reposWithLabel.some((r) => r.error)) {
+    prompt += `\n\n**⚠️ Unverified repositories**: one or more repositories could not be compared (marked ⚠️ above). Their changes are unknown — do NOT assume they have no changes, and call this out in the overall assessment as needing a re-check (e.g. fetch the remote or fix the base branch).`;
+  }
+
+  return prompt;
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // Extension
 // ══════════════════════════════════════════════════════════════════════════
@@ -350,7 +554,7 @@ export default function reviewExtension(pi: ExtensionAPI) {
 
   pi.registerCommand("review", {
     description:
-      "Code review: uncommitted, staged, branch, or commit. Optional repo path: /review [path]",
+      'Code review: uncommitted, staged, branch, or commit. Optional repo path(s): /review [path] | /review "repo-a" "repo-b" (linked multi-repo review)',
     handler: async (args, ctx) => {
       if (!ctx.hasUI) {
         ctx.ui.notify("/review requires interactive mode", "error");
@@ -358,9 +562,128 @@ export default function reviewExtension(pi: ExtensionAPI) {
       }
 
       const cwd = ctx.cwd;
-      // Optional repo path from the first argument token: /review piex
-      // Also accepts pi @-mention / autocomplete forms: /review @piex/, /review @"piex"
-      const argRepo = takeFirstPathArg(args);
+      // Repo path(s) from argument tokens: /review piex  |  /review "piex" "oh-my-pi"
+      // Accepts pi @-mention / autocomplete forms: /review @piex/, /review @"piex"
+      const argTokens = parseRepoArgs(args);
+
+      // Multi-repo linked review (>=2 repos): one unified mode applied to all
+      // repos, producing a single combined prompt with cross-repo analysis.
+      if (argTokens.length >= 2) {
+        const resolved = resolveRepos(cwd, argTokens);
+        if (!resolved.ok) {
+          ctx.ui.notify(
+            `Cannot resolve repositories:\n${resolved.errors.map((e) => `  • ${e}`).join("\n")}`,
+            "error",
+          );
+          return;
+        }
+        let repos = resolved.repos;
+
+        let mode = "";
+        let customInstructions: string | undefined;
+        const perRepo: RepoReviewResult[] = [];
+
+        while (true) {
+          const repoList = repos.map((r) => shortRepo(r, cwd)).join(", ");
+          const choice = await ctx.ui.select(
+            `Review what? (repos: ${repoList})`,
+            [
+              `Uncommitted changes (working tree)`,
+              `Staged changes (ready to commit)`,
+              `Changes vs default branch (PR-style, per repo)`,
+              `Custom instructions (no auto-diff)`,
+              `Edit repository list…`,
+            ],
+          );
+
+          if (!choice) return;
+
+          if (choice.startsWith("Edit repository")) {
+            const inputList = await ctx.ui.input(
+              "Repositories (space or comma separated):",
+              repoList,
+            );
+            if (!inputList?.trim()) continue;
+            const nextTokens = parseRepoArgs(inputList.replace(/,/g, " "));
+            if (nextTokens.length === 0) continue;
+            const next = resolveRepos(cwd, nextTokens);
+            if (!next.ok) {
+              ctx.ui.notify(
+                `Cannot resolve repositories:\n${next.errors.map((e) => `  • ${e}`).join("\n")}`,
+                "error",
+              );
+              continue;
+            }
+            repos = next.repos;
+            continue;
+          }
+
+          if (choice.startsWith("Uncommitted")) {
+            mode = "Uncommitted Changes";
+          } else if (choice.startsWith("Staged")) {
+            mode = "Staged Changes";
+          } else if (choice.startsWith("Changes vs")) {
+            mode = "Changes vs default branch";
+          } else if (choice.startsWith("Custom")) {
+            const instr = await ctx.ui.input("Review instructions:");
+            if (!instr?.trim()) return;
+            customInstructions = instr.trim();
+            mode = "Custom Review";
+          }
+          break;
+        }
+
+        if (customInstructions) {
+          const prompt = buildMultiRepoPrompt(
+            mode,
+            repos.map((r) => ({ repo: r, summary: null })),
+            cwd,
+            customInstructions,
+          );
+          pi.sendUserMessage(prompt, { deliverAs: "followUp" });
+          return;
+        }
+
+        for (const repo of repos) {
+          let summary: DiffSummary | null = null;
+          let error: string | undefined;
+          if (mode === "Uncommitted Changes") {
+            summary = await reviewUncommitted(repo);
+          } else if (mode === "Staged Changes") {
+            summary = await reviewStaged(repo);
+          } else if (mode === "Changes vs default branch") {
+            const base = getDefaultBranch(repo);
+            git(repo, ["fetch", "origin", base]);
+            if (canCompareToBase(repo, base)) {
+              const diff = git(repo, [
+                "diff",
+                `origin/${base}...HEAD`,
+                "--unified=3",
+              ]);
+              summary = diff.trim() ? parseDiff(diff) : null;
+            } else {
+              error = `cannot compare against \`origin/${base}\` (ref not found — no remote, branch never fetched, or a wrong default-branch name)`;
+            }
+          }
+          perRepo.push({ repo, summary, error });
+        }
+
+        const hasChanges = perRepo.some(
+          (p) => p.summary && p.summary.files.length > 0,
+        );
+        const hasErrors = perRepo.some((p) => p.error);
+        if (!hasChanges && !hasErrors) {
+          ctx.ui.notify("No changes to review.", "info");
+          return;
+        }
+
+        const prompt = buildMultiRepoPrompt(mode, perRepo, cwd);
+        pi.sendUserMessage(prompt, { deliverAs: "followUp" });
+        return;
+      }
+
+      // Single-repo flow (0 or 1 path token) — unchanged behavior.
+      const argRepo = argTokens[0];
       const initial = resolveRepo(cwd, argRepo);
       if (!initial.ok) {
         ctx.ui.notify(initial.error, "error");
@@ -462,7 +785,11 @@ Actions:
   file     — Review a specific file (requires 'file' param)
   branch   — Review changes vs a base branch (requires 'base' param)
 
-Optional 'repo' param: path to the git repository (defaults to cwd; relative paths resolve against cwd)`,
+Single repo: pass 'repo' (defaults to cwd; relative paths resolve against cwd).
+Multiple repos (linked review): pass 'repos' (array of paths) instead — runs the
+action across every repo and returns one combined prompt with cross-repository
+analysis. 'repos' takes precedence over 'repo'. For 'repos' only diff/staged/
+branch are supported (commit/file are repo-specific); 'base' applies to all.`,
     parameters: Type.Object({
       action: Type.String({
         description: "Review action: diff, staged, commit, file, branch",
@@ -489,11 +816,126 @@ Optional 'repo' param: path to the git repository (defaults to cwd; relative pat
             "Path to the git repository to review. Defaults to the current working directory. Relative paths resolve against cwd.",
         }),
       ),
+      repos: Type.Optional(
+        Type.Array(
+          Type.String({
+            description:
+              "Multiple repository paths for a linked (cross-repo) review. When provided, runs the action across all repos and returns one combined prompt. Takes precedence over 'repo'. Only diff/staged/branch supported; 'base' applies to every repo.",
+          }),
+        ),
+      ),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd;
       const action = String(params.action ?? "").trim();
+
+      // Multi-repo linked review: 'repos' array → one combined cross-repo prompt.
+      const reposParam: string[] =
+        Array.isArray(params.repos) && params.repos.length > 0
+          ? params.repos.filter(
+              (r): r is string => typeof r === "string" && r.trim().length > 0,
+            )
+          : [];
+      if (reposParam.length > 0) {
+        try {
+          if (action !== "diff" && action !== "staged" && action !== "branch") {
+            throw new Error(
+              `action '${action}' is repo-specific and not supported with 'repos'. Use diff, staged, or branch (commit/file need a single 'repo').`,
+            );
+          }
+          const resolved = resolveRepos(cwd, reposParam);
+          if (!resolved.ok) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Review failed: cannot resolve repositories:\n${resolved.errors.map((e) => `  • ${e}`).join("\n")}`,
+                },
+              ],
+              details: { action, error: true },
+            };
+          }
+          const instructions =
+            typeof params.instructions === "string"
+              ? params.instructions
+              : undefined;
+          const perRepo: RepoReviewResult[] = [];
+          for (const repo of resolved.repos) {
+            let summary: DiffSummary | null = null;
+            let error: string | undefined;
+            if (action === "diff") {
+              summary = await reviewUncommitted(repo);
+            } else if (action === "staged") {
+              summary = await reviewStaged(repo);
+            } else {
+              const base = typeof params.base === "string" ? params.base : "";
+              if (!base) {
+                throw new Error("'base' parameter required for action=branch");
+              }
+              git(repo, ["fetch", "origin", base]);
+              if (canCompareToBase(repo, base)) {
+                const diff = git(repo, [
+                  "diff",
+                  `origin/${base}...HEAD`,
+                  "--unified=3",
+                ]);
+                summary = diff.trim() ? parseDiff(diff) : null;
+              } else {
+                error = `cannot compare against \`origin/${base}\` (ref not found — no remote, branch never fetched, or a wrong branch name)`;
+              }
+            }
+            perRepo.push({ repo, summary, error });
+          }
+          const hasChanges = perRepo.some(
+            (p) => p.summary && p.summary.files.length > 0,
+          );
+          const hasErrors = perRepo.some((p) => p.error);
+          if (!hasChanges && !hasErrors) {
+            return {
+              content: [{ type: "text", text: "No changes to review." }],
+              details: { action, found: false, repos: resolved.repos },
+            };
+          }
+          const mode =
+            action === "diff"
+              ? "Uncommitted Changes"
+              : action === "staged"
+                ? "Staged Changes"
+                : `Changes vs ${params.base}`;
+          const prompt = buildMultiRepoPrompt(mode, perRepo, cwd, instructions);
+          let totalFiles = 0,
+            totalAdded = 0,
+            totalRemoved = 0;
+          for (const p of perRepo) {
+            if (!p.summary) continue;
+            totalFiles += p.summary.files.length;
+            totalAdded += p.summary.totalAdded;
+            totalRemoved += p.summary.totalRemoved;
+          }
+          return {
+            content: [{ type: "text", text: prompt }],
+            details: {
+              action,
+              mode,
+              repos: resolved.repos,
+              files: totalFiles,
+              added: totalAdded,
+              removed: totalRemoved,
+            },
+          };
+        } catch (err) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Review failed: ${err instanceof Error ? err.message : String(err)}`,
+              },
+            ],
+            details: { action, error: true },
+          };
+        }
+      }
 
       const resolved = resolveRepo(
         cwd,
@@ -603,6 +1045,9 @@ Optional 'repo' param: path to the git repository (defaults to cwd; relative pat
 /** Test-only exports for path-arg normalization helpers. */
 export const __test__ = {
   takeFirstPathArg,
+  parseRepoArgs,
   normalizeRepoArg,
   resolveRepo,
+  resolveRepos,
+  canCompareToBase,
 };

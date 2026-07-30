@@ -10,6 +10,7 @@
 - **噪声过滤**：自动排除 lock/min/build/vendor/image/binary 文件
 - **多模式**：uncommitted / staged / branch / commit / file / custom
 - **跨仓库**：当 cwd 不是 git 仓库或想评审子目录仓库时，可指定任意 git 仓库路径
+- **多仓库联动评审**：`/review "repo-a" "repo-b"` 一次评审多个仓库，生成合并 prompt 并要求模型检查跨仓库一致性（共享接口/契约/import 路径/重复逻辑）
 
 ## 使用说明
 
@@ -19,7 +20,7 @@ pi install npm:@piex-dev/review
 
 项目须为 git 仓库（或通过参数指定一个 git 仓库），系统已安装 git。在 pi 中执行 `/review` 选择评审源，或由 agent 调用 `review` 工具。
 
-指定仓库路径：
+指定仓库路径（单仓库）：
 
 - `/review piex` — 评审 `piex` 子目录仓库的变更
 - `/review @piex/` — 也支持 pi 的 `@` 路径引用语法（`@` 前缀自动去除）
@@ -29,6 +30,16 @@ pi install npm:@piex-dev/review
 - `review` 工具传 `repo` 参数（相对 cwd 解析），如 `{ action: "diff", repo: "piex" }`
 
 未指定路径时默认评审 cwd 所在仓库。
+
+多仓库联动评审（同时改了多个仓库时一次审完）：
+
+- `/review "piex" "oh-my-pi"` — 同时评审两个仓库，生成一条合并 prompt
+- `/review piex oh-my-pi` — bare 形式同样支持（空格分隔）
+- `/review @piex @oh-my-pi` — `@` 路径引用、引号、弯引号可混用
+- 菜单选一个模式（Uncommitted / Staged / vs 默认分支 / Custom），**统一应用到所有仓库**；每个仓库用各自默认分支
+- `review` 工具传 `repos` 数组：`{ action: "diff", repos: ["piex", "oh-my-pi"] }`，返回合并 prompt 并要求模型检查跨仓库一致性（`repos` 优先于 `repo`；多仓库仅支持 `diff`/`staged`/`branch`，`base` 应用到每个仓库）
+- 任一仓库路径非法时列出全部错误并中止，不做半截评审
+- vs 默认分支时区分「比较失败」与「确实无变更」：仓库无 remote / 分支没 fetch 到 / 默认分支名对不上时，该仓库在 prompt 里标注 ⚠️「比较失败」，不静默当成无变更
 
 冒烟测试：
 
