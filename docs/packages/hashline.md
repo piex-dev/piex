@@ -208,6 +208,29 @@ payloadKey / fileHash 均用 xxHash32 的紧凑 hex，避免存整份 DSL。
 | Stale anchor 自动恢复 | Recovery 模块               | ❌ 目前要求 re-read       |
 | 多版本快照 LRU        | 视版本                      | ❌ 单版本内存 store       |
 
+### Markdown fence 保护（patch-package 补丁 + Phase 2.5）
+
+**问题**：上游 boundary repair 引擎为代码设计（`}` / `)` / JSX close 等结构性
+边界），对 Markdown 的 fenced code block 存在误伤：` ``` ` fence 行是
+delimiter-neutral 的，当 SWAP 范围正确包含 fence、payload 也完整复述 fence、
+而范围外紧邻行恰好是相邻块的 fence 时，引擎把 payload 尾 fence 判为
+"restated boundary" 删掉 → 新块未闭合、后续 fence 配对全部错位，且静默
+（warning 易被忽略）。
+
+两层修复（见 `patches/@oh-my-pi+hashline+17.1.3.patch` 与 `hashline.ts`）：
+
+1. **fence 行角色守卫（上游补丁）**：`countDuplicateLeading/TrailingBoundaryLines`
+   中，当候选 echo 含 fence 行且**范围边界行本身是 fence** 时拒绝该候选：
+   范围外 fence 与范围 fence 同属一个配对序列，删 payload fence 必然破坏配对。
+   保留合法吸收：范围漏 fence（紧贴版双边 echo）、漏尾 fence（范围尾行是内容）
+   仍正常 repair。代码文件不受影响（无 fence 行）。
+2. **Markdown fence 平衡校验（Phase 2.5）**：编辑 `.md` / `.markdown` 后对比
+   编辑前后 fence 行数奇偶；本次编辑把偶数变成奇数时 `[WARN]` 并附行号。
+   启发式：奇数 fence 行 ≈ 可能有未闭合块（不区分 ` ``` ` / `~~~` 独立配对，
+   也不捕获「偶数但配对已乱」）。覆盖 repair 误删、SWAP 范围漏算、模型输出
+   丢 fence 等路径，把损坏从「静默」变成「可见」。与 Phase 2.4 HTML tag 校验同模式
+   （只报新增失衡；编辑前已是奇数不重复告警；奇数 → 偶数的修复不告警）。
+
 ## 设计参考
 
 | 项目                     | 机制                                                   | piex 取舍                                                                                                                                          |

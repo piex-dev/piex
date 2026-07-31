@@ -199,6 +199,27 @@ SWAP 2.=2:
           </table>
         </div>
 
+        <h3 id="fence-guard">Markdown fence protection (patch-package patch + Phase 2.5)</h3>
+        <div class="blog-callout warn">
+          <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">Problem</p>
+            <p>The upstream boundary-repair engine is designed for code (<code>}</code> / <code>)</code> / JSX close and other structural edges) and mis-handles Markdown fenced code blocks. A <code>```</code> fence line is delimiter-neutral; when a SWAP range correctly includes the fence, the payload restates it, and the surviving line just outside the range happens to be the adjacent block's fence, the engine drops the payload's trailing fence as a "restated boundary" — leaving the block unclosed, shifting every later fence pair, silently.</p>
+          </div>
+        </div>
+        <p>Two-layer fix (see <code>patches/@oh-my-pi+hashline+17.1.3.patch</code> and <code>hashline.ts</code>):</p>
+        <ol>
+          <li><strong>Fence-role guard (upstream patch)</strong>: in <code>countDuplicateLeading/TrailingBoundaryLines</code>, reject an echo candidate when it contains a fence line <strong>and the range's own boundary line is itself a fence</strong> — the outside fence and the range fence belong to the same pairing sequence, so dropping the payload fence inevitably breaks pairing. Legitimate absorption still works: a range short of a fence (tight two-sided echo) or missing the closing fence (range's last line is content) still repairs normally. Code files are unaffected (no fence lines).</li>
+          <li><strong>Markdown fence balance check (Phase 2.5)</strong>: after editing a <code>.md</code> / <code>.markdown</code> file, compare fence-line parity before/after; when an edit turns an even count odd, emit <code>[WARN]</code> with line numbers. Covers repair-misdeletes, SWAP-range miscounts, and model output that drops a fence — turning silent corruption into a visible warning.</li>
+        </ol>
+        <div class="blog-callout note">
+          <div class="blog-callout-icon" aria-hidden="true">📝</div>
+          <div class="blog-callout-body">
+            <p class="blog-callout-label">Heuristic limit</p>
+            <p>An odd fence count ≈ a possibly-unclosed block; it does not model <code>```</code> vs <code>~~~</code> as independent streams, nor catch "even count but already mis-paired". Same pattern as the Phase 2.4 HTML tag check: only newly introduced imbalance is reported; a pre-existing odd count is not re-warned, and an odd → even repair stays silent.</p>
+          </div>
+        </div>
+
         <h2 id="design">Design notes</h2>
         <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
 <tbody>

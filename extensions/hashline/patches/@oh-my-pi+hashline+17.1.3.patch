@@ -1,8 +1,20 @@
 diff --git a/node_modules/@oh-my-pi/hashline/src/apply.ts b/node_modules/@oh-my-pi/hashline/src/apply.ts
-index eff2175..2816ac6 100644
 --- a/node_modules/@oh-my-pi/hashline/src/apply.ts
 +++ b/node_modules/@oh-my-pi/hashline/src/apply.ts
-@@ -409,7 +409,14 @@ function findDuplicateSuffix(group: ReplacementGroup, fileLines: readonly string
+@@ -133,6 +133,12 @@ function bucketAnchorEditsByLine(edits: IndexedEdit[]): Map<number, IndexedEdit[
+ // duplicate statements while absorbing the common "body includes the unchanged
+ // wrapper" mistake.
+ 
++
++/** A Markdown fenced-code-block marker line: ``` or ~~~ (optional language tag). */
++function isFenceLine(text: string): boolean {
++	return /^\s*(?:```|~~~)/.test(text);
++}
++
+ /** A line that is nothing but closing delimiters: `}`, `)`, `];`, `})`, `},`. */
+ export const STRUCTURAL_CLOSER_RE = /^\s*[)\]}]+[;,]?\s*$/;
+ 
+@@ -409,7 +415,14 @@ function findDuplicateSuffix(group: ReplacementGroup, fileLines: readonly string
  			}
  		}
  		if (!matches) continue;
@@ -18,7 +30,7 @@ index eff2175..2816ac6 100644
  	}
  	return 0;
  }
-@@ -432,7 +439,14 @@ function findDuplicatePrefix(group: ReplacementGroup, fileLines: readonly string
+@@ -432,7 +445,14 @@ function findDuplicatePrefix(group: ReplacementGroup, fileLines: readonly string
  			}
  		}
  		if (!matches) continue;
@@ -34,7 +46,7 @@ index eff2175..2816ac6 100644
  	}
  	return 0;
  }
-@@ -617,16 +631,19 @@ function countDuplicateLeadingBoundaryLines(group: ReplacementGroup, fileLines:
+@@ -617,16 +637,31 @@ function countDuplicateLeadingBoundaryLines(group: ReplacementGroup, fileLines:
  	const max = Math.min(payload.length, startLine - 1);
  	for (let count = max; count >= 1; count--) {
  		let matches = true;
@@ -55,11 +67,23 @@ index eff2175..2816ac6 100644
 +		// rewrite, not a restated boundary; dropping it corrupts the result.
 +		// Same blank-line guard as findDuplicateSuffix/findDuplicatePrefix.
 +		if (payload.slice(0, count).some(l => l.trim() === "")) continue;
++		// Markdown fenced-block guard: when the echoed edge contains fence
++		// lines (``` / ~~~) and the range's own first line is a fence, the
++		// surviving fence just above the range sits flush against the range's
++		// fence — they belong to the same fence pair sequence, so the payload's
++		// fence is structural content, not a restated boundary. Dropping it
++		// would break fence pairing and mangle the document (e.g. two adjacent
++		// fenced blocks where the payload legitimately restates both fences).
++		if (
++			payload.slice(0, count).some(isFenceLine) &&
++			isFenceLine(fileLines[startLine - 1] ?? "")
++		)
++			continue;
 +		return count;
  	}
  	return 0;
  }
-@@ -636,20 +653,22 @@ function countDuplicateTrailingBoundaryLines(group: ReplacementGroup, fileLines:
+@@ -636,20 +671,31 @@ function countDuplicateTrailingBoundaryLines(group: ReplacementGroup, fileLines:
  	const max = Math.min(payload.length, fileLines.length - endLine);
  	for (let count = max; count >= 1; count--) {
  		let matches = true;
@@ -80,6 +104,15 @@ index eff2175..2816ac6 100644
 +		// rewrite, not a restated boundary; dropping it corrupts the result.
 +		// Same blank-line guard as findDuplicateSuffix/findDuplicatePrefix.
 +		if (payload.slice(payload.length - count).some(l => l.trim() === "")) continue;
++		// Markdown fenced-block guard (mirror of the leading side): when the
++		// echoed edge contains fence lines and the range's own last line is a
++		// fence, the surviving fence just below the range is flush against the
++		// range's fence — dropping the payload's fence would break pairing.
++		if (
++			payload.slice(payload.length - count).some(isFenceLine) &&
++			isFenceLine(fileLines[endLine - 1] ?? "")
++		)
++			continue;
 +		return count;
  	}
  	return 0;

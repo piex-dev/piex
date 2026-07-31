@@ -10,7 +10,9 @@ import * as path from "node:path";
 // Imported first: hashline.ts self-loads the Bun polyfill before @oh-my-pi/hashline.
 import {
   buildNumberedLineDiff,
+  checkFenceBalance,
   checkTagBalance,
+  worsenedFenceImbalance,
   worsenedImbalances,
 } from "../src/hashline.ts";
 import { PiexNodeFilesystem } from "../src/filesystem.js";
@@ -219,6 +221,108 @@ describe("boundary echo repair (patched @oh-my-pi/hashline)", () => {
     expect(echoRepairWarnings).toEqual([]);
     expect(after).toBe(
       "const a = 1;\n\nconst target = 'new';\n\nconst b = 2;\n",
+    );
+  });
+});
+
+describe("checkFenceBalance / worsenedFenceImbalance", () => {
+  test("paired fences report even count and line numbers", () => {
+    const r = checkFenceBalance("文本\n```go\ncode\n```\n~~~\nmore\n~~~\n");
+    expect(r.fences).toBe(4);
+    expect(r.lines).toEqual([2, 4, 5, 7]);
+  });
+
+  test("unclosed fence reports odd count", () => {
+    const r = checkFenceBalance("文本\n```\ncode\n");
+    expect(r.fences).toBe(1);
+    expect(r.lines).toEqual([2]);
+  });
+
+  test("inline ticks are not fences; indented fence lines count", () => {
+    // 行内 ``` 不算；缩进 fence（列表内嵌等）算——宁可多报不可漏报。
+    const r = checkFenceBalance("`inline`\n  ```go\nx\n  ```\n");
+    expect(r.fences).toBe(2);
+    expect(r.lines).toEqual([2, 4]);
+  });
+
+  test("worsened only when even → odd", () => {
+    expect(worsenedFenceImbalance({ fences: 4 }, { fences: 5 })).toBe(true);
+    expect(worsenedFenceImbalance({ fences: 4 }, { fences: 6 })).toBe(false);
+    expect(worsenedFenceImbalance({ fences: 5 }, { fences: 5 })).toBe(false);
+    expect(worsenedFenceImbalance({ fences: 5 }, { fences: 4 })).toBe(false);
+  });
+});
+
+describe("markdown fence guard (patched @oh-my-pi/hashline)", () => {
+  test("adjacent fenced blocks: correct range + complete payload is NOT repaired", async () => {
+    // The reported damage: SWAP covers a whole fenced block (fences included)
+    // and the payload legitimately restates both fences, while the surviving
+    // line below the range is the NEXT block's opening fence. The old echo
+    // logic treated the payload's trailing ``` as a restated boundary and
+    // dropped it, leaving the block unclosed and shifting every later fence
+    // pair. The fence guard keeps the payload verbatim.
+    const { after, echoRepairWarnings } = await applySwap(
+      "文本\n```\ncode A\n```\n```\ncode B\n```\n",
+      "SWAP 2.=4:",
+      ["```", "newA", "newA2", "```"],
+    );
+    expect(echoRepairWarnings).toEqual([]);
+    expect(after).toBe(
+      "文本\n```\nnewA\nnewA2\n```\n```\ncode B\n```\n",
+    );
+  });
+
+  test("adjacent fenced blocks, three in a row: NOT repaired", async () => {
+    const { after, echoRepairWarnings } = await applySwap(
+      "文本\n```\ncode A\n```\n```\ncode B\n```\n```\ncode C\n```\n",
+      "SWAP 2.=4:",
+      ["```", "newA", "newA2", "```"],
+    );
+    expect(echoRepairWarnings).toEqual([]);
+    expect(after).toBe(
+      "文本\n```\nnewA\nnewA2\n```\n```\ncode B\n```\n```\ncode C\n```\n",
+    );
+  });
+
+  test("range short of the fence, payload restates it: still repaired", async () => {
+    // Model picked only the content line (no fences) but payload carries the
+    // full block. Both edges echo the surviving fences → two-sided echo still
+    // fires and absorbs the off-by-one (the fence guard only protects the
+    // case where the RANGE itself contains fences).
+    const { after, echoRepairWarnings } = await applySwap(
+      "文本\n```\ncode A\n```\n",
+      "SWAP 3.=3:",
+      ["```", "newA", "```"],
+    );
+    expect(echoRepairWarnings).toHaveLength(1);
+    expect(after).toBe("文本\n```\nnewA\n```\n");
+  });
+
+  test("range missing the closing fence, payload complete: trailing echo still repaired", async () => {
+    // Range = opening fence + content (closing fence survives below). The
+    // leading edge is guarded (range's first line is a fence) but the trailing
+    // edge is not (range's last line is content) → repair drops the payload's
+    // duplicated closing fence and the surviving one closes the block.
+    const { after, echoRepairWarnings } = await applySwap(
+      "文本\n\n```\ncode A\n```\n",
+      "SWAP 3.=4:",
+      ["```", "newA", "```"],
+    );
+    expect(echoRepairWarnings).toHaveLength(1);
+    expect(after).toBe("文本\n\n```\nnewA\n```\n");
+  });
+
+  test("identical bare closers across adjacent tagged blocks: NOT repaired", async () => {
+    // Stronger hit: range ends on ```, next surviving line is also ```
+    // (the next block is bare-fenced). Guard must keep payload closer.
+    const { after, echoRepairWarnings } = await applySwap(
+      "文本\n```go\ncode A\n```\n```\ncode B\n```\n",
+      "SWAP 2.=4:",
+      ["```go", "newA", "newA2", "```"],
+    );
+    expect(echoRepairWarnings).toEqual([]);
+    expect(after).toBe(
+      "文本\n```go\nnewA\nnewA2\n```\n```\ncode B\n```\n",
     );
   });
 });

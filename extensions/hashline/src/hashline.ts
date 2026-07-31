@@ -11,9 +11,13 @@
  *
  * Phase 2 — 编辑后校验与回显 (2026-07-19):
  * - 2.1 Warnings 透出: patcher 的 parser/applier warnings 原样回给模型
- * - 2.2 Diff 回显: update 附带 compact diff preview，"实际改了什么"当场可见
- * - 2.3 Tag balance (delta): 编辑 .html 后对比前后结构标签平衡，
+ * - 2.2 块解析回显: "block N → lines start.=end"，让模型核对 tree-sitter 选中范围
+ * - 2.3 Diff 回显: update 附带 compact diff preview，"实际改了什么"当场可见
+ * - 2.4 HTML 结构校验 (delta): 编辑 .html 后对比前后结构标签平衡，
  *   仅在本次编辑引入新失衡时告警（防 SWAP 范围算错吞掉闭合标签）
+ * - 2.5 Markdown fence 校验 (delta): 编辑 .md 后对比 fence 配对奇偶，
+ *   本次编辑把平衡文档改失衡时告警（防 boundary repair 误删 fence /
+ *   SWAP 范围漏算 fence 行）
  *
  * Install:
  *   pi install npm:@piex-dev/hashline
@@ -260,6 +264,51 @@ const DIFF_MAX_CELLS = 4_000_000;
 /** Hard cap on preview rows echoed back to the model. */
 const DIFF_PREVIEW_MAX_LINES = 60;
 
+// ---------------------------------------------------------------------------
+// Phase 2.5 — Markdown fenced-code-block balance
+// ---------------------------------------------------------------------------
+
+/**
+ * A Markdown fenced-code-block marker line: ``` or ~~~ (optional language tag).
+ *
+ * Intentionally loose: no end anchor, so a single-line triple-backtick span
+ * (e.g. ``` `x` ``` on one line) also matches. This is by design on both
+ * layers that consume it — the Phase 2.5 [WARN] favors over-reporting over
+ * missing a real unclosed block, and the patch-level fence guard errs toward
+ * keeping the payload verbatim. A false positive only yields a warning the
+ * model can verify; it never silently corrupts the file.
+ */
+const FENCE_LINE_RE = /^\s*(?:```|~~~)/;
+
+/**
+ * Collect the 1-indexed line numbers of every fenced-code-block marker in
+ * `content`. Odd count is a cheap heuristic for a possibly-unclosed block
+ * (does not model ``` vs ~~~ as independent streams).
+ */
+export function checkFenceBalance(content: string): {
+  fences: number;
+  lines: number[];
+} {
+  const lines: number[] = [];
+  content.split("\n").forEach((l, i) => {
+    if (FENCE_LINE_RE.test(l)) lines.push(i + 1);
+  });
+  return { fences: lines.length, lines };
+}
+
+/**
+ * Delta between two fence-balance reports: true only when the edit turned an
+ * even (paired) fence count into an odd one — the imbalance this edit
+ * introduced. A pre-existing odd count is not re-reported on every edit, and
+ * an edit that repairs it (odd → even) stays silent.
+ */
+export function worsenedFenceImbalance(
+  before: { fences: number },
+  after: { fences: number },
+): boolean {
+  return before.fences % 2 === 0 && after.fences % 2 === 1;
+}
+
 /**
  * Line-based LCS diff in the numbered `±<line>|<text>` format consumed by
  * buildCompactDiffPreview: removed rows carry pre-edit line numbers,
@@ -483,6 +532,25 @@ export default function hashlineExtension(pi: ExtensionAPI) {
                 parts.push(
                   `[WARN] HTML structure may be broken in ${section.path}: ${detail}. ` +
                     `This edit introduced the imbalance — verify no closing tag was dropped or element duplicated.`,
+                );
+              }
+            }
+
+            // ── Phase 2.5 Markdown fence 校验（delta） ──────────────
+            // 仅 update：编辑 .md 后检查 fence 行数奇偶。本次编辑把偶数变成
+            // 奇数 → 告警。覆盖 repair 误删、SWAP 范围漏算等；与 2.4 同层。
+            if (
+              section.path.endsWith(".md") ||
+              section.path.endsWith(".markdown")
+            ) {
+              const beforeFence = checkFenceBalance(section.before);
+              const afterFence = checkFenceBalance(section.after);
+              if (worsenedFenceImbalance(beforeFence, afterFence)) {
+                parts.push(
+                  `[WARN] Markdown fence may be unbalanced in ${section.path}: ` +
+                    `${afterFence.lines.length} fence marker(s) at lines ${afterFence.lines.join(", ")} — ` +
+                    `an odd count means one \`\`\` / ~~~ block may be left unclosed. ` +
+                    `Verify the edit did not drop or duplicate a fence line.`,
                 );
               }
             }
