@@ -157,6 +157,7 @@
           <div class="blog-code-bar"><span>bash</span></div>
           <pre><code>pi install npm:@piex-dev/lsp</code></pre>
         </div>
+        <p>The postinstall hook auto-detects and installs the default language servers (typescript-language-server, bash-language-server, pyright, gopls, rust-analyzer) — idempotent and non-fatal; set <code>PI_LSP_SKIP_SETUP=1</code> to skip, or run <code>/lsp:setup</code> inside pi later.</p>
         <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/lsp" target="_blank" rel="noopener"><code>extensions/lsp</code></a></p>
         <h3 id="prereq">Prerequisites</h3>
         <p>The extension is a client, not a server distributor. The language server binary must be locally executable (e.g. <code>typescript-language-server</code>, <code>rust-analyzer</code>, <code>pyright</code>, <code>gopls</code>). <code>defaults.json</code> ships start commands and args for ~50 servers.</p>
@@ -171,7 +172,10 @@ pi -e ./extensions/lsp/src/lsp.ts -p "what is 1+1" --no-session  # smoke</code><
 
         <h2 id="impl">Implementation</h2>
         <p>
-          <code>lsp.ts</code> is the client + router + tools + post-edit diagnostic hook; <code>defaults.json</code> configures ~50 servers. Post-edit diagnostics hook <code>edit</code>/<code>write</code> (incl. hashline): sync to disk → wait for publishDiagnostics → ERRORs only, capped 20 per file, appended to the result.
+          <code>lsp.ts</code> is the client + router + tools + post-edit/read hooks + footer status; <code>footer.ts</code> is a custom footer (built-in layout replicated, lsp status right-aligned); <code>scripts/setup-ls.mjs</code> is the postinstall installer; <code>defaults.json</code> configures ~50 servers. Post-edit diagnostics hook <code>edit</code>/<code>write</code> (incl. hashline): sync to disk → wait for publishDiagnostics → ERRORs only, capped 20 per file, appended to the result.
+        </p>
+        <p>
+          <strong>Read prewarming + project-root discovery</strong> (from OpenCode): a <code>tool_call</code> hook on <code>read</code> spawns the matching server in the background and didOpens the file (fire-and-forget, failures silent, never blocks the read), so the footer lights up immediately and post-edit diagnostics skip cold start. Server routing defaults to the session cwd; when the cwd is not a project root (repo collections, monorepo roots), the nearest ancestor marker directory is used as the server root. In non-root cwds the footer scans subprojects (depth ≤ 2) and aggregates their servers, hiding <code>.git</code>-marker noise (bashls and friends).
         </p>
         <div class="blog-table-wrap">
           <table>
@@ -221,10 +225,12 @@ pi -e ./extensions/lsp/src/lsp.ts -p "what is 1+1" --no-session  # smoke</code><
             <tbody>
               <tr><td>0.2.0</td><td>2026-07-19</td><td>Early version: multi-server routing, didChange, diagnostic aggregation; returned on first push; blindly called <code>codeAction/resolve</code>; server exits gave only exit code, stderr lost</td></tr>
               <tr><td>0.3.0</td><td>2026-07-21</td><td>push settle window + LSP 3.17 pull diagnostics dual-track; call <code>resolveProvider</code>/<code>diagnosticProvider</code> only when declared; stderr captured into timeout/exit errors; <code>.bat/.cmd</code> via <code>cmd.exe</code> wrap; <code>PI_&lt;NAME&gt;_LSP_COMMAND</code> override; overlapping TextEdit detection prevents file corruption</td></tr>
+              <tr><td>0.4.0</td><td>2026-07-31</td><td>footer status bar (color-coded running/failed/idle, lsp right-aligned); project-root discovery + subproject aggregation; read prewarming (spawn on read); postinstall auto-install of default servers + <code>/lsp:setup</code>; global typescript auto-detection injecting <code>tsserver.path</code>; fixed concurrent spawn race, install/probe timeouts</td></tr>
             </tbody>
           </table>
         </div>
         <p>0.2.0 lesson: servers like intelephense push empty diagnostics first then real ones — returning on first push reported erroneous files as clean; server crashes gave only exit codes, making debugging guesswork. 0.3.0 fills in the protocol details.</p>
+        <p>0.4.0 lesson: a "match servers against cwd" model breaks in non-project-root cwds (monorepo roots, repo collections), so servers must be routed by walking up from the file to the nearest project root; <code>typescript-language-server</code> hard-requires typescript in the workspace, and global 6/7 ships only <code>tsc</code> without <code>tsserver.js</code>, so global 5.x must be auto-detected and injected via <code>tsserver.path</code>; read prewarming makes the footer reflect running servers immediately, and concurrent spawns need in-flight dedup to avoid process leaks.</p>
 
         <h2 id="appendix">Appendix: pi LSP ecosystem capability comparison</h2>
         <p>Objective capability differences across four projects (omp / OpenCode / pi-extensions <code>pi-lsp</code> / piex lsp).</p>

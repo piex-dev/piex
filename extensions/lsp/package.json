@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/lsp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "LSP extension for pi — diagnostics (incl. post-edit ERRORs), navigation, rename, code actions, format",
   "license": "MIT",
@@ -33,16 +33,23 @@
   },
   "files": [
     "src",
-    "README.md"
+    "scripts",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "bun test lsp.test.ts"
+    "test": "bun test lsp.test.ts",
+    "setup": "node scripts/setup-ls.mjs",
+    "postinstall": "node scripts/setup-ls.mjs"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-coding-agent": "^0.83.0",
     "typebox": "*"
   },
   "devDependencies": {
     "typebox": "*"
+  },
+  "dependencies": {
+    "@earendil-works/pi-tui": "^0.83.0"
   }
 }

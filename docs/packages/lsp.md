@@ -43,6 +43,10 @@ LSP 诊断主要靠 server 主动推 `textDocument/publishDiagnostics`，不是�
 pi install npm:@piex-dev/lsp
 ```
 
+安装时 postinstall 自动检测并安装默认 language server（typescript-language-server、
+bash-language-server、pyright、gopls、rust-analyzer），幂等且失败不中断；
+`PI_LSP_SKIP_SETUP=1` 可跳过，之后可用 pi 内命令 `/lsp:setup` 补装。
+
 > 仓库源码：[`extensions/lsp`](https://github.com/piex-dev/piex/tree/main/extensions/lsp)
 
 ### 前提条件
@@ -74,8 +78,10 @@ pi -e ./extensions/lsp/src/lsp.ts -p "what is 1+1" --no-session
 ### 结构
 
 ```text
-lsp.ts           # 客户端 + 路由 + 工具 + 写后诊断 hook
+lsp.ts           # 客户端 + 路由 + 工具 + 写后诊断/读取预热 hook + footer 状态
+footer.ts        # 自定义 footer（复刻内置布局，lsp 状态右对齐）
 defaults.json    # ~50 server（command / fileTypes / rootMarkers / initOptions / settings / isLinter）
+scripts/setup-ls.mjs  # postinstall 自动安装默认 language server
 ```
 
 ### 工具 action
@@ -89,6 +95,14 @@ defaults.json    # ~50 server（command / fileTypes / rootMarkers / initOptions 
 | `code_actions`                                           | 列表或按 index apply            |
 | `format`                                                 | TextEdit 写回                   |
 | `status` / `reload`                                      | 运维                            |
+
+### 读取预热 + 项目根发现（学 OpenCode）
+
+`tool_call` 钩住 `read`：读取文件时后台 spawn 匹配的 server 并 didOpen（fire-and-forget，
+失败静默、不阻塞读取），footer 立即亮绿，后续编辑诊断免冷启动。server 路由默认基于
+会话 cwd；cwd 不是项目根时（多仓库集合、monorepo 根），从文件向上查找最近的 marker
+目录作为项目根启动 server；footer 在非项目根目录会扫描深度 ≤2 的子项目汇总可用 server，
+隐藏 `.git` marker 噪音（bashls 等）。
 
 ### 写后诊断（学 OpenCode）
 
@@ -136,8 +150,11 @@ defaults.json    # ~50 server（command / fileTypes / rootMarkers / initOptions 
 | ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0.2.0 | 2026-07-19 | 早期版本：多 server 路由、didChange、诊断聚合；push 诊断到即返；盲调 `codeAction/resolve`；server 退出只给 exit code，stderr 丢失                                                                                   |
 | 0.3.0 | 2026-07-21 | push settle 静默期 + LSP 3.17 pull 诊断双轨；`resolveProvider`/`diagnosticProvider` 声明才调；stderr 捕获进超时/退出错误；`.bat/.cmd` 经 `cmd.exe` 包装；`PI_<NAME>_LSP_COMMAND` 覆盖；重叠 TextEdit 检测防写坏文件 |
+| 0.4.0 | 2026-07-31 | footer 状态栏（颜色区分运行/失败/待启动，lsp 右对齐）；项目根发现 + 子项目汇总；读取预热（read 触发 spawn，学 OpenCode）；postinstall 自动安装默认 server + `/lsp:setup`；全局 typescript 自动探测注入 `tsserver.path`；修复并发 spawn race、安装/探测超时 |
 
-0.2.0 的教训：intelephense 这类 server 会先推一批空诊断、再推真诊断，到即返会把有错的文件报成干净；server 崩溃时只有 exit code，排障全靠猜。0.3.0 把协议细节补齐——settle 静默期等推送稳定、pull 诊断让 server 按需算、stderr 进错误消息、`resolveProvider` 门控避免对不支持的 server 发多余请求。
+0.2.0 的教训：intelephense 这类 server 会先推一批空诊断、再推真诊断，到即返会把有错的文件报成干净；server 崩溃时只有 exit code，排障全靠猜。0.3.0 把协议细节补齐：settle 静默期等推送稳定、pull 诊断让 server 按需算、stderr 进错误消息、`resolveProvider` 门控避免对不支持的 server 发多余请求。
+
+0.4.0 的教训：多仓库/多语言工作区里「按 cwd 匹配 server」的模型会在非项目根目录失效（monorepo 根、repo 集合），需要按文件向上找项目根；`typescript-language-server` 硬性要求 workspace 内有 typescript，全局安装的 6/7 只有 `tsc` 没有 `tsserver.js`，需要自动探测全局 5.x 并注入 `tsserver.path`；读取预热让 footer 即时反映「server 在跑」，而并发 spawn 需要 in-flight 去重防进程泄漏。
 
 ---
 

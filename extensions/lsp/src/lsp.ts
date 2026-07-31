@@ -16,8 +16,14 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import {
+  execFileSync,
+  spawn,
+  type ChildProcessWithoutNullStreams,
+} from "node:child_process";
 import { fileURLToPath } from "node:url";
+import * as os from "node:os";
+import { createFooter } from "./footer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -110,7 +116,10 @@ interface ServerConfig {
 }
 // ── Config ─────────────────────────────────────────────────────
 
+let cachedDefaults: Record<string, ServerConfig> | null = null;
+
 function loadDefaults(): Record<string, ServerConfig> {
+  if (cachedDefaults) return cachedDefaults;
   const defaultsPath = path.join(__dirname, "defaults.json");
   try {
     const raw = JSON.parse(fs.readFileSync(defaultsPath, "utf-8")) as Record<
@@ -153,6 +162,7 @@ function loadDefaults(): Record<string, ServerConfig> {
             : undefined,
       };
     }
+    cachedDefaults = servers;
     return servers;
   } catch {
     return {};
@@ -183,6 +193,7 @@ class LspClient {
   #capabilities: Record<string, unknown> = {};
   #stderr = "";
   alive = true;
+  #exitListeners: Array<() => void> = [];
 
   constructor(proc: ChildProcessWithoutNullStreams) {
     this.#proc = proc;
@@ -193,8 +204,14 @@ class LspClient {
     proc.on("exit", () => {
       this.alive = false;
       this.#rejectAll(new Error(`LSP server exited.${this.#formatStderr()}`));
+      for (const fn of this.#exitListeners) fn();
     });
     this.#startReader();
+  }
+
+  /** Register a callback fired when the server process exits. */
+  onExit(fn: () => void): void {
+    this.#exitListeners.push(fn);
   }
 
   static spawn(command: string, args: string[], cwd: string): LspClient {
@@ -754,6 +771,56 @@ function findServers(
   return results;
 }
 
+// ── Project-root discovery ──────────────────────────────────────
+// When the session cwd (a monorepo root or a collection of repos) has no
+// matching markers, walk up from the file to find the nearest project root.
+
+const PROJECT_MARKERS = [
+  "package.json",
+  "tsconfig.json",
+  "jsconfig.json",
+  "go.mod",
+  "go.work",
+  "pyproject.toml",
+  "requirements.txt",
+  "setup.py",
+  "Pipfile",
+  "Cargo.toml",
+  "pom.xml",
+  "build.gradle",
+  "build.gradle.kts",
+  "settings.gradle",
+  "composer.json",
+  "Gemfile",
+  "mix.exs",
+  "CMakeLists.txt",
+  "compile_commands.json",
+  "*.sln",
+  "*.csproj",
+];
+
+function resolveProjectRoot(absFile: string): string | null {
+  const home = os.homedir();
+  let dir = path.dirname(absFile);
+  for (;;) {
+    if (PROJECT_MARKERS.some((m) => markerExists(dir, m))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir || dir === home) return null;
+    dir = parent;
+  }
+}
+
+/** Root to launch servers for a file: session cwd when it is a real project
+ *  root (file-based markers only — `.git` alone must not short-circuit),
+ *  otherwise the nearest ancestor project root (fallback: cwd). */
+function getServerRootForFile(cwd: string, absPath: string): string {
+  const cwdIsProjectRoot = PROJECT_MARKERS.some((m) => markerExists(cwd, m));
+  if (cwdIsProjectRoot && findServers(cwd).length > 0) return cwd;
+  const root = resolveProjectRoot(absPath);
+  if (root && root !== cwd && findServers(root).length > 0) return root;
+  return cwd;
+}
+
 function getServersForFile(
   cwd: string,
   filePath: string,
@@ -997,6 +1064,121 @@ interface ActiveServer {
 
 const activeServers = new Map<string, ActiveServer>();
 const brokenServers = new Set<string>();
+/** In-flight spawn promises — dedupe concurrent getOrCreateServer calls. */
+const pendingServers = new Map<string, Promise<LspClient>>();
+
+// ── Footer status ──────────────────────────────────
+
+let statusReporter: (() => void) | undefined;
+
+function setStatusReporter(r: (() => void) | undefined): void {
+  statusReporter = r;
+}
+
+function notifyStatusChange(): void {
+  statusReporter?.();
+}
+
+/** Scan nearby subdirectories (depth ≤ 2, skipping build/vendor dirs) for
+ *  project roots and collect the servers they would use — for monorepo roots
+ *  and repo collections where the session cwd itself is not a project. */
+function findServersInSubprojects(cwd: string): Set<string> {
+  const names = new Set<string>();
+  const walk = (dir: string, depth: number): void => {
+    if (depth > 2) return;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      if (
+        e.name.startsWith(".") ||
+        e.name === "node_modules" ||
+        e.name === "dist" ||
+        e.name === "build" ||
+        e.name === "target" ||
+        e.name === ".venv" ||
+        e.name === "venv"
+      ) {
+        continue;
+      }
+      const sub = path.join(dir, e.name);
+      if (PROJECT_MARKERS.some((m) => markerExists(sub, m))) {
+        for (const srv of findServers(sub)) names.add(srv.name);
+        continue; // project root — do not descend further
+      }
+      walk(sub, depth + 1);
+    }
+  };
+  walk(cwd, 1);
+  return names;
+}
+
+/** Refresh the `lsp` status text shown in the footer (opencode-style `• N LSP`). */
+function updateFooterStatus(ctx: {
+  cwd: string;
+  ui: {
+    setStatus(key: string, text: string | undefined): void;
+    theme: { fg(color: string, text: string): string };
+  };
+}): void {
+  const cwd = ctx.cwd;
+  const cwdIsProject = PROJECT_MARKERS.some((m) => markerExists(cwd, m));
+  const matched = findServers(cwd);
+  const shown = new Set<string>();
+  const parts: string[] = [];
+
+  // Servers running from any root (incl. discovered sub-projects) come first.
+  // Same-named servers across multiple roots are shown once.
+  for (const { name, client } of activeServers.values()) {
+    if (client.alive && !shown.has(name)) {
+      parts.push(ctx.ui.theme.fg("success", name));
+      shown.add(name);
+    }
+  }
+
+  const addIdle = (name: string, config: ServerConfig): void => {
+    if (shown.has(name)) return;
+    if (brokenServers.has(serverKey(name, cwd))) {
+      parts.push(ctx.ui.theme.fg("error", name));
+      shown.add(name);
+      return;
+    }
+    const override = commandOverrideFromEnv(name);
+    const cmd = override?.command ?? config.command;
+    if (!which(cmd, cwd)) return;
+    parts.push(ctx.ui.theme.fg("dim", name));
+    shown.add(name);
+  };
+
+  if (cwdIsProject) {
+    // Real project root: show matching servers as before.
+    for (const srv of matched) addIdle(srv.name, srv.config);
+  } else {
+    // Not a project root: prefer nearby sub-projects over `.git`-marker
+    // noise (bashls, yamlls, …) when any exist.
+    const subNames = findServersInSubprojects(cwd);
+    if (subNames.size > 0) {
+      const defaults = loadDefaults();
+      for (const name of subNames) {
+        const config = defaults[name];
+        if (config) addIdle(name, config);
+      }
+    } else {
+      // Plain repo with no sub-projects: fall back to cwd matches.
+      for (const srv of matched) addIdle(srv.name, srv.config);
+    }
+  }
+
+  if (parts.length === 0) {
+    ctx.ui.setStatus("lsp", ctx.ui.theme.fg("dim", "LSP off"));
+    return;
+  }
+  ctx.ui.setStatus("lsp", `LSP ${parts.join(" ")}`);
+}
 
 function serverKey(name: string, cwd: string): string {
   return `${name}::${path.resolve(cwd)}`;
@@ -1015,6 +1197,65 @@ function commandOverrideFromEnv(
   return command ? { command, args } : undefined;
 }
 
+let cachedGlobalTypeScript: string | null | undefined;
+
+/** Locate a global `typescript` install (npm/bun prefix) for typescript-language-server. */
+function findGlobalTypeScript(): string | undefined {
+  if (cachedGlobalTypeScript !== undefined)
+    return cachedGlobalTypeScript ?? undefined;
+  for (const cmd of [
+    ["npm", "root", "-g"],
+    ["bun", "pm", "root", "-g"],
+  ]) {
+    try {
+      const root = execFileSync(cmd[0], cmd.slice(1), {
+        encoding: "utf8",
+        timeout: 5_000,
+      })
+        .trim()
+        .split("\n")[0];
+      if (!root) continue;
+      const pkg = path.join(root, "typescript", "package.json");
+      if (fs.existsSync(pkg)) {
+        cachedGlobalTypeScript = path.dirname(pkg);
+        return cachedGlobalTypeScript;
+      }
+    } catch {
+      /* try next package manager */
+    }
+  }
+  cachedGlobalTypeScript = null;
+  return undefined;
+}
+
+/**
+ * typescript-language-server refuses to start without a `typescript` install:
+ * it checks `tsserver.path`, then the workspace's node_modules. When the
+ * workspace has no local typescript but a global one exists, point it there.
+ */
+function resolveTypeScriptInitOptions(
+  name: string,
+  cwd: string,
+  initOptions: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (name !== "typescript-language-server") return initOptions;
+  const tsserver = (
+    initOptions as { tsserver?: { path?: unknown } } | undefined
+  )?.tsserver;
+  if (tsserver?.path) return initOptions;
+  if (
+    fs.existsSync(path.join(cwd, "node_modules", "typescript", "package.json"))
+  ) {
+    return initOptions;
+  }
+  const global = findGlobalTypeScript();
+  if (!global) return initOptions;
+  return {
+    ...(initOptions ?? {}),
+    tsserver: { ...tsserver, path: global },
+  };
+}
+
 async function getOrCreateServer(
   name: string,
   config: ServerConfig,
@@ -1028,6 +1269,8 @@ async function getOrCreateServer(
       `LSP server '${name}' previously failed to start (reload to retry)`,
     );
   }
+  const pending = pendingServers.get(key);
+  if (pending) return pending;
 
   // Per-server command override: PI_<NAME>_LSP_COMMAND="cmd arg1 arg2"
   const override = commandOverrideFromEnv(name);
@@ -1038,19 +1281,35 @@ async function getOrCreateServer(
   if (!cmd)
     throw new Error(`LSP server '${name}' not found: ${command} not on PATH`);
 
-  try {
-    const client = LspClient.spawn(cmd, args, cwd);
-    const rootUri = fileToUri(cwd);
-    await client.initialize(rootUri, {
-      initializationOptions: config.initializationOptions,
-      settings: config.settings,
-    });
-    activeServers.set(key, { name, client, cwd, config });
-    return client;
-  } catch (err) {
-    brokenServers.add(key);
-    throw err;
-  }
+  const promise = (async () => {
+    try {
+      const client = LspClient.spawn(cmd, args, cwd);
+      client.onExit(() => {
+        activeServers.delete(key);
+        notifyStatusChange();
+      });
+      const rootUri = fileToUri(cwd);
+      await client.initialize(rootUri, {
+        initializationOptions: resolveTypeScriptInitOptions(
+          name,
+          cwd,
+          config.initializationOptions,
+        ),
+        settings: config.settings,
+      });
+      activeServers.set(key, { name, client, cwd, config });
+      notifyStatusChange();
+      return client;
+    } catch (err) {
+      brokenServers.add(key);
+      notifyStatusChange();
+      throw err;
+    } finally {
+      pendingServers.delete(key);
+    }
+  })();
+  pendingServers.set(key, promise);
+  return promise;
 }
 
 async function collectDiagnosticsForFile(
@@ -1060,7 +1319,8 @@ async function collectDiagnosticsForFile(
   signal?: AbortSignal,
   errorsOnly = false,
 ): Promise<{ text: string; count: number; servers: string[] }> {
-  const servers = getServersForFile(cwd, absPath);
+  const serverRoot = getServerRootForFile(cwd, absPath);
+  const servers = getServersForFile(serverRoot, absPath);
   if (servers.length === 0) {
     return { text: "", count: 0, servers: [] };
   }
@@ -1071,7 +1331,7 @@ async function collectDiagnosticsForFile(
 
   for (const srv of servers) {
     try {
-      const client = await getOrCreateServer(srv.name, srv.config, cwd);
+      const client = await getOrCreateServer(srv.name, srv.config, serverRoot);
       client.syncFile(absPath);
       client.notifySaved(absPath);
       // Prefer LSP 3.17 pull diagnostics when advertised: the server computes
@@ -1168,6 +1428,24 @@ function diagnosticsOnEditEnabled(): boolean {
   const v = process.env.PI_LSP_DIAGNOSTICS_ON_EDIT;
   if (v === "0" || v === "false" || v === "off") return false;
   return true;
+}
+
+/** opencode-style warm-up: spawn the server for a file and sync it
+ *  (didOpen) so the footer lights up on read, not only after edits.
+ *  Fire-and-forget — failures are swallowed and never block the caller. */
+function prewarmServer(cwd: string, absPath: string): void {
+  const root = getServerRootForFile(cwd, absPath);
+  if (getServersForFile(root, absPath).length === 0) return;
+  void (async () => {
+    try {
+      for (const srv of getServersForFile(root, absPath)) {
+        const client = await getOrCreateServer(srv.name, srv.config, root);
+        client.syncFile(absPath);
+      }
+    } catch {
+      /* silent — prewarming must never surface */
+    }
+  })();
 }
 
 // ── Extension ──────────────────────────────────────────────────
@@ -1296,6 +1574,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           }
           activeServers.clear();
           brokenServers.clear();
+          notifyStatusChange();
           return ok("LSP servers reloaded.");
         }
 
@@ -1374,9 +1653,14 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           });
         }
 
-        const server = getPrimaryServerForFile(cwd, absPath);
+        const serverRoot = getServerRootForFile(cwd, absPath);
+        const server = getPrimaryServerForFile(serverRoot, absPath);
         if (!server) throw new Error(`No LSP server found for ${params.file}`);
-        const client = await getOrCreateServer(server.name, server.config, cwd);
+        const client = await getOrCreateServer(
+          server.name,
+          server.config,
+          serverRoot,
+        );
         client.syncFile(absPath);
 
         const needPos =
@@ -1635,6 +1919,73 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
     },
   });
 
+  // ── Footer status ─────────────────────────────────
+  pi.on("session_start", async (_event, ctx) => {
+    setStatusReporter(() => updateFooterStatus(ctx));
+    updateFooterStatus(ctx);
+    // Custom footer: keep the built-in layout but right-align the `lsp`
+    // status while other extension statuses (usage, …) stay left-aligned.
+    ctx.ui.setFooter((tui, theme, footerData) => {
+      const footer = createFooter(
+        {
+          cwd: ctx.cwd,
+          home: process.env.HOME,
+          sessionName: ctx.sessionManager.getSessionName(),
+          getEntries: () => ctx.sessionManager.getEntries(),
+          model: ctx.model,
+          thinkingLevel: ctx.thinkingLevel,
+          getContextUsage: () => ctx.getContextUsage(),
+        },
+        footerData,
+        theme,
+      );
+      const unsub = footerData.onBranchChange(() => tui.requestRender());
+      return {
+        ...footer,
+        dispose() {
+          unsub();
+        },
+      };
+    });
+  });
+
+  // ── Setup command ────────────────────────────────
+  pi.registerCommand("lsp:setup", {
+    description:
+      "Install default language servers (ts/js, bash, python, golang, rust) — best-effort, skips what is already installed",
+    handler: async (_args, ctx) => {
+      const script = path.join(__dirname, "..", "scripts", "setup-ls.mjs");
+      ctx.ui.notify("lsp: installing default language servers…", "info");
+      const { execFile } = await import("node:child_process");
+      const output = await new Promise<string>((resolve, reject) => {
+        execFile(
+          process.execPath,
+          [script],
+          { timeout: 1_800_000 },
+          (err, stdout, stderr) => {
+            if (err) reject(new Error(`${err.message}\n${stderr}`));
+            else resolve(stdout + stderr);
+          },
+        );
+      });
+      const lines = output.trim().split("\n");
+      ctx.ui.notify(
+        lines.slice(-20).join("\n"),
+        lines.some((l) => l.includes("need attention")) ? "warning" : "info",
+      );
+    },
+  });
+
+  // ── Phase 1a: warm up servers on read (opencode-style touchFile) ──
+  pi.on("tool_call", async (event, ctx) => {
+    if (event.toolName !== "read") return;
+    const file = (event.input as { path?: unknown } | undefined)?.path;
+    if (typeof file !== "string" || !file) return;
+    const absPath = path.resolve(ctx.cwd, file);
+    if (!fs.existsSync(absPath)) return;
+    prewarmServer(ctx.cwd, absPath);
+  });
+
   // ── Phase 1: post-edit diagnostics ─────────────────
   pi.on("tool_result", async (event, ctx) => {
     if (!diagnosticsOnEditEnabled()) return;
@@ -1673,7 +2024,11 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
     if (!absPath || !fs.existsSync(absPath)) return;
 
     // Only if some server matches
-    if (getServersForFile(ctx.cwd, absPath).length === 0) return;
+    if (
+      getServersForFile(getServerRootForFile(ctx.cwd, absPath), absPath)
+        .length === 0
+    )
+      return;
 
     try {
       const { text, count } = await collectDiagnosticsForFile(
@@ -1705,6 +2060,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
   });
 
   pi.on("session_shutdown", async () => {
+    setStatusReporter(undefined);
     for (const srv of activeServers.values()) {
       try {
         await srv.client.shutdown();
@@ -1738,6 +2094,12 @@ export const __test__ = {
   getOrCreateServer,
   collectDiagnosticsForFile,
   serverKey,
+  updateFooterStatus,
+  resolveTypeScriptInitOptions,
+  resolveProjectRoot,
+  getServerRootForFile,
+  findServersInSubprojects,
+  prewarmServer,
   resetManager(): void {
     activeServers.clear();
     brokenServers.clear();
