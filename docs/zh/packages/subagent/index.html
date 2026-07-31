@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>subagent — 把活交给一个隔离的子 agent — PieX</title>
+  <meta name="description" content="单 agent 干所有活会上下文污染、模型错配、并行受限。subagent 给主 agent 一个可控的委派出口：spawn 隔离子进程，独立 prompt/工具/模型，结果回流。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/subagent/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/subagent/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/subagent/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/subagent/" />
+  <meta property="og:title" content="subagent — 把活交给一个隔离的子 agent — PieX" />
+  <meta property="og:description" content="单 agent 干所有活会上下文污染、模型错配、并行受限。subagent 给主 agent 一个可控的委派出口：spawn 隔离子进程，独立 prompt/工具/模型，结果回流。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/subagent/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="false" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/subagent/" class="is-active">subagent</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <a href="/zh/packages/goal/">goal</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="/zh/packages/hashline/">hashline</a>
+        <a href="/zh/packages/dap/">dap</a>
+        <a href="/zh/packages/lsp/">lsp</a>
+        <a href="/zh/packages/plan/">plan</a>
+        <a href="/zh/packages/review/">review</a>
+        <a href="/zh/packages/subagent/" class="is-active">subagent</a>
+        <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+        <a href="/zh/packages/btw/">btw</a>
+        <a href="/zh/packages/context/">context</a>
+        <a href="/zh/packages/goal/">goal</a>
+        </nav>
+      </div>
+
+      <header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Delegation</span>
+          <span class="blog-tag">Subprocess</span>
+        </div>
+        <h1>subagent — 把活交给一个隔离的子 agent</h1>
+        <p class="blog-subtitle">单 agent 干所有活会上下文污染、模型错配、并行受限。subagent 给主 agent 一个可控的委派出口。</p>
+      </header>
+
+      <div class="blog-callout insight">
+        <div class="blog-callout-icon" aria-hidden="true">💡</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">导语</p>
+          <p>subagent 的价值不是「能跑子进程」，而是给主 agent 一个<strong>可控的委派出口</strong>：合适的活交给合适的子 agent、合适的模型，上下文隔离、结果回流。pi 刻意不做，piex 用 Extension API 补上最小可用版。</p>
+        </div>
+      </div>
+
+      <h2 id="intro">简介</h2>
+      <p>单 agent 干所有活，常见失败模式：</p>
+      <ul>
+        <li><strong>上下文污染</strong>：侦察阶段读了一堆文件，挤占实施阶段的上下文窗口</li>
+        <li><strong>模型错配</strong>：用 Opus 做 grep 侦察烧钱、用 Haiku 做代码审查不到位</li>
+        <li><strong>并行受限</strong>：主 agent 串行思考，跑不了「scout 摸代码 + reviewer 审 diff」</li>
+        <li><strong>失败连坐</strong>：一个子任务跑偏，整轮对话被带沟里</li>
+      </ul>
+      <p>subagent 解决委派问题：主 agent 调一次 <code>subagent</code> 工具，spawn 一个<strong>隔离的 pi 子进程</strong>，给它独立的 system prompt、工具集、模型配置和任务，跑完把结果带回来。<code>@piex-dev/subagent</code> 做成 pi 扩展：single（单任务）/ parallel（可跨 agent 并行）两种编排，内置 4 个角色 agent，支持 per-agent 模型配置。</p>
+      <div class="blog-callout warn">
+        <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">定位</p>
+          <p>本包是<strong>委派原语，不是上层工作流</strong>。不替代 <code>@piex-dev/review</code> / <code>@piex-dev/plan</code>；它们是未来的上层消费者。状态：已实现（MVP）。</p>
+        </div>
+      </div>
+
+      <h2 id="theory">技术原理</h2>
+      <h3 id="isolation">子进程隔离，而非同进程 session</h3>
+      <p>核心是<strong>进程级隔离</strong>：每次调用 spawn 一个独立 <code>pi --mode json -p --no-session</code> 子进程，给它独立的上下文窗口、工具集、模型。主 agent 上下文不被污染，子 agent 工具调用不挤占主对话。</p>
+      <p>为什么不用同进程子 session？因为 pi 的 Extension API <strong>不暴露 session 嵌套</strong>。子进程路线只用 <code>child_process.spawn</code> + JSON 事件流，纯 Extension API 可实现，不改内核，也是 pi 官方推荐路线。</p>
+      <div class="blog-callout note">
+        <div class="blog-callout-icon" aria-hidden="true">📝</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">同进程也可行但有硬约束</p>
+          <p>pi SDK 的 <code>createAgentSession()</code> + <code>SessionManager.inMemory()</code> 能在进程内建子 AgentSession，但只能用 7 个内置工具（<code>noExtensions: true</code>），审批/沙箱/headers 策略无法继承。对重度依赖 piex 扩展的用户不划算，故 MVP 只做 subprocess，in-process 留作 P1。</p>
+        </div>
+      </div>
+      <h3 id="stream">子进程通信：JSON 事件流</h3>
+      <p>子进程跑在 <code>--mode json</code>，stdout 输出 NDJSON 事件流，父进程用 <code>JsonLineDecoder</code>（单行上限 16MB）逐行解析：<code>message_update</code>（流式进度）、<code>tool_execution_start</code>（子 agent 在调什么工具）、<code>agent_end</code>（完整 messages，提取最后一条 assistant 消息作为输出）。stderr 单独累积（上限 128KB）用于错误诊断。abort 信号触发 <code>SIGTERM</code> → 5s 后 <code>SIGKILL</code>，按进程组终结。</p>
+      <h3 id="blocking">阻塞语义（产品约束）</h3>
+      <p><code>subagent</code> 是 <strong>blocking tool</strong>：工具返回前主 agent 不能处理 steering，用户也会感觉当前 turn 被占住。因此 prompt 写死：仅当必须等结果才能继续时才委派；简单问答、单文件小改、主 agent 直接能做的事不要调 subagent；后台异步是 P1 高优先级。</p>
+      <h3 id="model">模型配置：真正的三层优先级</h3>
+      <div class="arch-stack">
+        <div class="arch-layer"><strong>1. agent 配置里的 model / thinkingLevel</strong> — agents.yaml（最高）</div>
+        <div class="arch-layer"><strong>2. 全局默认 defaultModel / defaultThinking</strong> — settings.json</div>
+        <div class="arch-layer"><strong>3. inherit 父 session 当前模型</strong> — 显式读取并传入 --model/--thinking</div>
+      </div>
+      <div class="blog-callout warn">
+        <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">关键修正</p>
+          <p>不传 <code>--model</code> ≠ inherit。不传时子 pi 用<strong>用户全局默认模型</strong>，不是父 session 当前选中的模型。父 session 可能刚 <code>/model</code> 切到 <code>sonnet:high</code>，子进程仍会跑默认 haiku。因此 inherit 必须显式读取父进程当前 model 与 thinkingLevel 再传入。</p>
+        </div>
+      </div>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>agent</th><th>model</th><th>thinking</th><th>原因</th></tr></thead>
+          <tbody>
+            <tr><td>reviewer</td><td>强模型</td><td>high</td><td>对抗性审查要深度</td></tr>
+            <tr><td>scout</td><td>便宜快模型</td><td>off</td><td>侦察不需要重推理</td></tr>
+            <tr><td>worker</td><td>inherit 父会话</td><td>父会话</td><td>实施与主 agent 保持一致</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 id="sysprompt">system prompt：替换，不是追加</h3>
+      <p>角色 agent 用 <code>--system-prompt</code> 替换默认 coding assistant prompt，而不是 <code>--append-system-prompt</code>。原因：append 会保留「你是编码助手」的默认人格再叠加「不要 edit」，模型会摇摆。scout/reviewer/planner 必须用干净角色提示。</p>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>开关</th><th>MVP 默认</th><th>原因</th></tr></thead>
+          <tbody>
+            <tr><td><code>--system-prompt</code></td><td>始终</td><td>角色人格干净</td></tr>
+            <tr><td><code>--no-extensions</code></td><td>始终</td><td>避免递归加载 subagent、控制冷启动</td></tr>
+            <tr><td><code>--no-context-files</code></td><td>否（默认加载 AGENTS.md）</td><td>项目约定对 reviewer/worker 通常有用</td></tr>
+            <tr><td>agent 扩展工具（hashline 等）</td><td>MVP 不加载</td><td>与 <code>--no-extensions</code> 一致；P1 做 allowlist</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 id="context">上下文传递：可选 context，不做自动魔法</h3>
+      <p>子进程默认是空 session，只有任务文本。MVP 钉死策略 B：可选 <code>context</code> 字段，主 agent 显式传入 diff / 计划 / 文件摘要。不做自动注入 git diff / 最近 N turn / 隐式共享父 session transcript（留 P1）。</p>
+      <h3 id="depth">嵌套深度限制</h3>
+      <p>子 agent 默认<strong>不能再 spawn 子 agent</strong>（<code>PIEX_SUBAGENT_DEPTH</code>，默认 maxDepth=1）。子进程 env 注入 <code>PIEX_SUBAGENT_DEPTH=&lt;父深度+1&gt;</code>，执行前检查超限抛错。可调 <code>PIEX_SUBAGENT_MAX_DEPTH</code>。配套硬约束：子进程 <code>--no-extensions</code>，即使 depth 配错也不会再次注册 <code>subagent</code> 工具。</p>
+      <h3 id="env">扩展加载与 env</h3>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>项</th><th>MVP 策略</th></tr></thead>
+          <tbody>
+            <tr><td>扩展</td><td><code>--no-extensions</code>（不加载任何 extension，含本包）</td></tr>
+            <tr><td>env</td><td>继承父进程 env，仅覆盖/注入 <code>PIEX_SUBAGENT_DEPTH</code></td></tr>
+            <tr><td>鉴权</td><td>依赖父环境已有的 API key / <code>~/.pi/agent/auth.json</code>（OAuth）</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>不做激进 env 白名单：同 uid 子进程本就能读 <code>auth.json</code>，阉割 env 更容易弄坏各 provider 专用变量，收益小。安全边界放在工具权限、depth、cwd、timeout、abort 回收。</p>
+
+      <h2 id="usage">使用说明</h2>
+      <h3 id="install">安装</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>bash</span></div>
+        <pre><code>pi install npm:@piex-dev/subagent</code></pre>
+      </div>
+      <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/subagent" target="_blank" rel="noopener"><code>extensions/subagent</code></a></p>
+      <h3 id="agents">内置 agent</h3>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>agent</th><th>角色</th><th>工具</th><th>推荐模型</th></tr></thead>
+          <tbody>
+            <tr><td><code>scout</code></td><td>只读代码侦察</td><td>read/grep/find/ls/bash</td><td>便宜快模型 + off</td></tr>
+            <tr><td><code>planner</code></td><td>只读规划</td><td>read/grep/find/ls</td><td>强模型 + high</td></tr>
+            <tr><td><code>reviewer</code></td><td>对抗性代码审查</td><td>read/grep/find/ls/bash</td><td>强模型 + high</td></tr>
+            <tr><td><code>worker</code></td><td>全内置工具实现</td><td>read/bash/edit/write/grep/find/ls</td><td>inherit 父会话</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 id="config">配置唯一真相</h3>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>文件</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td><code>~/.pi/piex-dev/subagent/agents.yaml</code></td><td>用户 agent 定义（按 name 整对象覆盖同名内置）</td></tr>
+            <tr><td><code>~/.pi/piex-dev/subagent/settings.json</code></td><td>包级设置：defaultModel、defaultThinking、maxDepth 等</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>不把 subagent 配置塞进 pi 全局 <code>settings.json</code>，避免和 pi 自身字段缠在一起。路径遵循 piex 约定：<code>join(dirname(getAgentDir()), "piex-dev", "subagent")</code>。MVP 不做 project-local agents，需要时 P1 再加并默认确认。</p>
+      <p><code>agents.yaml</code> 示例：</p>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>yaml</span></div>
+        <pre><code>- name: reviewer
+  description: 对抗性审查，挑出主 agent 的盲点
+  systemPrompt: |
+    You are a reviewer subagent. Review changes adversarially.
+    Report PASS/FAIL/PARTIAL with evidence. Do not edit files.
+  tools: [read, grep, find, ls, bash]
+  model: anthropic/claude-opus-4-1
+  thinkingLevel: high
+
+- name: scout
+  description: 快速代码侦察
+  systemPrompt: |
+    You are a scout subagent. Explore the codebase quickly and report grounded findings.
+    Do not edit files.
+  tools: [read, grep, find, ls, bash]
+  model: inherit
+  thinkingLevel: off</code></pre>
+      </div>
+      <p><code>settings.json</code> 示例：</p>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>json</span></div>
+        <pre><code>{
+  "defaultModel": "inherit",
+  "defaultThinking": null,
+  "maxDepth": 1,
+  "timeoutMs": 600000
+}</code></pre>
+      </div>
+      <h3 id="params">工具参数</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>typescript</span></div>
+        <pre><code>// single
+{ agent: "reviewer", task: "...", context?: string, timeoutMs?, thinkingLevel? }
+
+// parallel（每项自带 agent，可跨角色）
+{
+  tasks: [
+    { agent: "scout", task: "..." },
+    { agent: "reviewer", task: "...", context?: string }
+  ],
+  timeoutMs?,           // 顶层默认，可被 task 覆盖
+}</code></pre>
+      </div>
+      <p>约束：single 的 <code>agent</code> + <code>task</code> 必填；parallel 的 <code>tasks[]</code> 必填，每项必须有自己的 <code>agent</code> + <code>task</code>，上限 8，并发上限 4；不允许「顶层一个 agent + 多个 task 字符串」（那会削弱最常见的跨角色并行）。</p>
+      <h3 id="usage-ex">用法</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>text</span></div>
+        <pre><code>use scout to find all entry points in src/
+  → subagent({ agent: "scout", task: "..." })
+
+use reviewer to review the current diff
+  → subagent({ agent: "reviewer", task: "Review for correctness and tests", context: "<diff>" })
+
+run scout on auth flow and reviewer on the diff in parallel
+  → subagent({ tasks: [ { agent: "scout", task: "Map the auth flow" }, { agent: "reviewer", task: "Review the diff", context: "..." } ] })</code></pre>
+      </div>
+      <p>辅助命令：<code>/subagents</code> 列出当前可用 agent 及生效 model/thinking。</p>
+      <h3 id="verify">验证</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>bash</span></div>
+        <pre><code>pi -e ./extensions/subagent/src/subagent.ts -p "what is 1+1" --no-session
+pi -e ./extensions/subagent/src/subagent.ts -p "use scout to list files in src/" --no-session</code></pre>
+      </div>
+
+      <h2 id="impl">实现方案</h2>
+      <p>包路径：<code>extensions/subagent</code>，目标约 1500–1800 行，约 7 个源文件。</p>
+      <h3 id="files">文件结构</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>text</span></div>
+        <pre><code>extensions/subagent/
+├── package.json          # @piex-dev/subagent
+├── tsconfig.json
+├── README.md
+├── LICENSE
+└── src/
+    ├── subagent.ts       # 入口：registerTool + registerCommand + tool_result hook
+    ├── types.ts          # AgentConfig / SubagentParams / SingleResult
+    ├── agents.ts         # 内置 4 agent + loadAgents + resolveAgent + resolveModel
+    ├── subprocess.ts     # buildPiArgs + getPiInvocation + runSingleAgent + terminate + JsonLineDecoder
+    ├── execution.ts      # 深度检查 + single/parallel + 并发限制 + status
+    └── render.ts         # renderCall / renderResult</code></pre>
+      </div>
+      <p>MVP 不引入 <code>transport.ts</code> / <code>ManagedAgent</code> 抽象。只有 subprocess 一条路径时直接函数更清晰；P1 做 in-process 时再抽 <code>SubagentTransport</code>。</p>
+      <h3 id="spawn">子进程 spawn 关键点</h3>
+      <p>pi bin 定位三段式（复刻 narumitw <code>getPiInvocation</code>）：argv[1] 是可执行 .js → <code>node &lt;argv1&gt;</code>（开发态）；execPath 是 node/bun → <code>pi</code>（全局安装）；否则 <code>&lt;execPath&gt;</code>（编译二进制）。</p>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>bash</span></div>
+        <pre><code>pi --mode json -p --no-session --no-extensions \
+  --system-prompt <tmpfile-with-role-prompt> \
+  --model <resolvedModel> \          # 始终显式传入（含 inherit 解析后的父模型）
+  --thinking <resolvedThinking> \    # 有值才传
+  --tools <agent.tools> \            # 空数组用 --no-tools
+  "<user message: optional context + Task>"</code></pre>
+      </div>
+      <p>env 继承 <code>process.env</code> 并设置 <code>PIEX_SUBAGENT_DEPTH=&lt;depth+1&gt;</code>。终止：<code>detached: true</code> 形成进程组；abort 时 <code>process.kill(-pid, SIGTERM)</code> → 5s 后 <code>SIGKILL</code>。</p>
+      <h3 id="depth-impl">深度检查</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>typescript</span></div>
+        <pre><code>function assertSubagentDepthAllowed(): void {
+  const depth = parseInt(process.env.PIEX_SUBAGENT_DEPTH ?? "0", 10) || 0;
+  const maxDepth = parseInt(process.env.PIEX_SUBAGENT_MAX_DEPTH ?? "1", 10) || 1;
+  if (depth >= maxDepth) {
+    throw new Error(`Subagent recursion depth limit reached (${maxDepth})`);
+  }
+}</code></pre>
+      </div>
+      <h3 id="guidelines">promptGuidelines（写入工具描述）</h3>
+      <ol>
+        <li>仅在委派收益明确时使用；简单任务不要委派（冷启动 + 额外 token 很贵）</li>
+        <li>必须等结果才能继续时才调用；这是阻塞调用</li>
+        <li>审查/实施类任务应填充 <code>context</code>（diff、计划、相关路径）</li>
+        <li>parallel 仅用于独立任务；避免多个 worker 写同一文件</li>
+        <li>scout/planner/reviewer 只读；需要改代码用 worker</li>
+      </ol>
+
+      <h2 id="design">设计参考</h2>
+      <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>形态</th><th>隔离模型</th><th>piex 取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>nicobailon pi-subagents</strong></td><td>Extension</td><td>仅子进程</td><td>借鉴角色划分；不采纳 chain/worktree/watchdog/acceptance</td></tr>
+<tr><td><strong>oh-my-pi swarm</strong></td><td>fork</td><td>子进程（内核 API）</td><td>不 fork；借鉴并行编排思路</td></tr>
+<tr><td><strong>opencode task</strong></td><td>独立 agent</td><td>同进程子 session</td><td>不采纳同进程内核模型；借鉴集中式 agent 配置、depth</td></tr>
+<tr><td><strong>narumitw pi-subagents</strong></td><td>Extension</td><td>子进程 + 同进程</td><td>主要参照：JSON 流、depth、spawn 细节；MVP 不复制 transport/stateful 全套</td></tr>
+</tbody></table></div>
+      <p>核心取舍：借鉴 narumitw 的可运行机制，而不是复制其架构复杂度。MVP 只做 subprocess + single/parallel；P1 再按需加 in-process / background / chain。</p>
+
+      <h2 id="relation">与 plan / review 的关系</h2>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>包</th><th>职责</th><th>与 subagent</th></tr></thead>
+          <tbody>
+            <tr><td><code>@piex-dev/plan</code></td><td>只读探索 → 计划 → 执行进度</td><td>未来可把某步委派给 worker；MVP 不耦合</td></tr>
+            <tr><td><code>@piex-dev/review</code></td><td>单 agent 代码评审</td><td>未来多 agent 评审可消费 subagent；MVP 不耦合</td></tr>
+            <tr><td><code>@piex-dev/subagent</code></td><td>委派原语</td><td>不内置评审/计划工作流</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="changelog">迭代记录</h2>
+      <h3 id="roadmap">路线图</h3>
+      <p><strong>MVP（当前）</strong>：subprocess 执行 + single/parallel；内置 4 agent + agents.yaml/settings.json；真正的 inherit（显式传父 session 当前模型）；<code>--system-prompt</code> 替换 + <code>--no-extensions</code>；可选 context；深度限制 + abort 进程组回收；阻塞语义写入 promptGuidelines。</p>
+      <p><strong>P1（按价值排序）</strong>：background async（高优先，避免 TUI 被占死）；extensions allowlist（子进程可加载指定 piex 扩展）；in-process transport（降冷启动）；chain 编排；project-local agents + 确认；自动 context 策略；向 pi 提议 <code>createChildSession()</code>。</p>
+      <h3 id="not-doing">不做清单（明确边界）</h3>
+      <ul>
+        <li>fan-in aggregator</li>
+        <li>stateful 运行时（ManagedAgent 树、mailbox、follow-up）</li>
+        <li>watchdog / acceptance / worktree</li>
+        <li>MVP 期 background async / in-process / chain</li>
+        <li>MVP 期 transport 抽象层</li>
+        <li>激进 env 白名单</li>
+        <li>把配置塞进 pi 全局 settings.json</li>
+      </ul>
+
+      <h2 id="risks">风险与对策</h2>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>风险</th><th>对策</th></tr></thead>
+          <tbody>
+            <tr><td>inherit 传错模型</td><td>始终显式解析父 session 当前 model/thinking 再传 <code>--model</code></td></tr>
+            <tr><td>默认人格污染角色</td><td><code>--system-prompt</code> 替换，不用 append</td></tr>
+            <tr><td>递归加载 subagent</td><td>子进程 <code>--no-extensions</code> + depth 门禁双保险</td></tr>
+            <tr><td>冷启动贵 / 过度委派</td><td>promptGuidelines 限制使用场景；默认 timeout；P1 background/in-process</td></tr>
+            <tr><td>parallel 同文件写冲突</td><td>文档 + guidelines；只读 agent 为默认主力</td></tr>
+            <tr><td>子进程鉴权失败</td><td>继承父 env + 依赖 auth.json；不做 env 阉割</td></tr>
+            <tr><td>JSON 流 hang</td><td>bounded decoder + timeout + abort + stderr 上限</td></tr>
+            <tr><td>yaml 解析失败</td><td>schema 校验 + notify 警告，降级内置</td></tr>
+            <tr><td>无 agent_end</td><td>非 0 退出时用 stderr + 最近输出，标记 error</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="acceptance">验收标准</h2>
+      <div class="feature-grid">
+        <div>
+          <p class="blog-callout-label">正例</p>
+          <ol>
+            <li>本地 <code>pi -e ./extensions/subagent/...</code> 可加载；<code>/subagents</code> 列出 4 个内置 agent</li>
+            <li>single：<code>use scout to find entry files</code> 返回侦察结果</li>
+            <li>parallel：跨 agent（scout + reviewer）并发跑通</li>
+            <li>agents.yaml 给 reviewer 配强模型后，子进程实际使用该模型</li>
+            <li>父 session 切换模型后，inherit agent 跟随父模型（不是全局默认）</li>
+            <li>带 context 的 reviewer 调用能在输出中体现 context 内容</li>
+          </ol>
+        </div>
+        <div>
+          <p class="blog-callout-label">负例</p>
+          <ol start="7">
+            <li>未知 agent 名 → 清晰错误，不 spawn</li>
+            <li>timeout → 进程被杀，<code>timedOut=true</code></li>
+            <li>depth 超限 → 抛 "depth limit reached"，无孙子进程</li>
+            <li>主 agent abort → 子进程组回收，无僵尸进程</li>
+            <li>冒烟：<code>pi -e ... -p "what is 1+1" --no-session</code> 不误触发 subagent、不报错</li>
+          </ol>
+        </div>
+      </div>
+
+      <h2 id="appendix">附录：pi subagent 生态能力逐项对比</h2>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>能力</th><th>nicobailon</th><th>oh-my-pi</th><th>opencode</th><th>narumitw</th><th>piex MVP</th></tr></thead>
+          <tbody>
+            <tr><td>形态</td><td>Extension</td><td>fork</td><td>独立 agent</td><td>Extension</td><td>Extension</td></tr>
+            <tr><td>隔离</td><td>子进程</td><td>子进程</td><td>同进程</td><td>子进程+同进程</td><td>子进程</td></tr>
+            <tr><td>transport 抽象</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌（P1）</td></tr>
+            <tr><td>per-task 多 agent parallel</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
+            <tr><td>真 inherit 父模型</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅（显式传）</td></tr>
+            <tr><td>system prompt 替换</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><td>可选 context</td><td>✅</td><td>部分</td><td>任务文本</td><td>✅</td><td>✅</td></tr>
+            <tr><td>默认加载扩展</td><td>可</td><td>可</td><td>可</td><td>可配置</td><td>❌（<code>--no-extensions</code>）</td></tr>
+            <tr><td>background async</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td><td>❌（P1 高优先）</td></tr>
+            <tr><td>chain / fan-in / stateful</td><td>重</td><td>中</td><td>轻</td><td>中重</td><td>❌</td></tr>
+            <tr><td>深度限制</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><td>规模</td><td>90+ 文件</td><td>~6 文件</td><td>单工具</td><td>21 文件</td><td>~7 文件</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>piex subagent 的定位：<strong>可运行的委派原语，不是编排平台</strong>。先把模型继承、角色提示、上下文、跨 agent 并行这四件实事做对；复杂编排留给 P1 或继续让主 agent 编排。</p>
+
+      <p class="blog-source-link">
+        源稿 Markdown：
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/subagent.md" target="_blank" rel="noopener">docs/packages/subagent.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">本页目录</p>
+      <nav>
+        <a href="#intro">简介</a>
+        <a href="#theory">技术原理</a>
+        <a href="#usage">使用说明</a>
+        <a href="#impl">实现方案</a>
+        <a href="#design">设计参考</a>
+        <a href="#relation">与 plan / review 的关系</a>
+        <a href="#changelog">迭代记录</a>
+        <a href="#risks">风险与对策</a>
+        <a href="#acceptance">验收标准</a>
+        <a href="#appendix">附录</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

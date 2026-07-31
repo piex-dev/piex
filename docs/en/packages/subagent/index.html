@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>subagent — Delegate Work to an Isolated Child Agent — PieX</title>
+  <meta name="description" content="A single agent doing everything suffers context pollution, model mismatch, and limited parallelism. subagent gives the main agent a controlled delegation outlet: spawn an isolated subprocess with its own prompt, tools, and model, then stream results back." />
+  <link rel="canonical" href="https://piex.dev/en/packages/subagent/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/subagent/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/subagent/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/subagent/" />
+  <meta property="og:title" content="subagent — Delegate Work to an Isolated Child Agent — PieX" />
+  <meta property="og:description" content="A single agent doing everything suffers context pollution, model mismatch, and limited parallelism. subagent gives the main agent a controlled delegation outlet: spawn an isolated subprocess with its own prompt, tools, and model, then stream results back." />
+  <meta property="og:url" content="https://piex.dev/en/packages/subagent/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BJ0ZVPSWN');
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav-inner">
+      <a class="logo" href="/" aria-label="PieX home">
+        <span class="logo-mark">π</span>
+        PieX
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="nav-links" id="nav-links">
+        <a href="/#why" data-i18n="nav.why">Philosophy</a>
+        <a href="/#packages" data-i18n="nav.packages">Packages</a>
+        <a href="/#docs" data-i18n="nav.docs">Docs</a>
+        <a href="/#blog" data-i18n="nav.blog">Blog</a>
+        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
+        <div class="lang-switch" role="radiogroup" aria-label="Language">
+          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages">
+      <p class="blog-toc-title">Packages</p>
+      <nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/subagent/" class="is-active">subagent</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <a href="/en/packages/goal/">goal</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+      </nav>
+    </aside>
+
+    <article class="blog-article">
+      <div class="docs-mobile-nav">
+        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
+          <span>Packages</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <nav class="blog-toc-mobile-nav">
+        <a href="/en/packages/hashline/">hashline</a>
+        <a href="/en/packages/dap/">dap</a>
+        <a href="/en/packages/lsp/">lsp</a>
+        <a href="/en/packages/plan/">plan</a>
+        <a href="/en/packages/review/">review</a>
+        <a href="/en/packages/subagent/" class="is-active">subagent</a>
+        <a href="/en/packages/xai-oauth/">xai-oauth</a>
+        <a href="/en/packages/btw/">btw</a>
+        <a href="/en/packages/context/">context</a>
+        <a href="/en/packages/goal/">goal</a>
+        </nav>
+      </div>
+
+      <header class="blog-header">
+        <div class="blog-meta-row">
+          <span class="blog-tag">Extension</span>
+          <span class="blog-tag">Delegation</span>
+          <span class="blog-tag">Subprocess</span>
+        </div>
+        <h1>subagent — Delegate Work to an Isolated Child Agent</h1>
+        <p class="blog-subtitle">A single agent doing everything suffers context pollution, model mismatch, and limited parallelism. subagent gives the main agent a controlled delegation outlet.</p>
+      </header>
+
+      <div class="blog-callout insight">
+        <div class="blog-callout-icon" aria-hidden="true">💡</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">TL;DR</p>
+          <p>subagent's value is not "can spawn a subprocess" — it gives the main agent a <strong>controlled delegation outlet</strong>: the right work to the right child agent and model, with context isolation and results streamed back. pi deliberately omits this; piex fills the minimal viable gap via the Extension API.</p>
+        </div>
+      </div>
+
+      <h2 id="intro">Intro</h2>
+      <p>A single agent doing everything hits common failure modes:</p>
+      <ul>
+        <li><strong>Context pollution</strong>: the scout phase reads a pile of files and crowds out the implementation phase's context window</li>
+        <li><strong>Model mismatch</strong>: burning Opus on a grep scout, or under-serving a code review with Haiku</li>
+        <li><strong>Limited parallelism</strong>: the main agent thinks serially and cannot run "scout maps code + reviewer audits diff"</li>
+        <li><strong>Cascading failure</strong>: one subtask goes sideways and drags the whole turn down</li>
+      </ul>
+      <p>subagent solves delegation: the main agent calls the <code>subagent</code> tool once, which spawns an <strong>isolated pi subprocess</strong> with its own system prompt, tool set, model config, and task, then brings the result back. <code>@piex-dev/subagent</code> ships as a pi extension: single (one task) / parallel (cross-agent) orchestration, four built-in role agents, per-agent model config.</p>
+      <div class="blog-callout warn">
+        <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">Scope</p>
+          <p>This package is a <strong>delegation primitive, not a higher-level workflow</strong>. It does not replace <code>@piex-dev/review</code> / <code>@piex-dev/plan</code>; those are future upstream consumers. Status: implemented (MVP).</p>
+        </div>
+      </div>
+
+      <h2 id="theory">How it works</h2>
+      <h3 id="isolation">Process isolation, not in-process sessions</h3>
+      <p>The core is <strong>process-level isolation</strong>: each call spawns an independent <code>pi --mode json -p --no-session</code> subprocess with its own context window, tools, and model. The main agent's context is not polluted, and the child's tool calls do not crowd the main conversation.</p>
+      <p>Why not in-process child sessions? Because pi's Extension API <strong>does not expose session nesting</strong>. The subprocess route needs only <code>child_process.spawn</code> + a JSON event stream — pure Extension API, no kernel changes — and is the pi-recommended path.</p>
+      <div class="blog-callout note">
+        <div class="blog-callout-icon" aria-hidden="true">📝</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">In-process is also possible, with hard constraints</p>
+          <p>pi SDK's <code>createAgentSession()</code> + <code>SessionManager.inMemory()</code> can build a child AgentSession in-process, but only with the 7 built-in tools (<code>noExtensions: true</code>) and no approval/sandbox/headers inheritance. Not worth it for users who lean on piex extensions, so MVP is subprocess-only; in-process is P1.</p>
+        </div>
+      </div>
+      <h3 id="stream">Child communication: JSON event stream</h3>
+      <p>The child runs in <code>--mode json</code> and emits an NDJSON event stream on stdout; the parent parses it line-by-line with <code>JsonLineDecoder</code> (16MB per-line cap): <code>message_update</code> (streaming progress), <code>tool_execution_start</code> (which tool the child is calling), <code>agent_end</code> (full messages — extract the last assistant message as output). stderr is accumulated separately (128KB cap) for diagnostics. An abort signal fires <code>SIGTERM</code> → <code>SIGKILL</code> after 5s, killing the whole process group.</p>
+      <h3 id="blocking">Blocking semantics (product constraint)</h3>
+      <p><code>subagent</code> is a <strong>blocking tool</strong>: until it returns, the main agent cannot handle steering and the user feels the current turn is held. So the prompt is hard-coded: delegate only when you must wait for the result to continue; never call subagent for simple Q&A, single-file tweaks, or anything the main agent can do directly. Background async is a P1 high priority.</p>
+      <h3 id="model">Model config: a real three-tier precedence</h3>
+      <div class="arch-stack">
+        <div class="arch-layer"><strong>1. agent's model / thinkingLevel</strong> — agents.yaml (highest)</div>
+        <div class="arch-layer"><strong>2. global default defaultModel / defaultThinking</strong> — settings.json</div>
+        <div class="arch-layer"><strong>3. inherit the parent session's current model</strong> — read explicitly and passed via --model/--thinking</div>
+      </div>
+      <div class="blog-callout warn">
+        <div class="blog-callout-icon" aria-hidden="true">⚠️</div>
+        <div class="blog-callout-body">
+          <p class="blog-callout-label">Key correction</p>
+          <p>Not passing <code>--model</code> ≠ inherit. Without it, the child pi uses the <strong>user's global default model</strong>, not the parent session's current selection. The parent may have just <code>/model</code>-switched to <code>sonnet:high</code>; the child still runs the default haiku. So inherit must explicitly read the parent's current model and thinkingLevel and pass them through.</p>
+        </div>
+      </div>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>agent</th><th>model</th><th>thinking</th><th>reason</th></tr></thead>
+          <tbody>
+            <tr><td>reviewer</td><td>strong model</td><td>high</td><td>adversarial review needs depth</td></tr>
+            <tr><td>scout</td><td>cheap fast model</td><td>off</td><td>recon needs no heavy reasoning</td></tr>
+            <tr><td>worker</td><td>inherit parent</td><td>parent</td><td>stay consistent with the main agent</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 id="sysprompt">System prompt: replace, don't append</h3>
+      <p>Role agents use <code>--system-prompt</code> to replace the default coding-assistant prompt, not <code>--append-system-prompt</code>. Appending keeps the "you are a coding assistant" persona and layers "don't edit" on top — the model wavers. scout/reviewer/planner need a clean role prompt.</p>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>flag</th><th>MVP default</th><th>reason</th></tr></thead>
+          <tbody>
+            <tr><td><code>--system-prompt</code></td><td>always</td><td>clean role persona</td></tr>
+            <tr><td><code>--no-extensions</code></td><td>always</td><td>avoid recursive subagent load, control cold start</td></tr>
+            <tr><td><code>--no-context-files</code></td><td>no (loads AGENTS.md by default)</td><td>project conventions usually help reviewer/worker</td></tr>
+            <tr><td>agent extension tools (hashline etc.)</td><td>not loaded in MVP</td><td>matches <code>--no-extensions</code>; P1 allowlist</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 id="context">Context passing: optional context, no auto-magic</h3>
+      <p>The child is an empty session by default with only the task text. MVP pins strategy B: an optional <code>context</code> field the main agent fills explicitly (diff / plan / file summary). No auto-injected git diff, recent N turns, or implicit parent-transcript sharing (P1).</p>
+      <h3 id="depth">Nesting depth limit</h3>
+      <p>A child agent <strong>cannot spawn its own child</strong> by default (<code>PIEX_SUBAGENT_DEPTH</code>, default maxDepth=1). The child's env injects <code>PIEX_SUBAGENT_DEPTH=&lt;parent+1&gt;</code>; before execution it checks and throws if over the limit. Tunable via <code>PIEX_SUBAGENT_MAX_DEPTH</code>. Hard backstop: the child runs with <code>--no-extensions</code>, so even a misconfigured depth cannot re-register the <code>subagent</code> tool.</p>
+      <h3 id="env">Extension loading & env</h3>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>item</th><th>MVP policy</th></tr></thead>
+          <tbody>
+            <tr><td>extensions</td><td><code>--no-extensions</code> (load nothing, including this package)</td></tr>
+            <tr><td>env</td><td>inherit parent env; only override/inject <code>PIEX_SUBAGENT_DEPTH</code></td></tr>
+            <tr><td>auth</td><td>rely on the parent env's existing API key / <code>~/.pi/agent/auth.json</code> (OAuth)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>No aggressive env allowlist: a same-uid child can already read <code>auth.json</code>, and gutting env is more likely to break provider-specific variables than to help. The security boundary is tool permissions, depth, cwd, timeout, and abort reclamation.</p>
+
+      <h2 id="usage">Usage</h2>
+      <h3 id="install">Install</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>bash</span></div>
+        <pre><code>pi install npm:@piex-dev/subagent</code></pre>
+      </div>
+      <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/subagent" target="_blank" rel="noopener"><code>extensions/subagent</code></a></p>
+      <h3 id="agents">Built-in agents</h3>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>agent</th><th>role</th><th>tools</th><th>recommended model</th></tr></thead>
+          <tbody>
+            <tr><td><code>scout</code></td><td>read-only code recon</td><td>read/grep/find/ls/bash</td><td>cheap fast + off</td></tr>
+            <tr><td><code>planner</code></td><td>read-only planning</td><td>read/grep/find/ls</td><td>strong + high</td></tr>
+            <tr><td><code>reviewer</code></td><td>adversarial code review</td><td>read/grep/find/ls/bash</td><td>strong + high</td></tr>
+            <tr><td><code>worker</code></td><td>full built-in tools, implements</td><td>read/bash/edit/write/grep/find/ls</td><td>inherit parent</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 id="config">Single source of truth for config</h3>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>file</th><th>contents</th></tr></thead>
+          <tbody>
+            <tr><td><code>~/.pi/piex-dev/subagent/agents.yaml</code></td><td>user agent definitions (override built-in by name, whole object)</td></tr>
+            <tr><td><code>~/.pi/piex-dev/subagent/settings.json</code></td><td>package settings: defaultModel, defaultThinking, maxDepth, …</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>subagent config is not stuffed into pi's global <code>settings.json</code> — keeps it from tangling with pi's own fields. Path follows the piex convention: <code>join(dirname(getAgentDir()), "piex-dev", "subagent")</code>. MVP does not do project-local agents; P1 adds them with confirmation.</p>
+      <p><code>agents.yaml</code> example:</p>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>yaml</span></div>
+        <pre><code>- name: reviewer
+  description: Adversarial review; surface the main agent's blind spots
+  systemPrompt: |
+    You are a reviewer subagent. Review changes adversarially.
+    Report PASS/FAIL/PARTIAL with evidence. Do not edit files.
+  tools: [read, grep, find, ls, bash]
+  model: anthropic/claude-opus-4-1
+  thinkingLevel: high
+
+- name: scout
+  description: Fast code recon
+  systemPrompt: |
+    You are a scout subagent. Explore the codebase quickly and report grounded findings.
+    Do not edit files.
+  tools: [read, grep, find, ls, bash]
+  model: inherit
+  thinkingLevel: off</code></pre>
+      </div>
+      <p><code>settings.json</code> example:</p>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>json</span></div>
+        <pre><code>{
+  "defaultModel": "inherit",
+  "defaultThinking": null,
+  "maxDepth": 1,
+  "timeoutMs": 600000
+}</code></pre>
+      </div>
+      <h3 id="params">Tool parameters</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>typescript</span></div>
+        <pre><code>// single
+{ agent: "reviewer", task: "...", context?: string, timeoutMs?, thinkingLevel? }
+
+// parallel (each item carries its own agent; cross-role)
+{
+  tasks: [
+    { agent: "scout", task: "..." },
+    { agent: "reviewer", task: "...", context?: string }
+  ],
+  timeoutMs?,           // top-level default, overridable per task
+}</code></pre>
+      </div>
+      <p>Constraints: single requires <code>agent</code> + <code>task</code>; parallel requires <code>tasks[]</code> where each item has its own <code>agent</code> + <code>task</code>, max 8 items, concurrency max 4; "one top-level agent + many task strings" is rejected (it would weaken the common cross-role parallel case).</p>
+      <h3 id="usage-ex">Usage</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>text</span></div>
+        <pre><code>use scout to find all entry points in src/
+  → subagent({ agent: "scout", task: "..." })
+
+use reviewer to review the current diff
+  → subagent({ agent: "reviewer", task: "Review for correctness and tests", context: "<diff>" })
+
+run scout on auth flow and reviewer on the diff in parallel
+  → subagent({ tasks: [ { agent: "scout", task: "Map the auth flow" }, { agent: "reviewer", task: "Review the diff", context: "..." } ] })</code></pre>
+      </div>
+      <p>Helper command: <code>/subagents</code> lists available agents and their effective model/thinking.</p>
+      <h3 id="verify">Verify</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>bash</span></div>
+        <pre><code>pi -e ./extensions/subagent/src/subagent.ts -p "what is 1+1" --no-session
+pi -e ./extensions/subagent/src/subagent.ts -p "use scout to list files in src/" --no-session</code></pre>
+      </div>
+
+      <h2 id="impl">Implementation</h2>
+      <p>Package path: <code>extensions/subagent</code>, target ~1500–1800 lines, ~7 source files.</p>
+      <h3 id="files">File structure</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>text</span></div>
+        <pre><code>extensions/subagent/
+├── package.json          # @piex-dev/subagent
+├── tsconfig.json
+├── README.md
+├── LICENSE
+└── src/
+    ├── subagent.ts       # entry: registerTool + registerCommand + tool_result hook
+    ├── types.ts          # AgentConfig / SubagentParams / SingleResult
+    ├── agents.ts         # 4 built-in agents + loadAgents + resolveAgent + resolveModel
+    ├── subprocess.ts     # buildPiArgs + getPiInvocation + runSingleAgent + terminate + JsonLineDecoder
+    ├── execution.ts      # depth check + single/parallel + concurrency + status
+    └── render.ts         # renderCall / renderResult</code></pre>
+      </div>
+      <p>MVP does not introduce a <code>transport.ts</code> / <code>ManagedAgent</code> abstraction. With only the subprocess path, plain functions are clearer; P1 will extract <code>SubagentTransport</code> when in-process lands.</p>
+      <h3 id="spawn">Subprocess spawn key points</h3>
+      <p>pi bin resolution is a three-way (replicating narumitw's <code>getPiInvocation</code>): argv[1] is an executable .js → <code>node &lt;argv1&gt;</code> (dev); execPath is node/bun → <code>pi</code> (global install); otherwise <code>&lt;execPath&gt;</code> (compiled binary).</p>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>bash</span></div>
+        <pre><code>pi --mode json -p --no-session --no-extensions \
+  --system-prompt <tmpfile-with-role-prompt> \
+  --model <resolvedModel> \          # always explicit (incl. inherited parent model)
+  --thinking <resolvedThinking> \    # only if set
+  --tools <agent.tools> \            # empty array → --no-tools
+  "<user message: optional context + Task>"</code></pre>
+      </div>
+      <p>env inherits <code>process.env</code> and sets <code>PIEX_SUBAGENT_DEPTH=&lt;depth+1&gt;</code>. Termination: <code>detached: true</code> forms a process group; on abort <code>process.kill(-pid, SIGTERM)</code> → <code>SIGKILL</code> after 5s.</p>
+      <h3 id="depth-impl">Depth check</h3>
+      <div class="blog-code">
+        <div class="blog-code-bar"><span>typescript</span></div>
+        <pre><code>function assertSubagentDepthAllowed(): void {
+  const depth = parseInt(process.env.PIEX_SUBAGENT_DEPTH ?? "0", 10) || 0;
+  const maxDepth = parseInt(process.env.PIEX_SUBAGENT_MAX_DEPTH ?? "1", 10) || 1;
+  if (depth >= maxDepth) {
+    throw new Error(`Subagent recursion depth limit reached (${maxDepth})`);
+  }
+}</code></pre>
+      </div>
+      <h3 id="guidelines">promptGuidelines (written into the tool description)</h3>
+      <ol>
+        <li>Use only when delegation's payoff is clear; don't delegate trivial tasks (cold start + extra tokens are expensive)</li>
+        <li>Call only when you must wait for the result to continue; this is a blocking call</li>
+        <li>Fill <code>context</code> for review/implementation tasks (diff, plan, relevant paths)</li>
+        <li>Use parallel only for independent tasks; avoid multiple workers writing the same file</li>
+        <li>scout/planner/reviewer are read-only; use worker to change code</li>
+      </ol>
+
+      <h2 id="design">Design notes</h2>
+      <div class="blog-table-wrap"><table><thead><tr><th>project</th><th>form</th><th>isolation</th><th>piex choice</th></tr></thead>
+<tbody>
+<tr><td><strong>nicobailon pi-subagents</strong></td><td>Extension</td><td>subprocess only</td><td>borrow role split; reject chain/worktree/watchdog/acceptance</td></tr>
+<tr><td><strong>oh-my-pi swarm</strong></td><td>fork</td><td>subprocess (kernel API)</td><td>don't fork; borrow parallel-orchestration idea</td></tr>
+<tr><td><strong>opencode task</strong></td><td>standalone agent</td><td>in-process child session</td><td>reject in-process kernel model; borrow centralized agent config, depth</td></tr>
+<tr><td><strong>narumitw pi-subagents</strong></td><td>Extension</td><td>subprocess + in-process</td><td>main reference: JSON stream, depth, spawn details; MVP does not copy transport/stateful</td></tr>
+</tbody></table></div>
+      <p>Core trade-off: borrow narumitw's runnable mechanism, not its architectural complexity. MVP does only subprocess + single/parallel; P1 adds in-process / background / chain as needed.</p>
+
+      <h2 id="relation">Relation to plan / review</h2>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>package</th><th>responsibility</th><th>vs subagent</th></tr></thead>
+          <tbody>
+            <tr><td><code>@piex-dev/plan</code></td><td>read-only explore → plan → execution progress</td><td>future: delegate a step to worker; MVP not coupled</td></tr>
+            <tr><td><code>@piex-dev/review</code></td><td>single-agent code review</td><td>future: multi-agent review consumes subagent; MVP not coupled</td></tr>
+            <tr><td><code>@piex-dev/subagent</code></td><td>delegation primitive</td><td>no built-in review/plan workflow</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="changelog">Changelog</h2>
+      <h3 id="roadmap">Roadmap</h3>
+      <p><strong>MVP (current)</strong>: subprocess execution + single/parallel; 4 built-in agents + agents.yaml/settings.json; real inherit (explicitly pass the parent session's current model); <code>--system-prompt</code> replace + <code>--no-extensions</code>; optional context; depth limit + abort process-group reclamation; blocking semantics in promptGuidelines.</p>
+      <p><strong>P1 (by value)</strong>: background async (high priority, so the TUI isn't pinned); extensions allowlist (child can load chosen piex extensions); in-process transport (lower cold start); chain orchestration; project-local agents + confirmation; auto-context strategy; propose <code>createChildSession()</code> to pi.</p>
+      <h3 id="not-doing">Not-doing list (explicit boundaries)</h3>
+      <ul>
+        <li>fan-in aggregator</li>
+        <li>stateful runtime (ManagedAgent tree, mailbox, follow-up)</li>
+        <li>watchdog / acceptance / worktree</li>
+        <li>MVP-period background async / in-process / chain</li>
+        <li>MVP-period transport abstraction</li>
+        <li>aggressive env allowlist</li>
+        <li>stuffing config into pi's global settings.json</li>
+      </ul>
+
+      <h2 id="risks">Risks & mitigations</h2>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>risk</th><th>mitigation</th></tr></thead>
+          <tbody>
+            <tr><td>inherit passes the wrong model</td><td>always resolve the parent session's current model/thinking explicitly before passing <code>--model</code></td></tr>
+            <tr><td>default persona pollutes the role</td><td><code>--system-prompt</code> replace, not append</td></tr>
+            <tr><td>recursive subagent load</td><td>child <code>--no-extensions</code> + depth gate, double backstop</td></tr>
+            <tr><td>cold-start cost / over-delegation</td><td>promptGuidelines bound usage; default timeout; P1 background/in-process</td></tr>
+            <tr><td>parallel same-file write conflict</td><td>docs + guidelines; read-only agents are the default workhorse</td></tr>
+            <tr><td>child auth failure</td><td>inherit parent env + rely on auth.json; no env gutting</td></tr>
+            <tr><td>JSON stream hang</td><td>bounded decoder + timeout + abort + stderr cap</td></tr>
+            <tr><td>yaml parse failure</td><td>schema validation + notify warning, fall back to built-in</td></tr>
+            <tr><td>no agent_end</td><td>on non-zero exit use stderr + recent output, mark error</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="acceptance">Acceptance criteria</h2>
+      <div class="feature-grid">
+        <div>
+          <p class="blog-callout-label">Positive</p>
+          <ol>
+            <li>Local <code>pi -e ./extensions/subagent/...</code> loads; <code>/subagents</code> lists the 4 built-in agents</li>
+            <li>single: <code>use scout to find entry files</code> returns recon results</li>
+            <li>parallel: cross-agent (scout + reviewer) runs concurrently</li>
+            <li>After agents.yaml gives reviewer a strong model, the child actually uses it</li>
+            <li>After the parent switches models, an inherit agent follows the parent (not the global default)</li>
+            <li>A reviewer call with <code>context</code> reflects that context in the output</li>
+          </ol>
+        </div>
+        <div>
+          <p class="blog-callout-label">Negative</p>
+          <ol start="7">
+            <li>Unknown agent name → clear error, no spawn</li>
+            <li>timeout → process killed, <code>timedOut=true</code></li>
+            <li>depth exceeded → throws "depth limit reached", no grandchild</li>
+            <li>Main agent abort → child process group reclaimed, no zombies</li>
+            <li>Smoke: <code>pi -e ... -p "what is 1+1" --no-session</code> does not trigger subagent, no error</li>
+          </ol>
+        </div>
+      </div>
+
+      <h2 id="appendix">Appendix: feature-by-feature comparison of pi subagent ecosystem</h2>
+      <div class="blog-table-wrap">
+        <table>
+          <thead><tr><th>capability</th><th>nicobailon</th><th>oh-my-pi</th><th>opencode</th><th>narumitw</th><th>piex MVP</th></tr></thead>
+          <tbody>
+            <tr><td>form</td><td>Extension</td><td>fork</td><td>standalone agent</td><td>Extension</td><td>Extension</td></tr>
+            <tr><td>isolation</td><td>subprocess</td><td>subprocess</td><td>in-process</td><td>subprocess+in-process</td><td>subprocess</td></tr>
+            <tr><td>transport abstraction</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌ (P1)</td></tr>
+            <tr><td>per-task multi-agent parallel</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
+            <tr><td>real parent-model inherit</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅ (explicit pass)</td></tr>
+            <tr><td>system-prompt replace</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><td>optional context</td><td>✅</td><td>partial</td><td>task text</td><td>✅</td><td>✅</td></tr>
+            <tr><td>load extensions by default</td><td>yes</td><td>yes</td><td>yes</td><td>configurable</td><td>❌ (<code>--no-extensions</code>)</td></tr>
+            <tr><td>background async</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td><td>❌ (P1 high priority)</td></tr>
+            <tr><td>chain / fan-in / stateful</td><td>heavy</td><td>medium</td><td>light</td><td>medium-heavy</td><td>❌</td></tr>
+            <tr><td>depth limit</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><td>size</td><td>90+ files</td><td>~6 files</td><td>single tool</td><td>21 files</td><td>~7 files</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>piex subagent's position: a <strong>runnable delegation primitive, not an orchestration platform</strong>. Get model inheritance, role prompts, context, and cross-agent parallelism right first; leave complex orchestration to P1 or the main agent.</p>
+
+      <p class="blog-source-link">
+        Source Markdown:
+        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/subagent.md" target="_blank" rel="noopener">docs/packages/subagent.md</a>
+      </p>
+    </article>
+
+    <aside class="page-toc" aria-label="On this page">
+      <p class="blog-toc-title">On this page</p>
+      <nav>
+        <a href="#intro">Intro</a>
+        <a href="#theory">How it works</a>
+        <a href="#usage">Usage</a>
+        <a href="#impl">Implementation</a>
+        <a href="#design">Design notes</a>
+        <a href="#relation">Relation to plan / review</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#risks">Risks & mitigations</a>
+        <a href="#acceptance">Acceptance criteria</a>
+        <a href="#appendix">Appendix</a>
+      </nav>
+    </aside>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+    </div>
+  </footer>
+
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

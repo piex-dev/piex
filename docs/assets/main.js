@@ -79,6 +79,8 @@
       "pkg.plan.desc":
         "Read-only exploration, plan drafting & step-by-step execution with progress tracking and tool locking.",
       "pkg.review.desc":
+      "pkg.subagent.desc":
+        "Delegate work to an isolated child agent via subprocess — single or cross-agent parallel, with per-agent model and prompt.",
         "Interactive code review command & callable review tool covering diff / commit / branch comparisons.",
       "pkg.init.desc":
         "Guided /init prompt template: scan the repo and create or improve AGENTS.md.",
@@ -175,6 +177,8 @@
       "pkg.plan.desc": "只读探索、计划撰写与分步执行，带进度跟踪与工具锁定。",
       "pkg.review.desc":
         "交互式代码评审命令与 review 工具，覆盖 diff / commit / 分支对比。",
+      "pkg.subagent.desc":
+        "通过子进程把活交给隔离的子 agent，支持 single 与跨 agent parallel，per-agent 模型与提示词。",
       "pkg.init.desc": "引导式 /init prompt：扫描仓库并创建或改进 AGENTS.md。",
       "pkg.xai.desc":
         "xAI Grok OAuth 订阅登录，SuperGrok / X Premium+，含实时模型发现。",
