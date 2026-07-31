@@ -15,13 +15,16 @@ source: extensions/usage
 
 订阅制 coding agent（Kimi For Coding、SuperGrok、GitHub Copilot 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。
 
-`@piex-dev/usage` 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态，DeepSeek 显示 API 余额；切换模型自动切换数据源。全自动，零操作。
+`@piex-dev/usage` 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok/Zhipu/MiniMax 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态，DeepSeek/OpenRouter 显示余额；切换模型自动切换数据源。全自动，零操作。
+
+> Zhipu / MiniMax / OpenRouter 三个适配器从 [cc-switch](https://github.com/farion1231/cc-switch) 的用量/余额查询能力迁移而来（其 `balance.rs` 与 `coding_plan.rs` 服务）；cc-switch 中的 SiliconFlow / StepFun / Novita 余额与火山方舟 AK/SK 签名配额在 pi 没有对应 provider，未迁移。
 
 ```text
-Usage: 5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
-Usage: 7-Day:32%🕙4d3h
+Usage: 5-Hour:21%🕙3h45 7-Day:26%🕙6d17h                     Kimi / Zhipu / MiniMax
+Usage: 7-Day:32%🕙4d3h                                      Grok
 Usage: Copilot Pro
-Usage: 今¥6.71 7d¥25.81 30d¥147.36 充值余额:¥50,561.12
+Usage: 今¥6.71 7d¥25.81 30d¥147.36 充值余额:¥50,561.12      DeepSeek
+Usage: 余额:$37.50                                          OpenRouter
 ```
 
 ## 技术原理
@@ -37,6 +40,9 @@ Usage: 今¥6.71 7d¥25.81 30d¥147.36 充值余额:¥50,561.12
 | Copilot | `copilot_internal/v2/token` | 订阅档位（sku）+ 限流配额（仅受限时非空） |
 | DeepSeek | `GET https://api.deepseek.com/user/balance` | 余额（总额/充值/赠送），API key 认证 |
 | DeepSeek 消费 | `platform.deepseek.com/api/v0/usage/cost`（需 `DEEPSEEK_PLATFORM_TOKEN`） | 今天 / 7 天 / 30 天消费（官方计费） |
+| Zhipu（智谱） | `GET {open.bigmodel.cn\|api.z.ai}/api/monitor/usage/quota/limit` | 5 小时 + 周窗口配额（百分比），API key 认证（**不加 Bearer 前缀**） |
+| MiniMax | `GET https://api.minimaxi.com\|io/v1/api/openplatform/coding_plan/remains` | 5 小时 + 周窗口配额（剩余百分比反转） |
+| OpenRouter | `GET https://openrouter.ai/api/v1/credits` | credits 余额（total − usage），低于 $10 黄 / $2 红 |
 
 ### Copilot 的能力边界
 

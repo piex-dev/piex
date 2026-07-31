@@ -25,6 +25,8 @@ export interface AdapterSnapshot {
 }
 
 export interface AdapterFetchContext {
+  /** Model provider id currently active (drives per-provider routing). */
+  provider: string;
   modelRegistry: {
     getProviderAuth(
       provider: string,
@@ -65,6 +67,21 @@ function parseTime(value: unknown): number | undefined {
 
 function percent(used: number, limit: number): number {
   return limit > 0 ? Math.round((used / limit) * 100) : 0;
+}
+
+/** Reset timestamp in ms: numeric epoch (s or ms) or ISO string. */
+function parseResetMs(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    // cc-switch convention: values < 1e12 are seconds, else milliseconds.
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (typeof value === "string") {
+    const t = Date.parse(value);
+    if (Number.isFinite(t)) return t;
+    const n = Number(value);
+    if (Number.isFinite(n)) return n < 1e12 ? n * 1000 : n;
+  }
+  return undefined;
 }
 
 function formatResetTime(ms: number): string {
@@ -580,7 +597,213 @@ export const deepseekAdapter: QuotaAdapter = {
   },
 };
 
-export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter, deepseekAdapter];
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Zhipu GLM (智谱) — GET {open.bigmodel.cn|api.z.ai}/api/monitor/usage/quota/limit
+// Coding-plan quota. Auth: raw API key WITHOUT the Bearer prefix (cc-switch
+// convention, verified against bigmodel.cn and z.ai). Response data.limits[]
+// holds TOKENS_LIMIT entries: unit=3 → 5-hour rolling window, unit=6 → weekly;
+// percentage is the used percentage, nextResetTime is epoch ms.
+// ────────────────────────────────────────────────────────────────────────────────
+
+interface ZhipuQuotaLimit {
+  type?: string;
+  unit?: number;
+  percentage?: number;
+  nextResetTime?: unknown;
+}
+
+interface ZhipuQuotaPayload {
+  success?: boolean;
+  msg?: string;
+  data?: {
+    level?: string;
+    limits?: ZhipuQuotaLimit[];
+  };
+}
+
+function zhipuQuotaHost(provider: string): string {
+  return provider === "zai" ? "https://api.z.ai" : "https://open.bigmodel.cn";
+}
+
+export const zhipuAdapter: QuotaAdapter = {
+  id: "zhipu",
+  label: "Zhipu",
+  providerIds: ["zai-coding-cn", "zai"],
+
+  async fetch(ctx) {
+    const token = await resolveBearer(ctx, ["zai-coding-cn", "zai"]);
+    const host = zhipuQuotaHost(ctx.provider);
+    const res = await fetch(`${host}/api/monitor/usage/quota/limit`, {
+      headers: {
+        Authorization: token, // 智谱: raw key, no Bearer prefix
+        "Content-Type": "application/json",
+        "Accept-Language": "en-US,en",
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`zhipu quota API returned ${res.status}`);
+    const payload = (await res.json()) as ZhipuQuotaPayload;
+    if (payload.success === false) throw new Error(`zhipu quota API: ${payload.msg ?? "unknown error"}`);
+    const data = payload.data;
+    if (!data) throw new Error("zhipu quota payload has no data");
+
+    const segments: AdapterSegment[] = [];
+    const detail: string[] = [];
+    detail.push(`Zhipu GLM${data.level ? ` (${data.level})` : ""}`);
+
+    // 5-hour window (unit=3) and weekly (unit=6); unclassified entries fall
+    // back to reset-time ordering like cc-switch.
+    let fiveHour: ZhipuQuotaLimit | undefined;
+    let weekly: ZhipuQuotaLimit | undefined;
+    const unclassified: ZhipuQuotaLimit[] = [];
+    for (const item of data.limits ?? []) {
+      if ((item.type ?? "").toUpperCase() !== "TOKENS_LIMIT") continue;
+      const u = item.unit;
+      if (u === 3 && !fiveHour) fiveHour = item;
+      else if (u === 6 && !weekly) weekly = item;
+      else unclassified.push(item);
+    }
+    unclassified.sort((a, b) => {
+      const ra = parseResetMs(a.nextResetTime) ?? 0;
+      const rb = parseResetMs(b.nextResetTime) ?? 0;
+      return ra - rb;
+    });
+    for (const item of unclassified) {
+      if (!fiveHour) fiveHour = item;
+      else if (!weekly) weekly = item;
+    }
+
+    const pushWindow = (label: string, item: ZhipuQuotaLimit | undefined): void => {
+      if (!item) return;
+      const used = item.percentage ?? 0;
+      const reset = parseResetMs(item.nextResetTime);
+      segments.push({
+        text: `${label}:${Math.round(used)}%`,
+        ratio: used / 100,
+        countdownMs: reset !== undefined ? reset - Date.now() : undefined,
+      });
+      detail.push(`${label}: ${Math.round(used)}%`);
+      if (reset !== undefined) detail.push(`  reset ${formatResetTime(reset)}`);
+    };
+    pushWindow("5-Hour", fiveHour);
+    pushWindow("7-Day", weekly);
+    if (segments.length === 0) throw new Error("zhipu quota payload has no limits");
+    return { segments, detail };
+  },
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// MiniMax — GET https://api.minimaxi.com|io/v1/api/openplatform/coding_plan/remains
+// Coding-plan quota. Bearer auth. Response model_remains[]: take the "general"
+// entry; current_interval_remaining_percent is the 5-hour bucket REMAINING
+// percent (invert to used), current_weekly_status==1 gates the weekly bucket.
+// end_time / weekly_end_time are epoch ms.
+// ────────────────────────────────────────────────────────────────────────────────
+
+interface MiniMaxRemainsItem {
+  model_name?: string;
+  current_interval_remaining_percent?: number;
+  current_weekly_status?: number;
+  current_weekly_remaining_percent?: number;
+  end_time?: unknown;
+  weekly_end_time?: unknown;
+}
+
+interface MiniMaxRemainsPayload {
+  base_resp?: { status_code?: number; status_msg?: string };
+  model_remains?: MiniMaxRemainsItem[];
+}
+
+export const minimaxAdapter: QuotaAdapter = {
+  id: "minimax",
+  label: "MiniMax",
+  providerIds: ["minimax-cn", "minimax"],
+
+  async fetch(ctx) {
+    const token = await resolveBearer(ctx, ["minimax-cn", "minimax"]);
+    const host = ctx.provider === "minimax" ? "https://api.minimax.io" : "https://api.minimaxi.com";
+    const res = await fetch(`${host}/v1/api/openplatform/coding_plan/remains`, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`minimax remains API returned ${res.status}`);
+    const payload = (await res.json()) as MiniMaxRemainsPayload;
+    const baseResp = payload.base_resp;
+    if (baseResp && baseResp.status_code !== 0) {
+      throw new Error(`minimax remains API: ${baseResp.status_msg ?? `code ${baseResp.status_code}`}`);
+    }
+
+    const segments: AdapterSegment[] = [];
+    const detail: string[] = [];
+    detail.push("MiniMax coding plan");
+
+    const item = (payload.model_remains ?? []).find((m) => m.model_name === "general");
+    if (!item) throw new Error("minimax remains payload has no 'general' entry");
+
+    const pushWindow = (label: string, remainPct: number | undefined, reset: unknown): void => {
+      if (remainPct === undefined) return;
+      const used = Math.max(0, 100 - remainPct);
+      const resetMs = parseResetMs(reset);
+      segments.push({
+        text: `${label}:${Math.round(used)}%`,
+        ratio: used / 100,
+        countdownMs: resetMs !== undefined ? resetMs - Date.now() : undefined,
+      });
+      detail.push(`${label}: ${Math.round(used)}% used (${Math.round(remainPct)}% remaining)`);
+      if (resetMs !== undefined) detail.push(`  reset ${formatResetTime(resetMs)}`);
+    };
+    pushWindow("5-Hour", item.current_interval_remaining_percent, item.end_time);
+    // Weekly bucket only exists when current_weekly_status == 1 (tolerate string).
+    if (Number(item.current_weekly_status) === 1) {
+      pushWindow("7-Day", item.current_weekly_remaining_percent, item.weekly_end_time);
+    }
+    return { segments, detail };
+  },
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// OpenRouter — GET https://openrouter.ai/api/v1/credits
+// Prepaid credit balance. Bearer auth. Response data: { total_credits, total_usage }.
+// ────────────────────────────────────────────────────────────────────────────────
+
+interface OpenRouterCreditsPayload {
+  data?: { total_credits?: number; total_usage?: number };
+}
+
+export const openrouterAdapter: QuotaAdapter = {
+  id: "openrouter",
+  label: "OpenRouter",
+  providerIds: ["openrouter"],
+
+  async fetch(ctx) {
+    const token = await resolveBearer(ctx, ["openrouter"]);
+    const res = await fetch("https://openrouter.ai/api/v1/credits", {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`openrouter credits API returned ${res.status}`);
+    const payload = (await res.json()) as OpenRouterCreditsPayload;
+    const data = payload.data;
+    if (!data) throw new Error("openrouter credits payload has no data");
+
+    const total = toNumber(data.total_credits) ?? 0;
+    const used = toNumber(data.total_usage) ?? 0;
+    const remaining = Math.max(0, total - used);
+    // Credit thresholds in USD: below $10 warn, below $2 error.
+    const tone = remaining < 2 ? "error" : remaining < 10 ? "warning" : undefined;
+    const fmt = (n: number): string => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return {
+      segments: [{ text: `余额:${fmt(remaining)}`, tone }],
+      detail: [
+        "OpenRouter credits",
+        `  remaining ${fmt(remaining)} / total ${fmt(total)} / used ${fmt(used)}`,
+      ],
+    };
+  },
+};
+
+export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter, deepseekAdapter, zhipuAdapter, minimaxAdapter, openrouterAdapter];
 
 /** Find the adapter matching a model provider id, or undefined. */
 export function adapterForProvider(provider: string | undefined): QuotaAdapter | undefined {

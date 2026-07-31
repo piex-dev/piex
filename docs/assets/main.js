@@ -93,7 +93,7 @@
       "pkg.goal.desc":
         "Autonomous goal completion: agent_settled-gated continuation, goal_id stale guard, goal_blocked impasse, and token-budget wrap-up.",
       "pkg.usage.desc":
-        "Real-time subscription status in the bar: Kimi usage, Grok credits, Copilot tier/limit state, DeepSeek balance — switches with the model.",
+        "Real-time subscription quota and balances in the bar: Kimi/Grok/Zhipu/MiniMax quotas, Copilot tier/limit, DeepSeek/OpenRouter balances — switches with the model.",
       "pkg.theme.desc":
         "High-contrast dark terminal theme with green/blue/red accents, distributed via pi.themes.",
 
@@ -194,7 +194,7 @@
       "pkg.context.desc": "会话用量报告：条目分布、角色占比与 token 估算。",
       "pkg.goal.desc":
         "自主目标完成：agent_settled 空闲边界续跑、goal_id stale 守卫、goal_blocked 阻塞通道、token 预算 wrap-up。",
-      "pkg.usage.desc": "状态栏实时展示订阅状态：Kimi 周用量、Grok 周 credits、Copilot 档位/限流、DeepSeek 余额，随模型切换。",
+      "pkg.usage.desc": "状态栏实时展示订阅状态：Kimi/Grok/Zhipu/MiniMax 配额、Copilot 档位/限流、DeepSeek/OpenRouter 余额，随模型切换。",
       "docs.design.sub": "核心原则与架构模式",
       "docs.arch.title": "架构概览",
       "docs.arch.sub": "结构、工具注册、API 映射",

@@ -64,7 +64,7 @@
 | 16  | **dump**       | 会话转录               | 🆕 新功能   | —                                       | 导出纯文本会话转录到剪贴板，附带 LLM 请求 JSON                              |
 | 17  | **context**    | 上下文用量报告         | ➕ 功能增量 | —                                       | 展示 session 的上下文使用率分布，pi 有 `/session` + `ctx.getContextUsage()` |
 | 18  | **tools**      | 工具可见性报告         | ➕ 功能增量 | —                                       | 列出当前 agent 可见/可用的所有工具，pi 有 `getActiveTools()` API            |
-| 19  | **usage**      | 用量统计报告           | ➕ 功能增量 | —                                       | 展示各 provider 的 token 消耗、限额、速率重置，pi 有 token 追踪。✅ 已落地 usage（Kimi/Grok/DeepSeek 配额、Copilot 档位/限流状态栏，按模型显示），可继续扩展 provider |
+| 19  | **usage**      | 用量统计报告           | ➕ 功能增量 | —                                       | 展示各 provider 的 token 消耗、限额、速率重置，pi 有 token 追踪。✅ 已落地 usage（Kimi/Grok/Zhipu/MiniMax/DeepSeek 配额余额、Copilot 档位/限流状态栏，按模型显示），可继续扩展 provider |
 | 20  | **learning**   | 规则学习               | 🆕 新功能   | 📈 指标优化（自动规则提取提升准确率）   | Agent 从交互中提取模式，生成/更新项目规则                                   |
 | 21  | **resolution** | resolve/apply          | 🆕 新功能   | —                                       | 与 ast_edit 配对：proposed → accept/discard                                 |
 | 22  | **changelog**  | 更新日志查看           | ➕ 功能增量 | —                                       | 查看 omp/piex 的更新日志，pi 已有 `/changelog`                              |

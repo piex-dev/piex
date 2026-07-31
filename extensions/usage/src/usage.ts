@@ -45,6 +45,7 @@ interface CtxLike extends AdapterFetchContext {
 }
 
 let activeAdapter: QuotaAdapter | null = null;
+let activeProvider: string | undefined;
 let activeSnapshot: AdapterSnapshot | null = null;
 let lastError: string | null = null;
 let latestCtx: CtxLike | null = null;
@@ -95,7 +96,7 @@ async function refresh(ctx: CtxLike): Promise<void> {
     return;
   }
   try {
-    const snapshot = await adapter.fetch(ctx);
+    const snapshot = await adapter.fetch({ ...ctx, provider: activeProvider ?? "" });
     if (activeAdapter !== adapter) return; // stale: model switched mid-flight
     activeSnapshot = snapshot;
     lastError = null;
@@ -129,6 +130,7 @@ export default function usageExtension(pi: ExtensionAPI): void {
       return;
     }
     activeAdapter = adapter ?? null;
+    activeProvider = provider;
     activeSnapshot = null;
     if (adapter) {
       void refresh(ctx);
