@@ -79,9 +79,9 @@
       "pkg.plan.desc":
         "Read-only exploration, plan drafting & step-by-step execution with progress tracking and tool locking.",
       "pkg.review.desc":
+        "Interactive code review command & callable review tool covering diff / commit / branch comparisons.",
       "pkg.subagent.desc":
         "Delegate work to an isolated child agent via subprocess — single or cross-agent parallel, with per-agent model and prompt.",
-        "Interactive code review command & callable review tool covering diff / commit / branch comparisons.",
       "pkg.init.desc":
         "Guided /init prompt template: scan the repo and create or improve AGENTS.md.",
       "pkg.xai.desc":

@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>usage — Subscription Quota, Always Visible — PieX</title>
-  <meta name="description" content="Real-time subscription quota in the status bar: Kimi weekly usage, Grok weekly credits, red when nearly exhausted, switches with the model." />
+  <meta name="description" content="Real-time quota and balances for 7 providers in the status bar: Kimi/Grok/Zhipu/MiniMax percentage + reset countdown, Copilot tier/limit, DeepSeek/OpenRouter balances; amber/red when nearly exhausted, switches with the model." />
   <link rel="canonical" href="https://piex.dev/en/packages/usage/" />
   <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/usage/" />
   <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/usage/" />
   <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/usage/" />
   <meta property="og:title" content="usage — Subscription Quota, Always Visible — PieX" />
-  <meta property="og:description" content="Real-time subscription quota in the status bar: Kimi weekly usage, Grok weekly credits, red when nearly exhausted, switches with the model." />
+  <meta property="og:description" content="Real-time quota and balances for 7 providers in the status bar: Kimi/Grok/Zhipu/MiniMax percentage + reset countdown, Copilot tier/limit, DeepSeek/OpenRouter balances; amber/red when nearly exhausted, switches with the model." />
   <meta property="og:url" content="https://piex.dev/en/packages/usage/" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -35,9 +35,13 @@
       <a href="/en/packages/subagent/">subagent</a>
       <a href="/en/packages/xai-oauth/">xai-oauth</a>
       <a href="/en/packages/btw/">btw</a>
-      <a href="/en/packages/context/">context</a>
+      <a href="/en/packages/context/" >context</a>
       <a href="/en/packages/goal/">goal</a>
-      <a href="/en/packages/usage/" class="is-active">usage</a>
+<a href="/en/packages/usage/" class="is-active">usage</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
     </nav></aside>
     <article class="blog-article">
       <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
@@ -50,25 +54,29 @@
       <a href="/en/packages/subagent/">subagent</a>
       <a href="/en/packages/xai-oauth/">xai-oauth</a>
       <a href="/en/packages/btw/">btw</a>
-      <a href="/en/packages/context/">context</a>
+      <a href="/en/packages/context/" >context</a>
       <a href="/en/packages/goal/">goal</a>
-      <a href="/en/packages/usage/" class="is-active">usage</a>
+<a href="/en/packages/usage/" class="is-active">usage</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
     </nav></div>
       <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></div>
 <header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Usage</span><span class="blog-tag">Quota</span><span class="blog-tag">Status Bar</span><span class="blog-tag">Extension</span><code class="pkg-tag">@piex-dev/usage</code></div><h1>usage — Subscription Quota, Always Visible</h1></header>
       <div class="blog-prose">
-        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p>Real-time subscription quota in the status bar: Kimi weekly usage, Grok weekly credits, red when nearly exhausted, switches with the model.</p></div></div>
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p>Real-time quota and balances for 7 providers in the status bar: Kimi/Grok/Zhipu/MiniMax percentage + reset countdown, Copilot tier/limit, DeepSeek/OpenRouter balances; amber/red when nearly exhausted, switches with the model.</p></div></div>
 
         <h2 id="intro">Overview</h2>
         <p>Subscription coding agents (Kimi For Coding, SuperGrok, …) all have usage quotas, but checking them means opening a web console or trusting memory — until a 429 reveals you ran out. <code>@piex-dev/usage</code> puts available subscription status in the pi status bar: Kimi/Grok/Zhipu/MiniMax show percentage + reset countdown, Copilot shows its tier and limit state, and DeepSeek/OpenRouter show balances; the data source switches with the model. Fully automatic, zero interaction.</p>
         <div class="blog-code"><div class="blog-code-bar"><span>status bar</span></div><pre><code>Usage: 5-Hour:21%🕙3h45 7-Day:26%🕙6d17h                     Kimi / Zhipu / MiniMax
 Usage: 7-Day:32%🕙4d3h                                      Grok
 Usage: Copilot Pro
-Usage: 今¥6.71 7d¥25.81 30d¥147.36 充值余额:¥50,561.12      DeepSeek
+Usage: 今¥7.81 7d¥26.91 30d¥148.46 充值余额:¥50,560.02      DeepSeek
 Usage: 余额:$37.50                                          OpenRouter</code></pre></div>
 
         <h2 id="theory">How it works</h2>
-        <p><strong>Data sources</strong>: both providers expose (undocumented but stable) usage endpoints returning quota and reset times — Kimi <code>GET https://api.kimi.com/coding/v1/usages</code> (weekly limit/used/remaining/resetTime + rolling-window limits); Grok <code>GET https://cli-chat-proxy.grok.com/v1/billing?format=credits</code> (weekly credit percent + period). <strong>Credentials</strong>: resolved via <code>ctx.modelRegistry.getProviderAuth(provider)</code> — pi auto-refreshes expired OAuth tokens, the extension never touches refresh flows or persists any secret.</p>
+        <p><strong>Data sources</strong>: every provider has an official (some undocumented but stable) usage endpoint returning quota, reset times, or balances — Kimi <code>GET https://api.kimi.com/coding/v1/usages</code> (weekly limit/used/remaining/resetTime + rolling-window limits); Grok <code>GET https://cli-chat-proxy.grok.com/v1/billing?format=credits</code> (weekly credit percent + period). <strong>Credentials</strong>: resolved via <code>ctx.modelRegistry.getProviderAuth(provider)</code> — pi auto-refreshes expired OAuth tokens, the extension never touches refresh flows or persists any secret.</p>
         <p><strong>DeepSeek official billing</strong>: balance comes from the official endpoint (<code>user/balance</code>, API-key auth, returning total/topped-up/granted); the per-day cost API (<code>platform.deepseek.com/api/v0/usage/cost</code>) only accepts a browser session token — set <code>DEEPSEEK_PLATFORM_TOKEN</code> (DevTools → any <code>api/v0</code> request → <code>Authorization</code> header) to show official today/7d/30d spend with daily breakdown. The token is a login session (days to weeks); when expired the status bar shows <code>token失效</code> and degrades to balance-only; unset shows balance only.</p>
         <p><strong>Zhipu / MiniMax / OpenRouter (ported from cc-switch)</strong>: the three adapters are ported from <a href="https://github.com/farion1231/cc-switch">cc-switch</a>'s usage/balance queries. Zhipu (<code>zai-coding-cn</code> / <code>zai</code>) uses <code>GET {open.bigmodel.cn|api.z.ai}/api/monitor/usage/quota/limit</code> with API-key auth (<strong>no Bearer prefix</strong>), returning 5-hour + weekly used percentages; MiniMax (<code>minimax-cn</code> / <code>minimax</code>) uses <code>GET https://api.minimaxi.com|io/v1/api/openplatform/coding_plan/remains</code> and inverts remaining percentages; both render like Kimi. OpenRouter (<code>openrouter</code>) uses <code>GET https://openrouter.ai/api/v1/credits</code> and shows remaining credits (total − usage; warn below $10, red below $2). SiliconFlow/StepFun/Novita balances and Volcengine's AK/SK-signed quota have no matching provider id in pi and were not ported.</p>
         <p><strong>Copilot limits</strong>: GitHub Copilot has <strong>no public usage/balance endpoint</strong> (the billing API requires a <code>copilot</code>-scoped OAuth app; the Copilot API has no usage endpoint). The official token endpoint (<code>copilot_internal/v2/token</code>) exposes only the <strong>subscription SKU</strong> and the <strong>limited-user quota</strong> (non-null only while rate-limited). The Copilot adapter therefore shows a tier badge (<code>Copilot Pro</code> / <code>Copilot Free(OSS)</code>) and a red <code>limited</code> marker with reset countdown when rate-limited — the endpoint ceiling; there is no percentage balance. The limited-state check best-effort reads pi's GitHub OAuth token from auth.json (honoring <code>PI_CODING_AGENT_DIR</code>) solely to call the official token endpoint; it never writes or logs the token.</p>

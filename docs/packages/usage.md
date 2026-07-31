@@ -9,7 +9,7 @@ install: pi install npm:@piex-dev/usage
 source: extensions/usage
 ---
 
-> 状态栏实时展示订阅制 coding agent 的用量配额：Kimi 周配额、Grok 周 credits，用完变红，切换模型自动切换。
+> 状态栏实时展示 7 个 provider 的订阅配额与余额：Kimi/Grok/Zhipu/MiniMax 显示百分比 + 重置倒计时，Copilot 显示档位与限流，DeepSeek/OpenRouter 显示余额；快用完变黄/红，切换模型自动切换。
 
 ## 简介
 
@@ -23,26 +23,38 @@ source: extensions/usage
 Usage: 5-Hour:21%🕙3h45 7-Day:26%🕙6d17h                     Kimi / Zhipu / MiniMax
 Usage: 7-Day:32%🕙4d3h                                      Grok
 Usage: Copilot Pro
-Usage: 今¥6.71 7d¥25.81 30d¥147.36 充值余额:¥50,561.12      DeepSeek
+Usage: 今¥7.81 7d¥26.91 30d¥148.46 充值余额:¥50,560.02      DeepSeek
 Usage: 余额:$37.50                                          OpenRouter
 ```
 
 ## 技术原理
 
-### 数据源：官方 API 的用量接口
+### 数据源：官方 API 的用量/余额接口
 
-两个 provider 都有（未公开但稳定的）用量接口，直接返回配额与重置时间：
+各 provider 都有官方（部分未公开但稳定）的用量接口，直接返回配额、重置时间或余额：
+
+**配额类（百分比 + 重置倒计时）**
 
 | Provider | 接口 | 返回 |
 | --- | --- | --- |
 | Kimi | `GET https://api.kimi.com/coding/v1/usages` | 周配额（limit/used/remaining/resetTime）+ 滚动窗口限制 |
 | Grok | `GET https://cli-chat-proxy.grok.com/v1/billing?format=credits` | 周 credits 百分比 + 周期起止 |
-| Copilot | `copilot_internal/v2/token` | 订阅档位（sku）+ 限流配额（仅受限时非空） |
-| DeepSeek | `GET https://api.deepseek.com/user/balance` | 余额（总额/充值/赠送），API key 认证 |
-| DeepSeek 消费 | `platform.deepseek.com/api/v0/usage/cost`（需 `DEEPSEEK_PLATFORM_TOKEN`） | 今天 / 7 天 / 30 天消费（官方计费） |
 | Zhipu（智谱） | `GET {open.bigmodel.cn\|api.z.ai}/api/monitor/usage/quota/limit` | 5 小时 + 周窗口配额（百分比），API key 认证（**不加 Bearer 前缀**） |
 | MiniMax | `GET https://api.minimaxi.com\|io/v1/api/openplatform/coding_plan/remains` | 5 小时 + 周窗口配额（剩余百分比反转） |
-| OpenRouter | `GET https://openrouter.ai/api/v1/credits` | credits 余额（total − usage），低于 $10 黄 / $2 红 |
+
+**余额类（金额 + 阈值预警）**
+
+| Provider | 接口 | 返回 |
+| --- | --- | --- |
+| DeepSeek | `GET https://api.deepseek.com/user/balance` | 余额（总额/充值/赠送），API key 认证 |
+| DeepSeek 消费 | `platform.deepseek.com/api/v0/usage/cost`（需 `DEEPSEEK_PLATFORM_TOKEN`） | 今天 / 7 天 / 30 天消费（官方计费） |
+| OpenRouter | `GET https://openrouter.ai/api/v1/credits` | credits 余额（total − usage） |
+
+**档位类（无百分比）**
+
+| Provider | 接口 | 返回 |
+| --- | --- | --- |
+| Copilot | `copilot_internal/v2/token` | 订阅档位（sku）+ 限流配额（仅受限时非空） |
 
 ### Copilot 的能力边界
 
@@ -58,7 +70,7 @@ DeepSeek 的按日消费接口（`platform.deepseek.com/api/v0/usage/cost`）**�
 
 ### 按模型门控显示
 
-`session_start` / `model_select` 时检查 `model.provider`：只有注册了 adapter 的 provider 才展示配额，其它模型立即清除状态栏，避免无关噪音。
+`session_start` / `model_select` 时检查 `model.provider`：只有注册了 adapter 的 provider 才展示配额，其它模型立即清除状态栏，避免无关噪音。状态栏已展示模型类型，因此 Usage 段统一使用 `Usage: ` 前缀，不再重复 provider 名。
 
 ### 实时刷新三层
 
@@ -78,11 +90,23 @@ pi install npm:@piex-dev/usage
 
 ### 用法
 
-零操作：选中 Kimi / Grok 模型即自动展示，切走自动清除。
+零操作：选中 Kimi / Grok / 智谱 / MiniMax / OpenRouter / DeepSeek / Copilot 模型即自动展示，切走自动清除。
 
 ```bash
-/usage    # 手动刷新 + 显示详情（配额、重置时间、并发、会员等级）
+/usage    # 手动刷新 + 显示详情（各窗口用量/重置时间、会员等级、SKU、余额明细、每日消费）
 ```
+
+### 渲染与颜色规则
+
+```text
+配额段  <窗口标签>:<用量百分比>%🕙<重置倒计时>
+余额段  充值余额:¥50,560.02   /   余额:$37.50
+```
+
+- 统一前缀 `Usage: ` 为 dim，与状态栏其他字符（pwd/model/context）一致
+- 配额 ≥ 70% 黄色、≥ 90% 红色；正常状态 dim
+- 余额预警：DeepSeek <¥20 黄 / <¥5 红；OpenRouter <$10 黄 / <$2 红
+- 倒计时格式：`6d17h`（天级）/ `3h45`（小时级）/ `45m`（分钟级）
 
 ### 配置
 
@@ -90,6 +114,7 @@ pi install npm:@piex-dev/usage
 | --- | --- | --- |
 | `USAGE_POLL_SECONDS` | `300` | API 轮询间隔（秒） |
 | `USAGE_SHOW_XAI_MONTHLY` | 未设置 | 设为 `1` 显示 Grok 月度 unified billing 用量（官网不展示该口径，默认隐藏） |
+| `DEEPSEEK_PLATFORM_TOKEN` | 未设置 | DeepSeek 官方消费统计 token（platform.deepseek.com 登录态，DevTools `Authorization` 头），未设置时只展示余额 |
 
 ### 验证
 
@@ -99,37 +124,34 @@ pi -e ./extensions/usage/src/usage.ts -p "say hi" --no-session
 
 ## 实现方案
 
-包路径：[`extensions/usage`](https://github.com/piex-dev/piex/tree/main/extensions/usage)，`src/adapters.ts`（数据源适配器）+ `src/usage.ts`（事件编排）约 440 行。
+包路径：[`extensions/usage`](https://github.com/piex-dev/piex/tree/main/extensions/usage)，`src/adapters.ts`（7 个数据源适配器）+ `src/usage.ts`（事件编排）约 800 行。
 
 ### 适配器架构
 
 ```text
-src/adapters.ts                  src/usage.ts
-┌────────────────────┐           ┌──────────────────────┐
-│ QuotaAdapter 接口  │           │ model_select /       │
-│  ├─ kimiAdapter   │◄─匹配─────│  session_start 门控   │
-│  └─ xaiAdapter    │           │ turn_end 触发刷新     │
-│  providerIds      │           │ 轮询 + 倒计时 ticker  │
-└────────────────────┘           │ /usage 命令          │
-                                 └──────────────────────┘
+src/adapters.ts                      src/usage.ts
+┌─────────────────────────┐          ┌──────────────────────┐
+│ QuotaAdapter 接口       │          │ model_select /       │
+│  ├─ kimiAdapter         │◄─匹配────│  session_start 门控   │
+│  ├─ xaiAdapter          │          │ turn_end 触发刷新     │
+│  ├─ copilotAdapter      │          │ 轮询 + 倒计时 ticker  │
+│  ├─ deepseekAdapter     │          │ /usage 命令           │
+│  ├─ zhipuAdapter        │          └──────────────────────┘
+│  ├─ minimaxAdapter      │
+│  └─ openrouterAdapter   │
+│  providerIds + fetch()  │
+└─────────────────────────┘
 ```
 
-新增 provider 只需实现 `QuotaAdapter`（`providerIds` + `fetch`），事件接线零改动。
-
-### 渲染格式
-
-```text
-<窗口标签>:<用量百分比>%🕙<重置倒计时>
-```
-
-- 用量 ≥ 90% 红色、≥ 70% 黄色
-- 倒计时格式：`6d17h`（天级）/ `3h45`（小时级）/ `45m`（分钟级）
+新增 provider 只需实现 `QuotaAdapter`（`providerIds` + `fetch`），事件接线零改动。`AdapterFetchContext.provider` 携带当前激活的 provider id，供同一 adapter 内的多域名路由使用（如 `zai-coding-cn` → `open.bigmodel.cn`、`zai` → `api.z.ai`）。
 
 ### 关键细节
 
 - **Bearer 去重**：`getProviderAuth` 返回的 header 已含 `Bearer` 前缀，统一剥离后由 adapter 拼接，避免 `Bearer Bearer` 双前缀（xAI 严格拒绝）
-- **Grok 双 provider**：`xai` / `xai-oauth` 两个 provider id 都匹配，token 按序 fallback
-- **容错**：接口字段可能随官方改版变化，解析失败显示 `<label>: offline` 并在下轮自动重试；Grok 月度接口为 best-effort，失败不影响主展示
+- **Zhipu 裸 key**：智谱 quota 接口不接受 Bearer 前缀，直接以原始 API key 作 `Authorization`（cc-switch 实测约定）
+- **Grok 双 provider**：`xai` / `xai-oauth` 两个 provider id 都匹配，token 按序 fallback；Zhipu / MiniMax 同理（国内/国际站域名不同）
+- **颜色优先级**：`tone`（金额阈值预警）优先于 `ratio`（配额百分比预警），两者不会叠加冲突
+- **容错**：接口字段可能随官方改版变化，解析失败显示 `<label>: offline` 并在下轮自动重试；DeepSeek 消费 token 失效自动降级为仅余额；Grok 月度接口为 best-effort，失败不影响主展示
 
 ## 设计参考
 
@@ -137,6 +159,7 @@ src/adapters.ts                  src/usage.ts
 | --- | --- | --- |
 | **官方控制台** | 网页查看配额，需手动打开 | **状态栏常驻**：用量 + 倒计时实时可见，429 前提前预警 |
 | **kimi-code-usage 等社区工具** | CLI/MCP 查询，需手动执行 | **事件驱动**：turn_end 即刷新，零操作 |
+| **cc-switch 用量查询** | 桌面应用内手动/自动查询，覆盖 6 个 coding-plan + 5 个余额平台 | **状态栏常驻 + provider 门控**：迁移其官方接口调用（Zhipu/MiniMax/OpenRouter），其余在 pi 无对应 provider 的平台未迁移 |
 | **pi 内置 footer 用量段** | 展示 token 消耗/成本（session 内） | **并存**：usage 展示订阅配额（账户级），两者互补 |
 
 核心取舍：账户级配额优先于 session 级消耗（配额用尽才是硬中断），状态栏常驻优先于命令查询（可感知才可预防）。
@@ -145,7 +168,7 @@ src/adapters.ts                  src/usage.ts
 
 ### 路线图
 
-1. **更多 provider**：Claude 订阅（`api.anthropic.com/api/oauth/usage`）、Codex（`wham/usage`）走同一 adapter 接口即可接入。
+1. **更多 provider**：Claude 订阅（`api.anthropic.com/api/oauth/usage`）、Codex（`wham/usage`）走同一 adapter 接口即可接入；cc-switch 的 SiliconFlow / StepFun / Novita 余额与火山方舟 AK/SK 配额待 pi 支持对应 provider 后迁移。
 2. **阈值自定义**：`USAGE_WARN_RATIO` / `USAGE_ERROR_RATIO` 环境变量化。
 3. **用量趋势**：本地记录每次快照，状态栏切换显示「较上次 -2%」。
 4. **窗口明细可折叠**：多个滚动窗口时默认只显示最紧的，详情页看全量。
@@ -155,3 +178,6 @@ src/adapters.ts                  src/usage.ts
 | 版本 | 日期 | 变更 |
 | --- | --- | --- |
 | 0.1.0 | 2026-07-31 | 初始版本：Kimi（周配额 + 滚动窗口）+ Grok（周 credits）状态栏实时展示；按模型门控；turn_end + 300s 轮询 + 30s 倒计时三层刷新；`/usage` 详情命令；`USAGE_SHOW_XAI_MONTHLY` 可选月度展示 |
+| 0.1.0 | 2026-08-01 | Copilot 档位/限流状态（`Copilot Pro` / `Copilot Free(OSS)` / `limited` 倒计时） |
+| 0.1.0 | 2026-08-01 | DeepSeek 余额 + 官方消费统计（`DEEPSEEK_PLATFORM_TOKEN`：今天/7 天/30 天 + 每日明细，失效降级）；金额阈值 `tone`（<¥20 黄 / <¥5 红） |
+| 0.1.0 | 2026-08-01 | 迁移 cc-switch：Zhipu / MiniMax / OpenRouter 三个适配器；状态栏统一 `Usage: ` 前缀（dim 与 footer 一致）；`AdapterFetchContext.provider` 多域名路由；空 limits 守卫、字符串枚举容错 |
