@@ -1132,12 +1132,18 @@ function updateFooterStatus(ctx: {
   const parts: string[] = [];
 
   // Servers running from any root (incl. discovered sub-projects) come first.
-  // Same-named servers across multiple roots are shown once.
+  // Same-named servers across multiple roots are merged into one entry with a
+  // ×N count (e.g. `typescript-language-server×3` in a multi-project session).
+  const activeByName = new Map<string, number>();
   for (const { name, client } of activeServers.values()) {
-    if (client.alive && !shown.has(name)) {
-      parts.push(ctx.ui.theme.fg("success", name));
-      shown.add(name);
+    if (client.alive) {
+      activeByName.set(name, (activeByName.get(name) ?? 0) + 1);
     }
+  }
+  for (const [name, count] of activeByName) {
+    const label = count > 1 ? `${name}×${count}` : name;
+    parts.push(ctx.ui.theme.fg("success", label));
+    shown.add(name);
   }
 
   const addIdle = (name: string, config: ServerConfig): void => {

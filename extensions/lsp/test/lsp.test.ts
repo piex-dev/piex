@@ -382,7 +382,7 @@ describe("footer status", () => {
     fs.writeFileSync(path.join(dir, "package.json"), "{}");
     const defaults = loadDefaults();
     const ts = defaults.typescript_language_server ?? defaults["typescript-language-server"];
-    await getOrCreateServer(
+    const client = await getOrCreateServer(
       "typescript-language-server",
       { ...ts, command: process.execPath, args: [MOCK] },
       dir,
@@ -391,6 +391,47 @@ describe("footer status", () => {
     expect(status).toContain(
       "<success>typescript-language-server</success>",
     );
+    await client.shutdown();
+  });
+
+  test("multi-root servers merged into one ×N entry", async () => {
+    const defaults = loadDefaults();
+    const ts = defaults.typescript_language_server ?? defaults["typescript-language-server"];
+    const roots = [dir, path.join(dir, "sub-a"), path.join(dir, "sub-b")];
+    const clients: LspClient[] = [];
+    for (const root of roots) {
+      fs.mkdirSync(root, { recursive: true });
+      fs.writeFileSync(path.join(root, "package.json"), "{}");
+      clients.push(
+        await getOrCreateServer(
+          "typescript-language-server",
+          { ...ts, command: process.execPath, args: [MOCK] },
+          root,
+        ),
+      );
+    }
+    updateFooterStatus(ctx());
+    // Merged once, with a ×N count — never repeated verbatim.
+    expect(status).toContain("<success>typescript-language-server×3</success>");
+    expect(status).not.toContain("<success>typescript-language-server</success>");
+    // The plain name must not appear more than once anywhere in the line.
+    expect((status ?? "").match(/typescript-language-server/g)?.length).toBe(1);
+    await Promise.all(clients.map((c) => c.shutdown()));
+  });
+
+  test("single-root server shows plain name without ×N", async () => {
+    fs.writeFileSync(path.join(dir, "package.json"), "{}");
+    const defaults = loadDefaults();
+    const ts = defaults.typescript_language_server ?? defaults["typescript-language-server"];
+    const client = await getOrCreateServer(
+      "typescript-language-server",
+      { ...ts, command: process.execPath, args: [MOCK] },
+      dir,
+    );
+    updateFooterStatus(ctx());
+    expect(status).toContain("<success>typescript-language-server</success>");
+    expect(status).not.toContain("×");
+    await client.shutdown();
   });
 
   test("error cross when server failed to start", async () => {
@@ -732,8 +773,8 @@ describe("read prewarming (opencode-style)", () => {
           theme: { fg: (c: string, t: string) => `<${c}>${t}</${c}>` },
         },
       });
-      const green = status?.match(/<success>typescript-language-server<\/success>/g);
-      expect(green?.length).toBe(1); // deduped, not doubled
+      const green = status?.match(/<success>typescript-language-server×2<\/success>/g);
+      expect(green?.length).toBe(1); // merged into one ×N entry, not doubled
       await ca.shutdown();
       await cb.shutdown();
     } finally {

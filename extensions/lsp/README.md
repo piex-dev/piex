@@ -50,6 +50,9 @@ export PI_LSP_DIAGNOSTICS_ON_EDIT=0
 
 状态纯靠颜色区分：绿色=运行中，红色=失败，dim=待启动。
 
+同名 server 在多个项目根各有一个进程时合并为一条带 ×N 计数（如多仓库会话中
+显示 `typescript-language-server×3`），不重复打印名字。
+
 只显示真实可用的 server：匹配但命令不在 PATH 上的（永远不会被启动）一律隐藏。
 在**非项目根目录**启动 pi 时（多仓库集合目录、monorepo 根），会自动扫描深度 ≤2
 的子目录汇总其中项目的 server（如 `piex` 根显示 `extensions/*` 的
