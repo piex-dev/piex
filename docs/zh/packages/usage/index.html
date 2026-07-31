@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>usage — 订阅配额实时可见，不再焦虑 — PieX</title>
+  <meta name="description" content="状态栏实时展示订阅制 coding agent 用量配额：Kimi 周配额、Grok 周 credits，用完变红，切换模型自动切换。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/usage/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/usage/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/usage/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/usage/" />
+  <meta property="og:title" content="usage — 订阅配额实时可见，不再焦虑 — PieX" />
+  <meta property="og:description" content="状态栏实时展示订阅制 coding agent 用量配额：Kimi 周配额、Grok 周 credits，用完变红，切换模型自动切换。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/usage/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="false" role="radio">EN</button><button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/subagent/">subagent</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <a href="/zh/packages/goal/">goal</a>
+      <a href="/zh/packages/usage/" class="is-active">usage</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a>
+      <a href="/zh/packages/dap/">dap</a>
+      <a href="/zh/packages/lsp/">lsp</a>
+      <a href="/zh/packages/plan/">plan</a>
+      <a href="/zh/packages/review/">review</a>
+      <a href="/zh/packages/subagent/">subagent</a>
+      <a href="/zh/packages/xai-oauth/">xai-oauth</a>
+      <a href="/zh/packages/btw/">btw</a>
+      <a href="/zh/packages/context/">context</a>
+      <a href="/zh/packages/goal/">goal</a>
+      <a href="/zh/packages/usage/" class="is-active">usage</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>本页目录</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">Usage</span><span class="blog-tag">Quota</span><span class="blog-tag">Status Bar</span><span class="blog-tag">Extension</span><code class="pkg-tag">@piex-dev/usage</code></div><h1>usage — 订阅配额实时可见，不再焦虑</h1></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">导语</p><p>状态栏实时展示订阅制 coding agent 的用量配额：Kimi 周配额、Grok 周 credits，用完变红，切换模型自动切换。</p></div></div>
+
+        <h2 id="intro">简介</h2>
+        <p>订阅制 coding agent（Kimi For Coding、SuperGrok 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。<code>@piex-dev/usage</code> 把配额直接放到 pi 状态栏：百分比 + 重置倒计时，用完自动变红，切换模型自动切换数据源。全自动，零操作。</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>status bar</span></div><pre><code>Kimi:  5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
+Grok:  7-Day:32%🕙4d3h</code></pre></div>
+
+        <h2 id="theory">技术原理</h2>
+        <p><strong>数据源</strong>：两个 provider 都有（未公开但稳定的）用量接口，直接返回配额与重置时间——Kimi <code>GET https://api.kimi.com/coding/v1/usages</code>（周配额 limit/used/remaining/resetTime + 滚动窗口限制）；Grok <code>GET https://cli-chat-proxy.grok.com/v1/billing?format=credits</code>（周 credits 百分比 + 周期起止）。<strong>凭据</strong>：通过 <code>ctx.modelRegistry.getProviderAuth(provider)</code> 拿 token——pi 会在 OAuth token 过期时自动刷新并写回，扩展不碰 refresh 流程，也不落盘任何密钥。</p>
+        <p><strong>按模型门控显示</strong>：<code>session_start</code> / <code>model_select</code> 时检查 <code>model.provider</code>，只有注册了 adapter 的 provider 才展示配额，其它模型立即清除状态栏，避免无关噪音。<strong>实时刷新三层</strong>：事件驱动（每次 <code>turn_end</code> 后立即刷新，用完即见）、后台轮询（默认 300s，<code>USAGE_POLL_SECONDS</code> 可调）、本地倒计时（30s 一次重算，只重渲染不请求 API）。</p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/usage</code></pre></div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/usage" target="_blank" rel="noopener"><code>extensions/usage</code></a></p>
+        <h3 id="example">用法</h3>
+        <p>零操作：选中 Kimi / Grok 模型即自动展示，切走自动清除。也可手动刷新并查看详情：</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>/usage    # 手动刷新 + 显示详情（配额、重置时间、并发、会员等级）</code></pre></div>
+        <h3 id="config">配置</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>环境变量</th><th>默认</th><th>说明</th></tr></thead><tbody>
+<tr><td><code>USAGE_POLL_SECONDS</code></td><td><code>300</code></td><td>API 轮询间隔（秒）</td></tr>
+<tr><td><code>USAGE_SHOW_XAI_MONTHLY</code></td><td>未设置</td><td>设为 <code>1</code> 显示 Grok 月度 unified billing 用量（官网不展示该口径，默认隐藏）</td></tr>
+</tbody></table></div>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi -e ./extensions/usage/src/usage.ts -p "say hi" --no-session</code></pre></div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>包路径：<a href="https://github.com/piex-dev/piex/tree/main/extensions/usage" target="_blank" rel="noopener"><code>extensions/usage</code></a>，<code>src/adapters.ts</code>（数据源适配器）+ <code>src/usage.ts</code>（事件编排）约 440 行。<strong>适配器架构</strong>：<code>adapters.ts</code> 定义 <code>QuotaAdapter</code> 接口（<code>providerIds</code> + <code>fetch</code>），内置 <code>kimiAdapter</code> 与 <code>xaiAdapter</code>；<code>usage.ts</code> 负责 <code>model_select</code>/<code>session_start</code> 门控、<code>turn_end</code> 触发刷新、轮询与倒计时 ticker、<code>/usage</code> 命令。新增 provider 只需实现接口，事件接线零改动。</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>render</span></div><pre><code>&lt;窗口标签&gt;:&lt;用量百分比&gt;%🕙&lt;重置倒计时&gt;
+# 用量 ≥ 90% 红色、≥ 70% 黄色
+# 倒计时：6d17h（天级）/ 3h45（小时级）/ 45m（分钟级）</code></pre></div>
+        <p><strong>关键细节</strong>：<code>getProviderAuth</code> 返回的 header 已含 <code>Bearer</code> 前缀，统一剥离后由 adapter 拼接，避免 <code>Bearer Bearer</code> 双前缀（xAI 严格拒绝）；Grok 匹配 <code>xai</code> / <code>xai-oauth</code> 两个 provider id，token 按序 fallback；接口字段可能随官方改版变化，解析失败显示 <code>&lt;label&gt;: offline</code> 并在下轮自动重试，Grok 月度接口为 best-effort，失败不影响主展示。</p>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead><tbody>
+<tr><td><strong>官方控制台</strong></td><td>网页查看配额，需手动打开</td><td><strong>状态栏常驻</strong>：用量 + 倒计时实时可见，429 前提前预警</td></tr>
+<tr><td><strong>kimi-code-usage 等社区工具</strong></td><td>CLI/MCP 查询，需手动执行</td><td><strong>事件驱动</strong>：turn_end 即刷新，零操作</td></tr>
+<tr><td><strong>pi 内置 footer 用量段</strong></td><td>展示 token 消耗/成本（session 内）</td><td><strong>并存</strong>：usage 展示订阅配额（账户级），两者互补</td></tr>
+</tbody></table></div>
+<p>核心取舍：账户级配额优先于 session 级消耗（配额用尽才是硬中断），状态栏常驻优先于命令查询（可感知才可预防）。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>方向</th><th>打算</th></tr></thead><tbody>
+<tr><td>更多 provider</td><td>Claude 订阅（<code>api.anthropic.com/api/oauth/usage</code>）、Codex（<code>wham/usage</code>）走同一 adapter 接口即可接入</td></tr>
+<tr><td>阈值自定义</td><td><code>USAGE_WARN_RATIO</code> / <code>USAGE_ERROR_RATIO</code> 环境变量化</td></tr>
+<tr><td>用量趋势</td><td>本地记录每次快照，状态栏切换显示「较上次 -2%」</td></tr>
+<tr><td>窗口明细可折叠</td><td>多个滚动窗口时默认只显示最紧的，详情页看全量</td></tr>
+</tbody></table></div>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-07-31</td><td>初始版本：Kimi（周配额 + 滚动窗口）+ Grok（周 credits）状态栏实时展示；按模型门控；turn_end + 300s 轮询 + 30s 倒计时三层刷新；<code>/usage</code> 详情命令；<code>USAGE_SHOW_XAI_MONTHLY</code> 可选月度展示</td></tr>
+</tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/goal/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">goal</span></a><a class="blog-nav-card is-next" href="/zh/packages/xai-oauth/"><span class="blog-nav-label">下一个 →</span><span class="blog-nav-title">xai-oauth</span></a></nav>
+      <p class="blog-source-link">源稿 Markdown：<a href="https://github.com/piex-dev/piex/blob/main/docs/packages/usage.md" target="_blank" rel="noopener">docs/packages/usage.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">本页目录</p><nav><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>
