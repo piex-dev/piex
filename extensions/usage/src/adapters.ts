@@ -15,6 +15,8 @@ export interface AdapterSegment {
   ratio?: number;
   /** Countdown (ms) rendered after the segment as 🕙hh… */
   countdownMs?: number;
+  /** Direct tone override (e.g. low money balance); takes precedence over ratio. */
+  tone?: "warning" | "error";
 }
 
 export interface AdapterSnapshot {
@@ -351,7 +353,7 @@ export const copilotAdapter: QuotaAdapter = {
     const detail: string[] = [];
     detail.push("GitHub Copilot");
     detail.push(`sku: ${sku ?? "unknown"} (${skuLabel(sku)})`);
-    segments.push({ text: `Copilot:${skuLabel(sku)}` });
+    segments.push({ text: `Copilot ${skuLabel(sku)}` });
 
     // Limited-user quota only exists while rate-limited; best-effort fetch.
     const gitToken = readGitHubToken();
@@ -372,7 +374,7 @@ export const copilotAdapter: QuotaAdapter = {
               ? Date.parse(data.limited_user_reset_date)
               : undefined;
             segments.push({
-              text: "Copilot:limited",
+              text: "Copilot limited",
               ratio: 1,
               countdownMs:
                 resetMs !== undefined && Number.isFinite(resetMs) ? resetMs - Date.now() : undefined,
@@ -395,7 +397,190 @@ export const copilotAdapter: QuotaAdapter = {
   },
 };
 
-export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter];
+// ────────────────────────────────────────────────────────────────────────────────
+// DeepSeek API — GET https://api.deepseek.com/user/balance
+// Official balance endpoint (API key auth): total/granted/topped-up money.
+// ────────────────────────────────────────────────────────────────────────────────
+
+interface DeepSeekBalanceInfo {
+  currency?: string;
+  total_balance?: string;
+  granted_balance?: string;
+  topped_up_balance?: string;
+}
+
+interface DeepSeekBalancePayload {
+  is_available?: boolean;
+  balance_infos?: DeepSeekBalanceInfo[];
+}
+
+function dayKey(ts: number): string {
+  const d = new Date(ts);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function currencySymbol(currency: string | undefined): string {
+  switch (currency) {
+    case "CNY":
+      return "¥";
+    case "USD":
+      return "$";
+    case "EUR":
+      return "€";
+    default:
+      return currency ? `${currency} ` : "";
+  }
+}
+
+function formatAmount(value: number): string {
+  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+// DeepSeek official billing — platform.deepseek.com/api/v0/usage/cost
+// Requires a browser session token (API keys are rejected: 40003). Set
+// DEEPSEEK_PLATFORM_TOKEN (from platform.deepseek.com devtools → any
+// api/v0 request → Authorization header). Token expires; failures degrade
+// to balance-only display.
+// ────────────────────────────────────────────────────────────────────────────────
+
+const DEEPSEEK_COST_URL = "https://platform.deepseek.com/api/v0/usage/cost";
+const DEEPSEEK_BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+interface CostDay {
+  date: string;
+  data: Array<{ model?: string; usage?: Array<{ type?: string; amount?: unknown }> }>;
+}
+
+/** Sum all amounts in the monthly cost payload's days. Returns Map<date, CNY>. */
+function parseCostDays(payload: unknown): Map<string, number> {
+  const out = new Map<string, number>();
+  const biz = (payload as { data?: { biz_data?: Array<{ days?: CostDay[] }> } })?.data?.biz_data;
+  for (const entry of biz ?? []) {
+    for (const day of entry.days ?? []) {
+      let total = 0;
+      for (const m of day.data ?? []) {
+        for (const u of m.usage ?? []) {
+          const amount = toNumber(u.amount);
+          if (amount !== undefined) total += amount;
+        }
+      }
+      if (total > 0) out.set(day.date, (out.get(day.date) ?? 0) + total);
+    }
+  }
+  return out;
+}
+
+async function fetchDeepseekCost(token: string, year: number, month: number): Promise<Map<string, number> | null> {
+  const res = await fetch(`${DEEPSEEK_COST_URL}?month=${month}&year=${year}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "x-app-version": "1.0.0",
+      Referer: "https://platform.deepseek.com/usage",
+      "User-Agent": DEEPSEEK_BROWSER_UA,
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) return null;
+  const payload = (await res.json()) as { code?: number };
+  if (payload.code === 40003) throw new Error("token-invalid");
+  if (payload.code !== 0) return null;
+  return parseCostDays(payload);
+}
+
+export const deepseekAdapter: QuotaAdapter = {
+  id: "deepseek",
+  label: "DeepSeek",
+  providerIds: ["deepseek"],
+
+  async fetch(ctx) {
+    const token = await resolveBearer(ctx, ["deepseek"]);
+    const res = await fetch("https://api.deepseek.com/user/balance", {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`deepseek balance API returned ${res.status}`);
+    const payload = (await res.json()) as DeepSeekBalancePayload;
+    const infos = payload.balance_infos ?? [];
+    if (!payload.is_available || infos.length === 0) {
+      throw new Error("deepseek balance payload has no data");
+    }
+
+    const segments: AdapterSegment[] = [];
+    const detail: string[] = [];
+    detail.push("DeepSeek API");
+    const balances: Array<{ symbol: string; total: number }> = [];
+    for (const info of infos) {
+      const total = toNumber(info.total_balance) ?? 0;
+      const symbol = currencySymbol(info.currency);
+      balances.push({ symbol, total });
+      detail.push(`balance: ${symbol}${formatAmount(total)}`);
+      const toppedUp = toNumber(info.topped_up_balance);
+      const granted = toNumber(info.granted_balance);
+      if (toppedUp !== undefined || granted !== undefined) {
+        detail.push(
+          `  topped up ${symbol}${formatAmount(toppedUp ?? 0)} / granted ${symbol}${formatAmount(granted ?? 0)}`,
+        );
+      }
+    }
+    detail.push(`available: ${payload.is_available ? "yes" : "no"}`);
+
+    // Official billing via browser token (DEEPSEEK_PLATFORM_TOKEN); optional.
+    const platformToken = process.env.DEEPSEEK_PLATFORM_TOKEN;
+    const fmt = (n: number): string => `¥${formatAmount(n)}`;
+    if (platformToken) {
+      try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1; // 1-12
+        const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+        const maps = await Promise.all([
+          fetchDeepseekCost(platformToken, year, month),
+          fetchDeepseekCost(platformToken, prev.year, prev.month),
+        ]);
+        const dayCost = new Map<string, number>();
+        for (const m of maps) {
+          if (m) for (const [k, v] of m) dayCost.set(k, (dayCost.get(k) ?? 0) + v);
+        }
+        const key = (offset: number): string => dayKey(now.getTime() - offset * 86_400_000);
+        let today = 0;
+        let d7 = 0;
+        let d30 = 0;
+        for (let i = 0; i < 30; i++) {
+          const v = dayCost.get(key(i)) ?? 0;
+          if (i < 7) d7 += v;
+          d30 += v;
+        }
+        today = dayCost.get(key(0)) ?? 0;
+        segments.push({ text: `今${fmt(today)} 7d${fmt(d7)} 30d${fmt(d30)}` });
+        detail.push("cost (official, platform.deepseek.com):");
+        detail.push(`  today ${fmt(today)} / 7d ${fmt(d7)} / 30d ${fmt(d30)}`);
+        const recent = [...dayCost.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 7);
+        for (const [date, v] of recent) detail.push(`  ${date} ${fmt(v)}`);
+      } catch {
+        // token expired / WAF — degrade to balance-only with a hint
+        segments.push({ text: "token失效", tone: "warning" });
+        detail.push("cost: DEEPSEEK_PLATFORM_TOKEN invalid or expired — refresh it from platform.deepseek.com devtools");
+      }
+    } else {
+      detail.push("cost: set DEEPSEEK_PLATFORM_TOKEN (platform.deepseek.com devtools → Authorization) to show official billing");
+    }
+
+    // Balance last: 充值余额:¥xx（消费在前、余额在后）
+    for (const b of balances) {
+      // Money thresholds: below ¥20 warn, below ¥5 error.
+      const tone = b.total < 5 ? "error" : b.total < 20 ? "warning" : undefined;
+      segments.push({ text: `充值余额:${b.symbol}${formatAmount(b.total)}`, tone });
+    }
+    return { segments, detail };
+  },
+};
+
+export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter, deepseekAdapter];
 
 /** Find the adapter matching a model provider id, or undefined. */
 export function adapterForProvider(provider: string | undefined): QuotaAdapter | undefined {

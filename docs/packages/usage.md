@@ -15,12 +15,13 @@ source: extensions/usage
 
 订阅制 coding agent（Kimi For Coding、SuperGrok、GitHub Copilot 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。
 
-`@piex-dev/usage` 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态；切换模型自动切换数据源。全自动，零操作。
+`@piex-dev/usage` 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态，DeepSeek 显示 API 余额；切换模型自动切换数据源。全自动，零操作。
 
 ```text
-Kimi:  5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
-Grok:  7-Day:32%🕙4d3h
-Copilot: Pro
+Usage: 5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
+Usage: 7-Day:32%🕙4d3h
+Usage: Copilot Pro
+Usage: 今¥6.71 7d¥25.81 30d¥147.36 充值余额:¥50,561.12
 ```
 
 ## 技术原理
@@ -34,10 +35,16 @@ Copilot: Pro
 | Kimi | `GET https://api.kimi.com/coding/v1/usages` | 周配额（limit/used/remaining/resetTime）+ 滚动窗口限制 |
 | Grok | `GET https://cli-chat-proxy.grok.com/v1/billing?format=credits` | 周 credits 百分比 + 周期起止 |
 | Copilot | `copilot_internal/v2/token` | 订阅档位（sku）+ 限流配额（仅受限时非空） |
+| DeepSeek | `GET https://api.deepseek.com/user/balance` | 余额（总额/充值/赠送），API key 认证 |
+| DeepSeek 消费 | `platform.deepseek.com/api/v0/usage/cost`（需 `DEEPSEEK_PLATFORM_TOKEN`） | 今天 / 7 天 / 30 天消费（官方计费） |
 
 ### Copilot 的能力边界
 
-GitHub Copilot **没有公开的用量余额接口**（`/users/{login}/settings/billing/ai_credit/usage` 需要 `copilot` scope 的 OAuth app，Copilot API 无 usage 端点）。官方 token 接口（`copilot_internal/v2/token`）能给出的只有：**订阅档位（sku）** 与 **限流配额（limited_user_quotas，仅被限流时非空）**。因此 Copilot 适配器展示档位徽标（`Copilot: Pro` / `Free(OSS)`），被限流时显示红色 `limited` + 重置倒计时——这是接口极限，没有百分比余额。限流探测 best-effort 只读 pi 的 auth.json 中 GitHub OAuth token（遵循 `PI_CODING_AGENT_DIR`），只用于请求官方 token 接口，不写入也不记录 token。
+GitHub Copilot **没有公开的用量余额接口**（`/users/{login}/settings/billing/ai_credit/usage` 需要 `copilot` scope 的 OAuth app，Copilot API 无 usage 端点）。官方 token 接口（`copilot_internal/v2/token`）能给出的只有：**订阅档位（sku）** 与 **限流配额（limited_user_quotas，仅被限流时非空）**。因此 Copilot 适配器展示档位徽标（`Copilot Pro` / `Copilot Free(OSS)`），被限流时显示红色 `limited` + 重置倒计时——这是接口极限，没有百分比余额。限流探测 best-effort 只读 pi 的 auth.json 中 GitHub OAuth token（遵循 `PI_CODING_AGENT_DIR`），只用于请求官方 token 接口，不写入也不记录 token。
+
+### DeepSeek 消费统计（官方计费）
+
+DeepSeek 的按日消费接口（`platform.deepseek.com/api/v0/usage/cost`）**只接受浏览器登录 token**（API key 返回 `invalid token`）。配置 `DEEPSEEK_PLATFORM_TOKEN`（登录 platform.deepseek.com 后从 DevTools 任意 `api/v0` 请求的 `Authorization` 头复制）即可展示官方实际计费：今天 / 7 天 / 30 天 + 近 7 天每日明细。token 为登录态（几天到几周），失效时状态栏显示 `token失效` 并降级为仅余额；未配置时只展示余额。
 
 ### 凭据：pi 自动刷新 OAuth token
 

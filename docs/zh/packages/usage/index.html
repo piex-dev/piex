@@ -60,14 +60,16 @@
         <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">导语</p><p>状态栏实时展示订阅制 coding agent 的用量配额：Kimi 周配额、Grok 周 credits，用完变红，切换模型自动切换。</p></div></div>
 
         <h2 id="intro">简介</h2>
-        <p>订阅制 coding agent（Kimi For Coding、SuperGrok 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。<code>@piex-dev/usage</code> 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态；切换模型自动切换数据源。全自动，零操作。</p>
-        <div class="blog-code"><div class="blog-code-bar"><span>status bar</span></div><pre><code>Kimi:  5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
-Grok:  7-Day:32%🕙4d3h
-Copilot: Pro</code></pre></div>
+        <p>订阅制 coding agent（Kimi For Coding、SuperGrok 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。<code>@piex-dev/usage</code> 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态，DeepSeek 显示 API 余额；切换模型自动切换数据源。全自动，零操作。</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>status bar</span></div><pre><code>Usage: 5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
+Usage: 7-Day:32%🕙4d3h
+Usage: Copilot Pro
+Usage: 今¥6.71 7d¥25.81 30d¥147.36 充值余额:¥50,561.12</code></pre></div>
 
         <h2 id="theory">技术原理</h2>
         <p><strong>数据源</strong>：两个 provider 都有（未公开但稳定的）用量接口，直接返回配额与重置时间——Kimi <code>GET https://api.kimi.com/coding/v1/usages</code>（周配额 limit/used/remaining/resetTime + 滚动窗口限制）；Grok <code>GET https://cli-chat-proxy.grok.com/v1/billing?format=credits</code>（周 credits 百分比 + 周期起止）。<strong>凭据</strong>：通过 <code>ctx.modelRegistry.getProviderAuth(provider)</code> 拿 token——pi 会在 OAuth token 过期时自动刷新并写回，扩展不碰 refresh 流程，也不落盘任何密钥。</p>
-        <p><strong>Copilot 的能力边界</strong>：GitHub Copilot <strong>没有公开的用量余额接口</strong>（billing 接口需要 <code>copilot</code> scope 的 OAuth app，Copilot API 无 usage 端点）。官方 token 接口（<code>copilot_internal/v2/token</code>）能给出的只有：<strong>订阅档位（sku）</strong>与<strong>限流配额（limited_user_quotas，仅被限流时非空）</strong>。因此 Copilot 适配器展示档位徽标（<code>Copilot: Pro</code> / <code>Free(OSS)</code>），被限流时显示红色 <code>limited</code> + 重置倒计时——这是接口极限，没有百分比余额。限流探测 best-effort 只读 pi 的 auth.json 中 GitHub OAuth token（遵循 <code>PI_CODING_AGENT_DIR</code>），只用于请求官方 token 接口，不写入也不记录 token。</p>
+        <p><strong>DeepSeek 官方计费</strong>：余额走官方接口（<code>user/balance</code>，API key 认证，返回总额/充值/赠送）；按日消费接口（<code>platform.deepseek.com/api/v0/usage/cost</code>）只接受浏览器登录 token——配置 <code>DEEPSEEK_PLATFORM_TOKEN</code>（DevTools 任意 <code>api/v0</code> 请求的 <code>Authorization</code> 头）后展示官方计费：今天 / 7 天 / 30 天 + 每日明细。token 为登录态（几天到几周），失效时状态栏显示 <code>token失效</code> 并降级为仅余额；未配置只显示余额。</p>
+        <p><strong>Copilot 的能力边界</strong>：GitHub Copilot <strong>没有公开的用量余额接口</strong>（billing 接口需要 <code>copilot</code> scope 的 OAuth app，Copilot API 无 usage 端点）。官方 token 接口（<code>copilot_internal/v2/token</code>）能给出的只有：<strong>订阅档位（sku）</strong>与<strong>限流配额（limited_user_quotas，仅被限流时非空）</strong>。因此 Copilot 适配器展示档位徽标（<code>Copilot Pro</code> / <code>Copilot Free(OSS)</code>），被限流时显示红色 <code>limited</code> + 重置倒计时——这是接口极限，没有百分比余额。限流探测 best-effort 只读 pi 的 auth.json 中 GitHub OAuth token（遵循 <code>PI_CODING_AGENT_DIR</code>），只用于请求官方 token 接口，不写入也不记录 token。</p>
         <p><strong>按模型门控显示</strong>：<code>session_start</code> / <code>model_select</code> 时检查 <code>model.provider</code>，只有注册了 adapter 的 provider 才展示配额，其它模型立即清除状态栏，避免无关噪音。<strong>实时刷新三层</strong>：事件驱动（每次 <code>turn_end</code> 后立即刷新，用完即见）、后台轮询（默认 300s，<code>USAGE_POLL_SECONDS</code> 可调）、本地倒计时（30s 一次重算，只重渲染不请求 API）。</p>
 
         <h2 id="usage">使用说明</h2>

@@ -17,7 +17,12 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { adapterForProvider, type AdapterFetchContext, type AdapterSnapshot, type QuotaAdapter } from "./adapters.ts";
+import {
+  adapterForProvider,
+  type AdapterFetchContext,
+  type AdapterSnapshot,
+  type QuotaAdapter,
+} from "./adapters.ts";
 
 const STATUS_KEY = "usage";
 
@@ -65,14 +70,15 @@ function colorize(theme: ThemeLike, ratio: number | undefined, text: string): st
 }
 
 function renderStatus(theme: ThemeLike): string {
-  if (!activeSnapshot) return theme.fg("dim", "quota: loading…");
-  return activeSnapshot.segments
+  if (!activeSnapshot) return theme.fg("dim", "Usage: loading…");
+  const body = activeSnapshot.segments
     .map((seg) => {
-      const text = colorize(theme, seg.ratio, seg.text);
+      const text = seg.tone ? theme.fg(seg.tone, seg.text) : colorize(theme, seg.ratio, seg.text);
       if (seg.countdownMs === undefined) return text;
       return `${text}🕙${theme.fg("dim", formatCountdown(seg.countdownMs))}`;
     })
     .join(" ");
+  return `Usage: ${body}`;
 }
 
 async function refresh(ctx: CtxLike): Promise<void> {
