@@ -1,5 +1,5 @@
 diff --git a/node_modules/@oh-my-pi/hashline/src/apply.ts b/node_modules/@oh-my-pi/hashline/src/apply.ts
-index eff2175..7d0109d 100644
+index eff2175..2816ac6 100644
 --- a/node_modules/@oh-my-pi/hashline/src/apply.ts
 +++ b/node_modules/@oh-my-pi/hashline/src/apply.ts
 @@ -409,7 +409,14 @@ function findDuplicateSuffix(group: ReplacementGroup, fileLines: readonly string
@@ -34,3 +34,57 @@ index eff2175..7d0109d 100644
  	}
  	return 0;
  }
+@@ -617,16 +631,19 @@ function countDuplicateLeadingBoundaryLines(group: ReplacementGroup, fileLines:
+ 	const max = Math.min(payload.length, startLine - 1);
+ 	for (let count = max; count >= 1; count--) {
+ 		let matches = true;
+-		let hasContent = false;
+ 		for (let offset = 0; offset < count; offset++) {
+-			const line = payload[offset];
+-			if (line !== fileLines[startLine - 1 - count + offset]) {
++			if (payload[offset] !== fileLines[startLine - 1 - count + offset]) {
+ 				matches = false;
+ 				break;
+ 			}
+-			hasContent ||= hasNonWhitespace(line);
+ 		}
+-		if (matches && hasContent) return count;
++		if (!matches) continue;
++		// A restated boundary must be all non-blank structural edges: a payload
++		// edge that merely matches blank lines common in code is a larger
++		// rewrite, not a restated boundary; dropping it corrupts the result.
++		// Same blank-line guard as findDuplicateSuffix/findDuplicatePrefix.
++		if (payload.slice(0, count).some(l => l.trim() === "")) continue;
++		return count;
+ 	}
+ 	return 0;
+ }
+@@ -636,20 +653,22 @@ function countDuplicateTrailingBoundaryLines(group: ReplacementGroup, fileLines:
+ 	const max = Math.min(payload.length, fileLines.length - endLine);
+ 	for (let count = max; count >= 1; count--) {
+ 		let matches = true;
+-		let hasContent = false;
+ 		for (let offset = 0; offset < count; offset++) {
+-			const line = payload[payload.length - count + offset];
+-			if (line !== fileLines[endLine + offset]) {
++			if (payload[payload.length - count + offset] !== fileLines[endLine + offset]) {
+ 				matches = false;
+ 				break;
+ 			}
+-			hasContent ||= hasNonWhitespace(line);
+ 		}
+-		if (matches && hasContent) return count;
++		if (!matches) continue;
++		// A restated boundary must be all non-blank structural edges (see
++		// countDuplicateLeadingBoundaryLines): blank-line matches are a larger
++		// rewrite, not a restated boundary; dropping it corrupts the result.
++		// Same blank-line guard as findDuplicateSuffix/findDuplicatePrefix.
++		if (payload.slice(payload.length - count).some(l => l.trim() === "")) continue;
++		return count;
+ 	}
+ 	return 0;
+ }
+-
+ function findBoundaryEcho(group: ReplacementGroup, fileLines: readonly string[]): BoundaryEcho | undefined {
+ 	const leadingMax = countDuplicateLeadingBoundaryLines(group, fileLines);
+ 	if (leadingMax === 0) return undefined;
