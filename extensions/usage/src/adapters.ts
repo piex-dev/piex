@@ -1,10 +1,13 @@
 /**
  * Quota adapters — one per subscription-backed provider.
- *
  * Each adapter knows how to fetch quota data for its provider and how to
  * render it as status-bar segments (value + optional 🕙 countdown).
  * No pi runtime dependencies; pure logic + fetch.
  */
+
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export interface AdapterSegment {
   text: string;
@@ -271,7 +274,128 @@ export const xaiAdapter: QuotaAdapter = {
   },
 };
 
-export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter];
+// ────────────────────────────────────────────────────────────────────────────────
+// GitHub Copilot — copilot_internal/v2/token
+// No public usage/balance endpoint (billing API needs a `copilot`-scoped app).
+// What the official token endpoint exposes: subscription SKU + limited-user
+// quota (non-null only while rate-limited). Show both, best-effort.
+// ────────────────────────────────────────────────────────────────────────────────
+
+const COPILOT_PROVIDER = "github-copilot";
+const COPILOT_INTERNAL_URL = "https://api.github.com/copilot_internal/v2/token";
+const COPILOT_HEADERS = {
+  Accept: "application/json",
+  "User-Agent": "GitHubCopilotChat/0.35.0",
+  "Editor-Version": "vscode/1.107.0",
+  "Editor-Plugin-Version": "copilot-chat/0.35.0",
+  "Copilot-Integration-Id": "vscode-chat",
+} as const;
+
+/** Parse `sku=...` from the copilot token field string (tid=…;sku=…;proxy-ep=…). */
+function copilotSku(token: string): string | undefined {
+  const match = token.match(/(?:^|;)sku=([^;]+)/);
+  return match?.[1];
+}
+
+function skuLabel(sku: string | undefined): string {
+  switch (sku) {
+    case "pro":
+      return "Pro";
+    case "pro+":
+      return "Pro+";
+    case "free":
+      return "Free";
+    case "free_engaged_oss_quota":
+      return "Free(OSS)";
+    case "business":
+      return "Business";
+    case "enterprise":
+      return "Enterprise";
+    default:
+      return sku || "unknown";
+  }
+}
+
+/** Best-effort: read the GitHub OAuth token pi stores in auth.json (refresh slot). */
+function readGitHubToken(): string | undefined {
+  try {
+    const configuredAgentDir = process.env.PI_CODING_AGENT_DIR;
+    const agentDir = configuredAgentDir
+      ? configuredAgentDir === "~" || configuredAgentDir.startsWith("~/")
+        ? join(homedir(), configuredAgentDir.slice(2))
+        : configuredAgentDir
+      : join(homedir(), ".pi", "agent");
+    const auth = JSON.parse(readFileSync(join(agentDir, "auth.json"), "utf8")) as Record<
+      string,
+      { refresh?: string }
+    >;
+    return auth["github-copilot"]?.refresh;
+  } catch {
+    return undefined;
+  }
+}
+
+export const copilotAdapter: QuotaAdapter = {
+  id: "copilot",
+  label: "Copilot",
+  providerIds: [COPILOT_PROVIDER],
+
+  async fetch(ctx) {
+    // Copilot token carries the SKU; pi auto-refreshes it via copilot_internal.
+    const auth = await ctx.modelRegistry.getProviderAuth(COPILOT_PROVIDER);
+    const copilotToken = auth?.auth?.apiKey ?? auth?.auth?.headers?.["Authorization"]?.replace(/^Bearer\s+/i, "");
+    if (!copilotToken) throw new Error("no github-copilot credential; run /login");
+
+    const sku = copilotSku(copilotToken);
+    const segments: AdapterSegment[] = [];
+    const detail: string[] = [];
+    detail.push("GitHub Copilot");
+    detail.push(`sku: ${sku ?? "unknown"} (${skuLabel(sku)})`);
+    segments.push({ text: `Copilot:${skuLabel(sku)}` });
+
+    // Limited-user quota only exists while rate-limited; best-effort fetch.
+    const gitToken = readGitHubToken();
+    if (gitToken) {
+      try {
+        const res = await fetch(COPILOT_INTERNAL_URL, {
+          headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${gitToken}` },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as {
+            limited_user_quotas?: unknown;
+            limited_user_reset_date?: string;
+          };
+          const limited = data.limited_user_quotas;
+          if (limited != null) {
+            const resetMs = data.limited_user_reset_date
+              ? Date.parse(data.limited_user_reset_date)
+              : undefined;
+            segments.push({
+              text: "Copilot:limited",
+              ratio: 1,
+              countdownMs:
+                resetMs !== undefined && Number.isFinite(resetMs) ? resetMs - Date.now() : undefined,
+            });
+            detail.push("limited-user quota active");
+            detail.push(`  reset ${formatResetTime(resetMs ?? Date.now())}`);
+            detail.push(`  ${JSON.stringify(limited).slice(0, 200)}`);
+          } else {
+            detail.push("limited-user quota: none");
+          }
+        }
+      } catch {
+        // best-effort — skip limited status
+      }
+    } else {
+      detail.push("limited-user quota: unknown (auth.json unreadable)");
+    }
+
+    return { segments, detail };
+  },
+};
+
+export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter];
 
 /** Find the adapter matching a model provider id, or undefined. */
 export function adapterForProvider(provider: string | undefined): QuotaAdapter | undefined {

@@ -5,12 +5,14 @@ Real-time **subscription quota** in the pi status bar for providers you use on a
 ```
 Kimi:  5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
 Grok:  7-Day:32%🕙4d3h
+Copilot: Pro
 ```
 
 | Provider | Credential | Data source |
 | --- | --- | --- |
 | Kimi For Coding (`kimi-coding`) | OAuth or `KIMI_API_KEY` | `GET https://api.kimi.com/coding/v1/usages` |
 | xAI Grok SuperGrok (`xai` / `xai-oauth`) | OAuth (built-in `xai` login or [@piex-dev/xai-oauth](https://github.com/piex-dev/piex/tree/main/extensions/xai-oauth)) | `GET https://cli-chat-proxy.grok.com/v1/billing` |
+| GitHub Copilot (`github-copilot`) | OAuth (`/login` → GitHub Copilot) | `copilot_internal/v2/token` (SKU + limited-user quota) |
 
 ## Install
 
@@ -43,4 +45,5 @@ Drop a new adapter in `src/adapters.ts` implementing `QuotaAdapter` (`providerId
 ## Notes
 
 - Quotas are measured in **requests** (Kimi weekly/window) or **percentages** (Grok credits), not tokens or money.
+- Copilot has **no public balance endpoint** (billing API requires a `copilot`-scoped app) — the extension shows the subscription SKU (`Pro` / `Pro+` / `Free(OSS)`) and a red `limited` marker with reset countdown when GitHub rate-limits the account. The limited-state check reads pi's GitHub OAuth token from auth.json (honors `PI_CODING_AGENT_DIR`) only to call the official token endpoint; it never writes or logs the token. Monthly unified billing for Grok is off by default (`USAGE_SHOW_XAI_MONTHLY=1`).
 - Kimi monthly membership credits are web-console only (not exposed by the API) and are not shown.

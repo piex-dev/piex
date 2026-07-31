@@ -13,13 +13,14 @@ source: extensions/usage
 
 ## 简介
 
-订阅制 coding agent（Kimi For Coding、SuperGrok 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。
+订阅制 coding agent（Kimi For Coding、SuperGrok、GitHub Copilot 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。
 
-`@piex-dev/usage` 把配额直接放到 pi 状态栏：百分比 + 重置倒计时，用完自动变红，切换模型自动切换数据源。全自动，零操作。
+`@piex-dev/usage` 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态；切换模型自动切换数据源。全自动，零操作。
 
 ```text
 Kimi:  5-Hour:21%🕙3h45 7-Day:26%🕙6d17h
 Grok:  7-Day:32%🕙4d3h
+Copilot: Pro
 ```
 
 ## 技术原理
@@ -32,6 +33,11 @@ Grok:  7-Day:32%🕙4d3h
 | --- | --- | --- |
 | Kimi | `GET https://api.kimi.com/coding/v1/usages` | 周配额（limit/used/remaining/resetTime）+ 滚动窗口限制 |
 | Grok | `GET https://cli-chat-proxy.grok.com/v1/billing?format=credits` | 周 credits 百分比 + 周期起止 |
+| Copilot | `copilot_internal/v2/token` | 订阅档位（sku）+ 限流配额（仅受限时非空） |
+
+### Copilot 的能力边界
+
+GitHub Copilot **没有公开的用量余额接口**（`/users/{login}/settings/billing/ai_credit/usage` 需要 `copilot` scope 的 OAuth app，Copilot API 无 usage 端点）。官方 token 接口（`copilot_internal/v2/token`）能给出的只有：**订阅档位（sku）** 与 **限流配额（limited_user_quotas，仅被限流时非空）**。因此 Copilot 适配器展示档位徽标（`Copilot: Pro` / `Free(OSS)`），被限流时显示红色 `limited` + 重置倒计时——这是接口极限，没有百分比余额。限流探测 best-effort 只读 pi 的 auth.json 中 GitHub OAuth token（遵循 `PI_CODING_AGENT_DIR`），只用于请求官方 token 接口，不写入也不记录 token。
 
 ### 凭据：pi 自动刷新 OAuth token
 
