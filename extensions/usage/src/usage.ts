@@ -63,10 +63,12 @@ function formatCountdown(ms: number): string {
 }
 
 function colorize(theme: ThemeLike, ratio: number | undefined, text: string): string {
-  if (ratio === undefined) return text;
+  // Normal segments are dimmed to match the footer's base style; only
+  // warning/error ratios get colored so alerts stand out.
+  if (ratio === undefined) return theme.fg("dim", text);
   if (ratio >= ERROR_RATIO) return theme.fg("error", text);
   if (ratio >= WARNING_RATIO) return theme.fg("warning", text);
-  return text;
+  return theme.fg("dim", text);
 }
 
 function renderStatus(theme: ThemeLike): string {
@@ -78,7 +80,8 @@ function renderStatus(theme: ThemeLike): string {
       return `${text}🕙${theme.fg("dim", formatCountdown(seg.countdownMs))}`;
     })
     .join(" ");
-  return `Usage: ${body}`;
+  // "Usage:" dimmed to match the rest of the footer (pwd/model/context are dim).
+  return `${theme.fg("dim", "Usage:")} ${body}`;
 }
 
 async function refresh(ctx: CtxLike): Promise<void> {
