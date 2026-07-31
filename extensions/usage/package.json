@@ -1,0 +1,45 @@
+{
+  "name": "@piex-dev/usage",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Real-time subscription quota in the pi status bar — Kimi For Coding and xAI Grok (SuperGrok), shown only for the active model's provider",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "extensions/usage"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "kimi",
+    "kimi-coding",
+    "kimi-code",
+    "xai",
+    "grok",
+    "supergrok",
+    "usage",
+    "quota",
+    "status-bar"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/usage.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/usage.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
