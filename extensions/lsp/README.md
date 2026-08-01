@@ -41,7 +41,7 @@ Python（pyright，pipx → uv → pip3）、Go（gopls，go install）、Rust�
 | `PI_LSP_DIAGNOSTICS_DEDUPLICATE` | on | 诊断 ledger 去重（同一错误不重复骚扰）；`0` 关闭 |
 | `PI_LSP_FORMAT_ON_WRITE` | off | 写后自动格式化（会改磁盘内容，需显式开启）；`1` 开启 |
 | `PI_LSP_DISABLE_DOWNLOAD` | off | 关闭按需自动下载缺失的 language server；`1` 关闭 |
-| `PI_LSP_IDLE_TIMEOUT_MS` | 1800000 | server 空闲回收阈值（30min）；`0` 关闭回收 |
+| `PI_LSP_IDLE_TIMEOUT_MS` | 0（关闭） | server 空闲回收阈值（毫秒）；默认关闭（会话间隙的闲置属正常），显式设置才启用 |
 | `PI_<NAME>_LSP_COMMAND` | — | 覆盖单 server 启动命令（override 命令不触发自动下载） |
 
 ## Footer 状态

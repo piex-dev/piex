@@ -7,7 +7,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { __test__ } from "../src/lsp.ts";
+import lspExtension, { __test__ } from "../src/lsp.ts";
 import { createFooter } from "../src/footer.ts";
 import { visibleWidth } from "@earendil-works/pi-tui";
 
@@ -991,17 +991,34 @@ describe("0.5.0: idle reaping", () => {
     const prev = process.env.PI_LSP_IDLE_TIMEOUT_MS;
     try {
       delete process.env.PI_LSP_IDLE_TIMEOUT_MS;
-      expect(__test__.idleTimeoutMs()).toBe(30 * 60 * 1000);
-      process.env.PI_LSP_IDLE_TIMEOUT_MS = "0";
-      expect(__test__.idleTimeoutMs()).toBe(0);
+      expect(__test__.idleTimeoutMs()).toBe(0); // off by default
       process.env.PI_LSP_IDLE_TIMEOUT_MS = "120000";
       expect(__test__.idleTimeoutMs()).toBe(120_000);
       process.env.PI_LSP_IDLE_TIMEOUT_MS = "garbage";
-      expect(__test__.idleTimeoutMs()).toBe(30 * 60 * 1000);
+      expect(__test__.idleTimeoutMs()).toBe(0); // garbage → disabled
     } finally {
       if (prev === undefined) delete process.env.PI_LSP_IDLE_TIMEOUT_MS;
       else process.env.PI_LSP_IDLE_TIMEOUT_MS = prev;
     }
+  });
+
+  test("#write counts as activity (regression: notifications prevent idle reaping)", async () => {
+    resetManager();
+    const dir = tmpDir();
+    const f = path.join(dir, "act.ts");
+    fs.writeFileSync(f, "const x = 1;\n");
+    const client = LspClient.spawn(process.execPath, [MOCK], dir);
+    await client.initialize(fileToUri(dir), { initializationOptions: { mock: true } });
+    const initial = client.lastActivity;
+    await new Promise((r) => setTimeout(r, 40));
+    // didOpen/didChange are fire-and-forget notifications — they still count
+    // as activity or a quiet edit session would be reaped as "idle".
+    client.syncFile(f, "typescript");
+    client.notifySaved(f);
+    expect(client.lastActivity).toBeGreaterThan(initial);
+    await client.shutdown();
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });
 
@@ -1316,6 +1333,190 @@ describe("push/pull cache split (opencode-style)", () => {
     const { diagnostics } = await client.waitForDiagnostics(uri, 3000);
     expect(diagnostics.length).toBe(0);
     await client.shutdown();
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("footer model/thinking follows model_select", () => {
+  function makePiHarness() {
+    const handlers = new Map<string, Array<(...args: unknown[]) => unknown>>();
+    let footerFactory:
+      | ((tui: unknown, theme: unknown, footerData: unknown) => {
+          render(width: number): string[];
+          dispose(): void;
+        })
+      | undefined;
+    const pi = {
+      on(event: string, fn: (...args: unknown[]) => unknown) {
+        handlers.set(event, [...(handlers.get(event) ?? []), fn]);
+      },
+      registerTool() {},
+      registerCommand() {},
+      async emit(event: string, payload: unknown, ctx: unknown) {
+        for (const fn of handlers.get(event) ?? []) await fn(payload, ctx);
+      },
+    };
+    const theme = { fg: (c: string, t: string) => `<${c}>${t}</${c}>` };
+    const tui = { requestRender: () => {} };
+    const footerData = {
+      getGitBranch: () => null,
+      getAvailableProviderCount: () => 2, // ≥2 shows the (provider) prefix
+      getExtensionStatuses: () => new Map(),
+      onBranchChange: () => () => {},
+    };
+    return { pi, handlers, theme, tui, footerData, setFooterFactory: (f: typeof footerFactory) => { footerFactory = f; }, getFooterFactory: () => footerFactory };
+  }
+
+  function makeCtx(harness: ReturnType<typeof makePiHarness>, model: { id: string; provider: string; reasoning?: boolean }, thinkingLevel = "max") {
+    return {
+      cwd: "/proj",
+      model,
+      thinkingLevel,
+      sessionManager: {
+        getSessionName: () => undefined,
+        getEntries: () => [],
+      },
+      getContextUsage: () => ({ contextWindow: 1_000_000, percent: 1 }),
+      ui: {
+        setStatus: () => {},
+        setFooter: (factory: unknown) => harness.setFooterFactory(factory as never),
+        theme: harness.theme,
+      },
+    } as unknown as Parameters<typeof lspExtension>[0] extends never ? never : never;
+  }
+
+  test("model_select updates the footer model", async () => {
+    const harness = makePiHarness();
+    lspExtension(harness.pi as never);
+    const kimiModel = { id: "k3", provider: "kimi-coding", reasoning: true };
+    const deepseekModel = { id: "deepseek-v4-flash", provider: "deepseek", reasoning: true };
+
+    await harness.pi.emit("session_start", {}, makeCtx(harness, kimiModel));
+    const factory = harness.getFooterFactory();
+    expect(factory).toBeTruthy();
+    const footer = factory!(harness.tui, harness.theme, harness.footerData);
+    expect(footer.render(120).join("\n")).toContain("(kimi-coding) k3");
+
+    // user switches to deepseek — footer must follow
+    await harness.pi.emit(
+      "model_select",
+      { model: deepseekModel, previousModel: kimiModel, source: "set" },
+      makeCtx(harness, deepseekModel),
+    );
+    const line = footer.render(120).join("\n");
+    expect(line).toContain("(deepseek) deepseek-v4-flash");
+    expect(line).not.toContain("kimi-coding");
+    footer.dispose();
+  });
+
+  test("thinking_level_select updates the footer thinking level", async () => {
+    const harness = makePiHarness();
+    lspExtension(harness.pi as never);
+    const model = { id: "deepseek-v4-flash", provider: "deepseek", reasoning: true };
+    await harness.pi.emit("session_start", {}, makeCtx(harness, model, "max"));
+    const factory = harness.getFooterFactory();
+    const footer = factory!(harness.tui, harness.theme, harness.footerData);
+    expect(footer.render(120).join("\n")).toContain("max");
+
+    await harness.pi.emit(
+      "thinking_level_select",
+      { level: "off", previousLevel: "max" },
+      makeCtx(harness, model, "off"),
+    );
+    const line = footer.render(120).join("\n");
+    expect(line).toContain("off");
+    expect(line).not.toContain("max");
+    footer.dispose();
+  });
+});
+
+describe("footer lsp status end-to-end (server running → green)", () => {
+  test("running server renders green in footer line 3", async () => {
+    resetManager();
+    const dir = tmpDir();
+    fs.writeFileSync(path.join(dir, "package.json"), "{}");
+    const defaults = loadDefaults();
+    const ts = defaults["typescript-language-server"];
+    const client = await getOrCreateServer(
+      "typescript-language-server",
+      { ...ts, command: process.execPath, args: [MOCK] },
+      dir,
+    );
+    expect(client.alive).toBe(true);
+
+    // wire the status the same way the extension does
+    const statuses = new Map<string, string>();
+    const theme = { fg: (c: string, t: string) => `<${c}>${t}</${c}>` };
+    const ctx = {
+      cwd: dir,
+      ui: {
+        setStatus: (_k: string, t: string | undefined) => {
+          if (t === undefined) statuses.delete("lsp");
+          else statuses.set("lsp", t);
+        },
+        theme,
+      },
+    };
+    __test__.updateFooterStatus(ctx as never);
+    expect(statuses.get("lsp")).toContain("<success>typescript-language-server</success>");
+
+    // render through the real footer path
+    const footer = createFooter(
+      {
+        cwd: dir,
+        getEntries: () => [],
+        model: { id: "m", provider: "p", reasoning: true },
+        thinkingLevel: "off",
+        getContextUsage: () => ({ contextWindow: 1_000_000, percent: 1 }),
+      } as never,
+      {
+        getGitBranch: () => null,
+        getAvailableProviderCount: () => 2,
+        getExtensionStatuses: () => statuses,
+        onBranchChange: () => () => {},
+      } as never,
+      theme as never,
+    );
+    const line3 = footer.render(120)[2];
+    expect(line3).toContain("<success>typescript-language-server</success>");
+
+    await client.shutdown();
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("after server exits, footer status drops the green entry", async () => {
+    resetManager();
+    const dir = tmpDir();
+    fs.writeFileSync(path.join(dir, "package.json"), "{}");
+    const defaults = loadDefaults();
+    const ts = defaults["typescript-language-server"];
+    const client = await getOrCreateServer(
+      "typescript-language-server",
+      { ...ts, command: process.execPath, args: [MOCK] },
+      dir,
+    );
+    const statuses = new Map<string, string>();
+    const theme = { fg: (c: string, t: string) => `<${c}>${t}</${c}>` };
+    const ctx = {
+      cwd: dir,
+      ui: {
+        setStatus: (_k: string, t: string | undefined) => {
+          if (t === undefined) statuses.delete("lsp");
+          else statuses.set("lsp", t);
+        },
+        theme,
+      },
+    };
+    __test__.updateFooterStatus(ctx as never);
+    expect(statuses.get("lsp")).toContain("<success>");
+
+    await client.shutdown();
+    // shutdown fires onExit asynchronously — give it a beat, then recompute
+    await new Promise((r) => setTimeout(r, 200));
+    __test__.updateFooterStatus(ctx as never);
+    expect(statuses.get("lsp") ?? "").not.toContain("<success>typescript-language-server</success>");
     resetManager();
     fs.rmSync(dir, { recursive: true, force: true });
   });

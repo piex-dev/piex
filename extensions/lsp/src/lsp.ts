@@ -737,6 +737,7 @@ class LspClient {
   }
 
   #write(msg: unknown): void {
+    this.#lastActivity = Date.now();
     const body = JSON.stringify(msg);
     const header = `Content-Length: ${Buffer.byteLength(body, "utf-8")}\r\n\r\n`;
     try {
@@ -1494,12 +1495,15 @@ const pendingServers = new Map<string, Promise<LspClient>>();
 // shut down (default 30 min; 0 disables reaping entirely).
 
 const IDLE_SCAN_INTERVAL_MS = 60_000;
-const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
+/** Idle reaping is OFF by default: a coding session naturally has discussion
+ *  and review gaps with no read/edit activity, and a 30min default killed
+ *  servers mid-session (the footer lost its green entries and the next edit
+ *  paid a cold-start). Set PI_LSP_IDLE_TIMEOUT_MS to opt in explicitly. */
 function idleTimeoutMs(): number {
   const v = Number(process.env.PI_LSP_IDLE_TIMEOUT_MS);
   if (Number.isFinite(v) && v >= 0) return v;
-  return DEFAULT_IDLE_TIMEOUT_MS;
+  return 0; // 0 = disabled
 }
 
 let idleTimer: ReturnType<typeof setInterval> | null = null;
@@ -2947,21 +2951,38 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
   });
 
   // ── Footer status ─────────────────────────────────
+  // Footer deps captured at session_start are static for the session's life,
+  // but model / thinking level change at runtime (model_select /
+  // thinking_level_select). Read them through getters so the footer follows
+  // the live values; re-render proactively on every change.
+  let currentModel: Parameters<typeof createFooter>[0]["model"];
+  let currentThinkingLevel: string | undefined;
+  let footerTui: { requestRender(): void } | undefined;
+
   pi.on("session_start", async (_event, ctx) => {
+    currentModel = ctx.model;
+    currentThinkingLevel = ctx.thinkingLevel;
     setStatusReporter(() => updateFooterStatus(ctx));
     startIdleSweeper();
     updateFooterStatus(ctx);
     // Custom footer: keep the built-in layout but right-align the `lsp`
     // status while other extension statuses (usage, …) stay left-aligned.
     ctx.ui.setFooter((tui, theme, footerData) => {
+      footerTui = tui;
       const footer = createFooter(
         {
           cwd: ctx.cwd,
           home: process.env.HOME,
-          sessionName: ctx.sessionManager.getSessionName(),
+          get sessionName() {
+            return ctx.sessionManager.getSessionName();
+          },
           getEntries: () => ctx.sessionManager.getEntries(),
-          model: ctx.model,
-          thinkingLevel: ctx.thinkingLevel,
+          get model() {
+            return currentModel;
+          },
+          get thinkingLevel() {
+            return currentThinkingLevel;
+          },
           getContextUsage: () => ctx.getContextUsage(),
         },
         footerData,
@@ -2975,6 +2996,16 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         },
       };
     });
+  });
+
+  pi.on("model_select", async (event, ctx) => {
+    currentModel = ctx.model ?? event.model;
+    footerTui?.requestRender();
+  });
+
+  pi.on("thinking_level_select", async (event, ctx) => {
+    currentThinkingLevel = ctx.thinkingLevel ?? event.level;
+    footerTui?.requestRender();
   });
 
   // ── Setup command ────────────────────────────────
@@ -3107,7 +3138,10 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
   });
 
   pi.on("session_shutdown", async () => {
-    stopIdleSweeper();
+    // Do NOT stop the idle sweeper here: the timer is process-global and
+    // sweeps servers owned by ANY session in this process. Stopping it on one
+    // session's shutdown would silently disable reaping for all remaining
+    // sessions. The timer is unref'd, so the process can still exit cleanly.
     setStatusReporter(undefined);
     for (const srv of activeServers.values()) {
       try {
