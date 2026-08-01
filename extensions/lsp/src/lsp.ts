@@ -110,6 +110,8 @@ interface ServerConfig {
   settings?: Record<string, unknown>;
   initializationOptions?: Record<string, unknown>;
   isLinter?: boolean;
+  /** On-demand install metadata ({type, package}) for auto-download. */
+  install?: { type?: string; package?: string };
   /** Quiet period (ms) after the last publishDiagnostics before push
    *  diagnostics are treated as settled. Defaults to 800. */
   diagnosticsSettleMs?: number;
@@ -154,6 +156,10 @@ function loadDefaults(): Record<string, ServerConfig> {
             : undefined,
         initializationOptions: init as Record<string, unknown> | undefined,
         isLinter: c.isLinter === true,
+        install:
+          c.install && typeof c.install === "object"
+            ? (c.install as { type?: string; package?: string })
+            : undefined,
         diagnosticsSettleMs:
           typeof c.diagnosticsSettleMs === "number" &&
           Number.isFinite(c.diagnosticsSettleMs) &&
@@ -178,25 +184,69 @@ interface LspRequest {
   timer: ReturnType<typeof setTimeout>;
 }
 
+/** LSP 3.17 pull-diagnostic capability registration (client/registerCapability). */
+interface DiagnosticRegistration {
+  identifier?: string;
+  workspaceDiagnostics?: boolean;
+}
+interface DiagnosticReportResult {
+  matched: boolean;
+  byFile: Map<string, Diagnostic[]>;
+}
+
+interface DocumentDiagnosticReport {
+  items?: Diagnostic[];
+  relatedDocuments?: Record<string, { items?: Diagnostic[] }>;
+}
+
+interface WorkspaceDiagnosticReport {
+  items?: Array<{ uri?: string; items?: Diagnostic[] }>;
+}
+
+
+/** Timeout before we stop waiting for a server's initial project load. */
+const PROJECT_LOAD_TIMEOUT_MS = 15_000;
+
 class LspClient {
   #proc: ChildProcessWithoutNullStreams;
   #seq = 0;
   #pending = new Map<number, LspRequest>();
   #decoder = new TextDecoder("utf-8");
+  /** Push cache: server-published diagnostics. */
   #diagnostics = new Map<string, Diagnostic[]>();
+  /** Pull cache: results pulled via textDocument/diagnostic — kept separate
+   *  from push so one source never clobbers the other (opencode's design). */
+  #pullDiagnostics = new Map<string, Diagnostic[]>();
   /** URIs that have received at least one publishDiagnostics (including empty). */
   #diagReceived = new Set<string>();
   /** Last publishDiagnostics timestamp per uri, for settle detection. */
   #diagLastUpdate = new Map<string, number>();
   #openVersions = new Map<string, number>();
+  /** Last synced content per uri — needed for incremental didChange ranges. */
+  #openContents = new Map<string, string>();
   #settings: Record<string, unknown> = {};
   #capabilities: Record<string, unknown> = {};
   #stderr = "";
+  /** textDocumentSync kind: 1 = full, 2 = incremental (from server capabilities). */
+  #syncKind = 1;
+  /** Dynamic `textDocument/diagnostic` registrations (client/registerCapability). */
+  #diagnosticRegistrations = new Map<string, DiagnosticRegistration>();
+  #registrationListeners = new Set<() => void>();
+  /** `$/progress` tokens currently loading — all ended ⇒ project loaded. */
+  #activeProgressTokens = new Set<string | number>();
+  #resolveProjectLoaded!: () => void;
+  #projectLoaded: Promise<void>;
+  #projectLoadTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Last activity (write or read) — drives idle reaping. */
+  #lastActivity = Date.now();
   alive = true;
   #exitListeners: Array<() => void> = [];
 
   constructor(proc: ChildProcessWithoutNullStreams) {
     this.#proc = proc;
+    this.#projectLoaded = new Promise((resolve) => {
+      this.#resolveProjectLoaded = resolve;
+    });
     proc.stderr.on("data", (chunk: Buffer) => {
       // Cap the buffer so a noisy server cannot grow memory unbounded.
       if (this.#stderr.length < 16_000) this.#stderr += chunk.toString();
@@ -204,10 +254,19 @@ class LspClient {
     proc.on("exit", () => {
       this.alive = false;
       this.#rejectAll(new Error(`LSP server exited.${this.#formatStderr()}`));
+      this.#resolveProjectLoaded();
       for (const fn of this.#exitListeners) fn();
     });
     this.#startReader();
   }
+
+  touchActivity(): void {
+    this.#lastActivity = Date.now();
+  }
+  get lastActivity(): number {
+    return this.#lastActivity;
+  }
+
 
   /** Register a callback fired when the server process exits. */
   onExit(fn: () => void): void {
@@ -239,7 +298,10 @@ class LspClient {
   }
 
   getDiagnostics(uri: string): Diagnostic[] {
-    return this.#diagnostics.get(uri) ?? [];
+    return dedupeDiagnostics([
+      ...(this.#diagnostics.get(uri) ?? []),
+      ...(this.#pullDiagnostics.get(uri) ?? []),
+    ]);
   }
 
   hasReceivedDiagnostics(uri: string): boolean {
@@ -249,11 +311,23 @@ class LspClient {
   clearDiagnosticsFlag(uri: string): void {
     this.#diagReceived.delete(uri);
     this.#diagLastUpdate.delete(uri);
+    this.#pullDiagnostics.delete(uri); // content changed — stale pull results
   }
 
-  /** LSP 3.17 pull diagnostics: server advertised textDocument/diagnostic. */
+  /** LSP 3.17 pull diagnostics: server advertised textDocument/diagnostic,
+   *  either statically in initialize capabilities or via dynamic
+   *  registration (client/registerCapability) after initialize. */
   supportsPullDiagnostics(): boolean {
-    return "diagnosticProvider" in this.#capabilities;
+    return (
+      "diagnosticProvider" in this.#capabilities ||
+      this.#diagnosticRegistrations.size > 0
+    );
+  }
+
+  /** Workspace-level pull (workspace/diagnostic) is only reachable via
+   *  dynamic registration with workspaceDiagnostics: true. */
+  supportsWorkspacePullDiagnostics(): boolean {
+    return this.#workspacePullState().supported;
   }
 
   /** codeAction/resolve is only valid when the server advertises it. */
@@ -266,20 +340,240 @@ class LspClient {
     );
   }
 
+  /**
+   * Wait for the server's initial project load to finish, tracked via
+   * `$/progress` begin/end notifications (15s fallback timer). Navigation
+   * requests made before the project is loaded can produce false negatives
+   * (rust-analyzer cold-start can take tens of seconds).
+   */
+  async waitForProjectLoaded(
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (signal?.aborted) return;
+    await Promise.race([
+      this.#projectLoaded,
+      sleep(timeoutMs),
+      ...(signal
+        ? [
+            new Promise<void>((resolve) =>
+              signal.addEventListener("abort", () => resolve(), {
+                once: true,
+              }),
+            ),
+          ]
+        : []),
+    ]);
+  }
+
+  /** Wait for a dynamic capability registration change (or timeout). */
+  waitForRegistrationChange(timeoutMs: number): Promise<boolean> {
+    if (timeoutMs <= 0) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      let finished = false;
+      const finish = (result: boolean) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        this.#registrationListeners.delete(listener);
+        resolve(result);
+      };
+      const timer = setTimeout(() => finish(false), timeoutMs);
+      const listener = () => finish(true);
+      this.#registrationListeners.add(listener);
+    });
+  }
+
+  #documentPullState(): { identifiers: string[]; supported: boolean } {
+    const registrations = [...this.#diagnosticRegistrations.values()].filter(
+      (r) => r.workspaceDiagnostics !== true,
+    );
+    return {
+      identifiers: [
+        ...new Set(
+          registrations.flatMap((r) => (r.identifier ? [r.identifier] : [])),
+        ),
+      ],
+      supported:
+        "diagnosticProvider" in this.#capabilities ||
+        registrations.length > 0,
+    };
+  }
+
+  #workspacePullState(): { identifiers: string[]; supported: boolean } {
+    const registrations = [...this.#diagnosticRegistrations.values()].filter(
+      (r) => r.workspaceDiagnostics === true,
+    );
+    return {
+      identifiers: [
+        ...new Set(
+          registrations.flatMap((r) => (r.identifier ? [r.identifier] : [])),
+        ),
+      ],
+      supported: registrations.length > 0,
+    };
+  }
+
+  async #requestDocumentDiagnosticReport(
+    uri: string,
+    identifier: string | undefined,
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<DiagnosticReportResult> {
+    const report = await this.request<DocumentDiagnosticReport | undefined>(
+      "textDocument/diagnostic",
+      {
+        ...(identifier ? { identifier } : {}),
+        textDocument: { uri },
+      },
+      timeoutMs,
+      signal,
+    ).catch((err) => {
+      if (signal?.aborted) throw err; // abort must propagate, not masquerade as "no report"
+      return undefined;
+    });
+    if (!report) return { matched: false, byFile: new Map() };
+    const byFile = new Map<string, Diagnostic[]>();
+    let matched = false;
+    const push = (target: string, items: Diagnostic[]) => {
+      const existing = byFile.get(target) ?? [];
+      byFile.set(target, existing.concat(items));
+    };
+    if (Array.isArray(report.items)) {
+      push(uri, report.items);
+      matched = true;
+    }
+    // relatedDocuments: diagnostics for other files that depend on this one.
+    // Changing a symbol signature now surfaces the callers' errors too.
+    const related: Record<string, { items?: Diagnostic[] }> =
+      report.relatedDocuments ?? {};
+    for (const [relUri, rel] of Object.entries(related)) {
+      if (!Array.isArray(rel.items)) continue;
+      push(relUri, rel.items);
+      matched = matched || relUri === uri;
+    }
+    return { matched, byFile };
+  }
+
+  async #requestWorkspaceDiagnosticReport(
+    uri: string,
+    identifier: string | undefined,
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<DiagnosticReportResult> {
+    const report = await this.request<
+      | { items?: Array<{ uri?: string; items?: Diagnostic[] }> }
+      | undefined
+    >(
+      "workspace/diagnostic",
+      {
+        ...(identifier ? { identifier } : {}),
+        previousResultIds: [],
+      },
+      timeoutMs,
+      signal,
+    ).catch((err) => {
+      if (signal?.aborted) throw err;
+      return undefined;
+    });
+    if (!report) return { matched: false, byFile: new Map() };
+    const byFile = new Map<string, Diagnostic[]>();
+    let matched = false;
+    for (const item of report.items ?? []) {
+      if (!item.uri || !Array.isArray(item.items)) continue;
+      const existing = byFile.get(item.uri) ?? [];
+      byFile.set(item.uri, existing.concat(item.items));
+      matched = matched || item.uri === uri;
+    }
+    return { matched, byFile };
+  }
+
+  /** Merge pull results into the shared push cache (keeps settle coherent). */
+  #absorbPullResults(
+    uri: string,
+    results: DiagnosticReportResult[],
+  ): { matched: boolean; current: Diagnostic[] } {
+    let matched = false;
+    const merged = new Map<string, Diagnostic[]>();
+    for (const r of results) {
+      matched = matched || r.matched;
+      for (const [target, items] of r.byFile) {
+        const existing = merged.get(target) ?? [];
+        merged.set(target, existing.concat(items));
+      }
+    }
+    for (const [target, items] of merged) {
+      this.#pullDiagnostics.set(target, dedupeDiagnostics(items));
+      this.#diagReceived.add(target);
+      this.#diagLastUpdate.set(target, Date.now());
+    }
+    return { matched, current: this.getDiagnostics(uri) };
+  }
+
+  /**
+   * Document-level pull: dispatch identifier pulls in parallel and unblock
+   * as soon as one batch produced diagnostics for the current file (slower
+   * pulls keep merging in the background). Falls back to workspace pull
+   * when the server only registered workspaceDiagnostics.
+   */
   async pullDiagnostics(
     uri: string,
     timeoutMs: number,
     signal?: AbortSignal,
-  ): Promise<Diagnostic[]> {
-    const result = await this.request<{ items?: Diagnostic[] } | undefined>(
-      "textDocument/diagnostic",
-      { textDocument: { uri } },
-      timeoutMs,
-      signal,
-    );
-    return result?.items ?? [];
-  }
+  ): Promise<{ items: Diagnostic[]; matched: boolean }> {
+    const state = this.#documentPullState();
+    if (!state.supported) {
+      const ws = this.#workspacePullState();
+      if (!ws.supported) return { items: [], matched: false };
+      const wsResults = await Promise.all([
+        this.#requestWorkspaceDiagnosticReport(uri, undefined, timeoutMs, signal),
+        ...ws.identifiers.map((id) =>
+          this.#requestWorkspaceDiagnosticReport(uri, id, timeoutMs, signal),
+        ),
+      ]);
+      const absorbed = this.#absorbPullResults(uri, wsResults);
+      return { items: absorbed.current, matched: absorbed.matched };
+    }
 
+    const requests = [
+      this.#requestDocumentDiagnosticReport(uri, undefined, timeoutMs, signal),
+      ...state.identifiers.map((id) =>
+        this.#requestDocumentDiagnosticReport(uri, id, timeoutMs, signal),
+      ),
+    ];
+    const { absorbedAtResolve } = await new Promise<{
+      absorbedAtResolve: DiagnosticReportResult[];
+    }>((resolve) => {
+      const completed: DiagnosticReportResult[] = [];
+      let pending = requests.length;
+      let resolved = false;
+      const finish = (force = false) => {
+        if (resolved) return;
+        const currentHasDiags = completed.some(
+          (r) => (r.byFile.get(uri)?.length ?? 0) > 0,
+        );
+        if (!force && !currentHasDiags) return;
+        resolved = true;
+        resolve({ absorbedAtResolve: completed });
+      };
+      for (const p of requests) {
+        p.then((r) => {
+          completed.push(r);
+          // Absorb immediately so diagnostics arriving after the early return
+          // still land in the shared cache (slow identifier pulls).
+          this.#absorbPullResults(uri, [r]);
+          pending -= 1;
+          finish();
+          if (pending === 0) finish(true);
+        });
+      }
+    });
+    // Current-file items: already absorbed; read the merged cache directly.
+    return {
+      items: this.getDiagnostics(uri),
+      matched: absorbedAtResolve.some((r) => r.matched),
+    };
+  }
   async initialize(
     rootUri: string,
     opts?: {
@@ -322,6 +616,10 @@ class LspClient {
             resolveSupport: { properties: ["edit", "command"] },
           },
           synchronization: { didSave: true, didChange: true, willSave: false },
+          diagnostic: {
+            dynamicRegistration: true,
+            relatedDocumentSupport: true,
+          },
           publishDiagnostics: {
             relatedInformation: true,
             versionSupport: true,
@@ -332,6 +630,8 @@ class LspClient {
           configuration: true,
           workspaceFolders: true,
           applyEdit: true,
+          diagnostics: { refreshSupport: false },
+          didChangeWatchedFiles: { dynamicRegistration: true },
           workspaceEdit: {
             documentChanges: true,
             resourceOperations: ["create", "rename", "delete"],
@@ -344,6 +644,17 @@ class LspClient {
     });
     this.#capabilities =
       (result?.capabilities as Record<string, unknown>) ?? {};
+    // Sync kind: 1 = full, 2 = incremental — drives didChange contentChanges.
+    const sync = this.#capabilities.textDocumentSync as
+      | number
+      | { change?: number }
+      | undefined;
+    this.#syncKind = typeof sync === "number" ? sync : (sync?.change ?? 1);
+    // Fallback for servers that never send $/progress: treat loading as done
+    // after a fixed budget so waitForProjectLoaded never hangs.
+    this.#projectLoadTimer = setTimeout(() => {
+      this.#resolveProjectLoaded();
+    }, PROJECT_LOAD_TIMEOUT_MS);
     this.notify("initialized", {});
     if (Object.keys(this.#settings).length > 0) {
       this.notify("workspace/didChangeConfiguration", {
@@ -354,6 +665,10 @@ class LspClient {
   }
 
   async shutdown(): Promise<void> {
+    if (this.#projectLoadTimer) {
+      clearTimeout(this.#projectLoadTimer);
+      this.#projectLoadTimer = null;
+    }
     try {
       await this.request("shutdown", undefined, 5_000);
     } catch {
@@ -466,6 +781,7 @@ class LspClient {
     result?: unknown;
     error?: { code?: number; message?: string };
   }): void {
+    this.#lastActivity = Date.now();
     // Server → client request
     if (
       msg.method &&
@@ -496,6 +812,23 @@ class LspClient {
         this.#diagnostics.set(params.uri, params.diagnostics ?? []);
         this.#diagReceived.add(params.uri);
         this.#diagLastUpdate.set(params.uri, Date.now());
+      }
+    } else if (msg.method === "$/progress") {
+      // Project-load tracking: all begin tokens ended ⇒ project loaded.
+      const params = msg.params as
+        | { token?: string | number; value?: { kind?: string } }
+        | undefined;
+      const token = params?.token;
+      const kind = params?.value?.kind;
+      if (token !== undefined) {
+        if (kind === "begin") {
+          this.#activeProgressTokens.add(token);
+        } else if (kind === "end") {
+          this.#activeProgressTokens.delete(token);
+          if (this.#activeProgressTokens.size === 0) {
+            this.#resolveProjectLoaded();
+          }
+        }
       }
     }
   }
@@ -532,10 +865,51 @@ class LspClient {
       this.#write({ jsonrpc: "2.0", id, result: null });
       return;
     }
-    if (
-      method === "client/registerCapability" ||
-      method === "client/unregisterCapability"
-    ) {
+    if (method === "client/registerCapability") {
+      const registrations = (
+        (params as { registrations?: unknown[] } | undefined)
+          ?.registrations ?? []
+      ) as Array<{
+        id?: string;
+        method?: string;
+        registerOptions?: {
+          identifier?: string;
+          workspaceDiagnostics?: boolean;
+        };
+      }>;
+      let changed = false;
+      for (const reg of registrations) {
+        if (reg.method !== "textDocument/diagnostic" || !reg.id) continue;
+        this.#diagnosticRegistrations.set(reg.id, {
+          identifier: reg.registerOptions?.identifier,
+          workspaceDiagnostics:
+            reg.registerOptions?.workspaceDiagnostics === true,
+        });
+        changed = true;
+      }
+      if (changed) {
+        for (const fn of this.#registrationListeners) fn();
+      }
+      this.#write({ jsonrpc: "2.0", id, result: null });
+      return;
+    }
+    if (method === "client/unregisterCapability") {
+      const registrations = (
+        (params as { unregisterations?: unknown[] } | undefined)
+          ?.unregisterations ?? []
+      ) as Array<{ id?: string; method?: string }>;
+      let changed = false;
+      for (const reg of registrations) {
+        if (reg.method !== "textDocument/diagnostic" || !reg.id) continue;
+        if (this.#diagnosticRegistrations.delete(reg.id)) changed = true;
+      }
+      if (changed) {
+        for (const fn of this.#registrationListeners) fn();
+      }
+      this.#write({ jsonrpc: "2.0", id, result: null });
+      return;
+    }
+    if (method === "workspace/diagnostic/refresh") {
       this.#write({ jsonrpc: "2.0", id, result: null });
       return;
     }
@@ -573,21 +947,42 @@ class LspClient {
     const prev = this.#openVersions.get(uri);
     if (prev === undefined) {
       this.#openVersions.set(uri, 1);
+      this.#openContents.set(uri, content);
       this.clearDiagnosticsFlag(uri);
+      this.notify("workspace/didChangeWatchedFiles", {
+        changes: [{ uri, type: 1 }], // created
+      });
       this.notify("textDocument/didOpen", {
         textDocument: { uri, languageId: lang, version: 1, text: content },
       });
     } else {
       const next = prev + 1;
       this.#openVersions.set(uri, next);
+      const prevText = this.#openContents.get(uri) ?? "";
+      this.#openContents.set(uri, content);
       this.clearDiagnosticsFlag(uri);
+      this.notify("workspace/didChangeWatchedFiles", {
+        changes: [{ uri, type: 2 }], // changed
+      });
+      // Servers that advertise incremental sync (change: 2) get a range
+      // covering the previous content; others get full-text replacement.
       this.notify("textDocument/didChange", {
         textDocument: { uri, version: next },
-        contentChanges: [{ text: content }],
+        contentChanges:
+          this.#syncKind === 2
+            ? [
+                {
+                  range: {
+                    start: { line: 0, character: 0 },
+                    end: endPosition(prevText),
+                  },
+                  text: content,
+                },
+              ]
+            : [{ text: content }],
       });
     }
   }
-
   notifySaved(filePath: string): void {
     const uri = fileToUri(filePath);
     this.notify("textDocument/didSave", { textDocument: { uri } });
@@ -627,6 +1022,32 @@ class LspClient {
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
+/** End position of a text buffer (for incremental didChange ranges). */
+function endPosition(text: string): Position {
+  const lines = text.split(/\r\n|\r|\n/);
+  return {
+    line: lines.length - 1,
+    character: lines.at(-1)?.length ?? 0,
+  };
+}
+/** Dedupe diagnostics by range + severity + message + source (pull and push
+ *  results are merged into one cache, so the same issue can arrive twice). */
+function dedupeDiagnostics(items: Diagnostic[]): Diagnostic[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = JSON.stringify({
+      code: item.code,
+      severity: item.severity,
+      message: item.message,
+      source: item.source,
+      range: item.range,
+    });
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 
 function fileToUri(filePath: string): string {
   const abs = path.resolve(filePath);
@@ -1067,6 +1488,53 @@ const brokenServers = new Set<string>();
 /** In-flight spawn promises — dedupe concurrent getOrCreateServer calls. */
 const pendingServers = new Map<string, Promise<LspClient>>();
 
+// ── Idle reaping ─────────────────────────────────
+// Long sessions accumulate server processes that are no longer needed.
+// PI_LSP_IDLE_TIMEOUT_MS controls how long a server may sit idle before it is
+// shut down (default 30 min; 0 disables reaping entirely).
+
+const IDLE_SCAN_INTERVAL_MS = 60_000;
+const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+
+function idleTimeoutMs(): number {
+  const v = Number(process.env.PI_LSP_IDLE_TIMEOUT_MS);
+  if (Number.isFinite(v) && v >= 0) return v;
+  return DEFAULT_IDLE_TIMEOUT_MS;
+}
+
+let idleTimer: ReturnType<typeof setInterval> | null = null;
+
+function startIdleSweeper(): void {
+  if (idleTimer) return;
+  idleTimer = setInterval(sweepIdleServers, IDLE_SCAN_INTERVAL_MS);
+  idleTimer.unref?.();
+}
+
+function stopIdleSweeper(): void {
+  if (idleTimer) {
+    clearInterval(idleTimer);
+    idleTimer = null;
+  }
+}
+
+/** Shut down servers that have been idle longer than the configured budget. */
+function sweepIdleServers(): void {
+  const limit = idleTimeoutMs();
+  if (limit <= 0) return; // disabled
+  const now = Date.now();
+  for (const [key, srv] of activeServers) {
+    if (!srv.client.alive) {
+      activeServers.delete(key);
+      continue;
+    }
+    if (now - srv.client.lastActivity > limit) {
+      void srv.client.shutdown().catch(() => {});
+      activeServers.delete(key);
+      notifyStatusChange();
+    }
+  }
+}
+
 // ── Footer status ──────────────────────────────────
 
 let statusReporter: (() => void) | undefined;
@@ -1283,9 +1751,25 @@ async function getOrCreateServer(
   const command = override?.command ?? config.command;
   const args = override?.args ?? config.args ?? [];
 
-  const cmd = which(command, cwd);
+  let cmd = which(command, cwd);
+  if (!cmd && !override && downloadEnabled()) {
+    // On-demand install (learned from opencode): defaults.json `install`
+    // metadata tells us how to fetch the server binary at runtime instead
+    // of failing. Overridden commands are user-controlled and never auto-
+    // installed.
+    try {
+      cmd = await installServer(name, config, cwd);
+    } catch {
+      cmd = null;
+    }
+  }
   if (!cmd)
-    throw new Error(`LSP server '${name}' not found: ${command} not on PATH`);
+    throw new Error(
+      `LSP server '${name}' not found: ${command} not on PATH` +
+        (downloadEnabled()
+          ? " (auto-install failed or no install metadata)"
+          : " (auto-install disabled via PI_LSP_DISABLE_DOWNLOAD=1)"),
+    );
 
   const promise = (async () => {
     try {
@@ -1324,11 +1808,17 @@ async function collectDiagnosticsForFile(
   timeoutMs: number,
   signal?: AbortSignal,
   errorsOnly = false,
-): Promise<{ text: string; count: number; servers: string[] }> {
+): Promise<{
+  text: string;
+  count: number;
+  servers: string[];
+  /** One formatted line per diagnostic (no header) — for the dedupe ledger. */
+  lines: string[];
+}> {
   const serverRoot = getServerRootForFile(cwd, absPath);
   const servers = getServersForFile(serverRoot, absPath);
   if (servers.length === 0) {
-    return { text: "", count: 0, servers: [] };
+    return { text: "", count: 0, servers: [], lines: [] };
   }
   const fileRel = path.relative(cwd, absPath) || path.basename(absPath);
   const uri = fileToUri(absPath);
@@ -1342,16 +1832,26 @@ async function collectDiagnosticsForFile(
       client.notifySaved(absPath);
       // Prefer LSP 3.17 pull diagnostics when advertised: the server computes
       // fresh results on demand, so there is no publish race to settle.
-      const diagnostics = client.supportsPullDiagnostics()
-        ? await client.pullDiagnostics(uri, timeoutMs, signal)
-        : (
-            await client.waitForDiagnostics(
-              uri,
-              timeoutMs,
-              srv.config.diagnosticsSettleMs ?? 800,
-              signal,
-            )
-          ).diagnostics;
+      // Prefer pull (fresh on demand); when the server cannot serve it
+      // (matched=false — unsupported or timed out), fall back to push settle
+      // rather than reporting a false-clean file.
+      let diagnostics: Diagnostic[] = [];
+      let pullMatched = false;
+      if (client.supportsPullDiagnostics()) {
+        const pulled = await client.pullDiagnostics(uri, timeoutMs, signal);
+        diagnostics = pulled.items;
+        pullMatched = pulled.matched;
+      }
+      if (!pullMatched) {
+        diagnostics = (
+          await client.waitForDiagnostics(
+            uri,
+            timeoutMs,
+            srv.config.diagnosticsSettleMs ?? 800,
+            signal,
+          )
+        ).diagnostics;
+      }
       for (const d of diagnostics) {
         if (errorsOnly && d.severity !== undefined && d.severity !== 1)
           continue;
@@ -1387,6 +1887,7 @@ async function collectDiagnosticsForFile(
       text: `${fileRel}: no ${errorsOnly ? "errors" : "diagnostics"} (${used.join(", ") || "no server"})`,
       count: 0,
       servers: used,
+      lines: [],
     };
   }
   const lines = limited.map(({ d }) => formatDiag(d, fileRel));
@@ -1395,6 +1896,7 @@ async function collectDiagnosticsForFile(
     text: `${fileRel}: ${unique.length} issue(s) [${used.join(", ")}]\n${lines.join("\n")}`,
     count: unique.length,
     servers: used,
+    lines,
   };
 }
 
@@ -1452,6 +1954,471 @@ function prewarmServer(cwd: string, absPath: string): void {
       /* silent — prewarming must never surface */
     }
   })();
+}
+
+
+// ── Diagnostics target expansion ──────────────────────────
+// `diagnostics` accepts a single file, a directory, or a glob. Directories are
+// walked (≤4 levels, skipping vendor dirs) and globs match cwd-relative paths.
+// `*` itself is reserved for workspace-wide subprocess diagnostics.
+
+const MAX_GLOB_DIAGNOSTIC_TARGETS = 50;
+
+function globToRegExp(glob: string): RegExp {
+  const escaped = glob
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*\//g, "\u0000") // **/ → zero or more segments (trailing / included)
+    .replace(/\*\*/g, "\u0001") // bare ** → anything
+    .replace(/\*/g, "[^/]*")
+    .replace(/\?/g, "[^/]")
+    .replace(/\u0000/g, "(?:.*/)?")
+    .replace(/\u0001/g, ".*");
+  return new RegExp("^" + escaped + "$");
+}
+
+function collectFilesRecursive(dir: string, depth: number, out: string[]): void {
+  if (depth > 4) return;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    if (
+      e.name.startsWith(".") ||
+      e.name === "node_modules" ||
+      e.name === "target" ||
+      e.name === "dist" ||
+      e.name === "build" ||
+      e.name === ".venv" ||
+      e.name === "venv"
+    ) {
+      continue;
+    }
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) collectFilesRecursive(full, depth + 1, out);
+    else out.push(full);
+  }
+}
+
+/** Expand a diagnostics target to an absolute file list, or null when it is a
+ *  plain single file (handled by the existing path). */
+function expandDiagnosticsTargets(cwd: string, target: string): string[] | null {
+  const abs = path.resolve(cwd, target);
+  if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
+    const files: string[] = [];
+    collectFilesRecursive(abs, 0, files);
+    return files.slice(0, MAX_GLOB_DIAGNOSTIC_TARGETS);
+  }
+  if (target.includes("*") || target.includes("?")) {
+    const files: string[] = [];
+    collectFilesRecursive(cwd, 0, files);
+    const re = globToRegExp(target);
+    const matched = files
+      .map((f) => path.relative(cwd, f))
+      .filter((rel) => re.test(rel))
+      .slice(0, MAX_GLOB_DIAGNOSTIC_TARGETS);
+    return matched.length ? matched.map((rel) => path.resolve(cwd, rel)) : null;
+  }
+  return null;
+}
+
+// ── Workspace diagnostics (subprocess) ──────────────────────
+// `diagnostics` with file:"*" runs the project's native checker in a child
+// process (cargo check / tsc --noEmit / go build / pyright) — the same signal
+// a CI pipeline would produce, without depending on LSP server state.
+
+async function execCollect(
+  cmd: string[],
+  opts: { cwd: string; timeoutMs: number; signal?: AbortSignal },
+): Promise<{ code: number; output: string }> {
+  return new Promise((resolve) => {
+    const child = spawn(cmd[0], cmd.slice(1), {
+      cwd: opts.cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env },
+    });
+    let output = "";
+    const cap = (chunk: Buffer) => {
+      if (output.length < 64_000) output += chunk.toString();
+    };
+    child.stdout?.on("data", cap);
+    child.stderr?.on("data", cap);
+    const onAbort = () => child.kill();
+    opts.signal?.addEventListener("abort", onAbort, { once: true });
+    const timer = setTimeout(() => child.kill(), opts.timeoutMs);
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      opts.signal?.removeEventListener("abort", onAbort);
+      resolve({ code: code ?? -1, output });
+    });
+    child.on("error", () => {
+      clearTimeout(timer);
+      opts.signal?.removeEventListener("abort", onAbort);
+      resolve({ code: -1, output });
+    });
+  });
+}
+
+/** Resolve `go build` patterns for a go.work workspace (fallback ./...). */
+async function resolveGoWorkspaceBuildPatterns(
+  cwd: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const { code, output } = await execCollect(
+    ["go", "work", "edit", "-json"],
+    { cwd, timeoutMs, signal },
+  );
+  if (code !== 0) return [];
+  try {
+    const parsed = JSON.parse(output) as {
+      Use?: Array<{ DiskPath?: string }>;
+    };
+    const dirs = (parsed.Use ?? [])
+      .map((u) => u.DiskPath)
+      .filter((d): d is string => Boolean(d));
+    // One argv entry per module — a joined string would be a single bogus path.
+    return dirs.map((d) => (d.startsWith(".") || d.startsWith("/") ? d : `./${d}`));
+  } catch {
+    return [];
+  }
+}
+
+async function detectProjectType(
+  cwd: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<{ type: string; command: string[] | null; description: string }> {
+  if (fs.existsSync(path.join(cwd, "Cargo.toml"))) {
+    return {
+      type: "rust",
+      command: ["cargo", "check", "--message-format=short"],
+      description: "Rust (cargo check)",
+    };
+  }
+  if (fs.existsSync(path.join(cwd, "tsconfig.json"))) {
+    return {
+      type: "typescript",
+      command: ["npx", "tsc", "--noEmit"],
+      description: "TypeScript (tsc --noEmit)",
+    };
+  }
+  if (fs.existsSync(path.join(cwd, "go.work"))) {
+    const patterns = await resolveGoWorkspaceBuildPatterns(cwd, timeoutMs, signal);
+    return {
+      type: "go",
+      command: patterns.length > 0 ? ["go", "build", ...patterns] : ["go", "build", "./..."],
+      description: "Go workspace (go build)",
+    };
+  }
+  if (fs.existsSync(path.join(cwd, "go.mod"))) {
+    return {
+      type: "go",
+      command: ["go", "build", "./..."],
+      description: "Go (go build)",
+    };
+  }
+  if (
+    fs.existsSync(path.join(cwd, "pyproject.toml")) ||
+    fs.existsSync(path.join(cwd, "pyrightconfig.json"))
+  ) {
+    return {
+      type: "python",
+      command: ["pyright"],
+      description: "Python (pyright)",
+    };
+  }
+  return { type: "unknown", command: null, description: "Unknown project type" };
+}
+
+/** Run the project-native checker; output capped at 50 lines (OMP-style). */
+async function runWorkspaceDiagnostics(
+  cwd: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<{ output: string; projectType: string; command: string[] | null }> {
+  if (signal?.aborted) throw new Error("Aborted");
+  const { type, command, description } = await detectProjectType(cwd, timeoutMs, signal);
+  if (!command) {
+    return {
+      output:
+        "Cannot detect project type. Supported: Rust (Cargo.toml), TypeScript (tsconfig.json), Go (go.work/go.mod), Python (pyproject.toml)",
+      projectType: description,
+      command: null,
+    };
+  }
+  const { code, output } = await execCollect(command, { cwd, timeoutMs, signal });
+  if (signal?.aborted) throw new Error("Aborted");
+  const combined = output.trim();
+  if (!combined) {
+    return { output: "No issues found", projectType: description, command };
+  }
+  const lines = combined.split("\n");
+  const capped =
+    lines.length > 50
+      ? `${lines.slice(0, 50).join("\n")}\n[…${lines.length - 50}ln elided…]`
+      : combined;
+  return {
+    output: `exit ${code}${code === 0 ? " (clean)" : ""}\n${capped}`,
+    projectType: description,
+    command,
+  };
+}
+
+// ── Format-on-write (FormattingOptions resolution) ───────────
+// Learned from OMP lsp/format-options.ts: .editorconfig wins, then content
+// indent sniffing (GCD of space widths), then 2-space fallback. The old
+// hardcoded `{ tabSize: 2, insertSpaces: true }` re-indented files on every
+// write when the server disagreed.
+
+function gcd(a: number, b: number): number {
+  let x = a;
+  let y = b;
+  while (y !== 0) {
+    const t = y;
+    y = x % y;
+    x = t;
+  }
+  return x;
+}
+
+/**
+ * Sniff insertSpaces and the indent unit from content. Walks the buffer once:
+ * the first indented line decides spaces vs tabs; for space indents, the GCD
+ * of all space-indent widths gives the stride (2/4/6 file reports 2).
+ */
+function detectIndentFromContent(
+  content: string,
+): { tabSize?: number; insertSpaces?: boolean } {
+  if (content.length === 0) return {};
+  let insertSpaces: boolean | undefined;
+  let unit = 0;
+  for (const line of content.split("\n")) {
+    if (line.length === 0 || line.trim().length === 0) continue;
+    const first = line[0];
+    if (first !== " " && first !== "\t") continue;
+    if (insertSpaces === undefined) insertSpaces = first === " ";
+    if (first === "\t") continue;
+    let n = 0;
+    while (n < line.length && line[n] === " ") n++;
+    if (n === 0) continue;
+    unit = unit === 0 ? n : gcd(unit, n);
+  }
+  const result: { tabSize?: number; insertSpaces?: boolean } = {};
+  if (insertSpaces !== undefined) result.insertSpaces = insertSpaces;
+  if (unit > 0 && insertSpaces === true) result.tabSize = unit;
+  return result;
+}
+
+/** Minimal .editorconfig reader: walks up for the nearest file, honors
+ *  `root`, reads indent_style / indent_size / tab_width for `*` sections. */
+function getEditorConfigFormatting(
+  filePath: string,
+): { tabSize?: number; insertSpaces?: boolean } {
+  const startDir = path.dirname(filePath);
+  let dir = startDir;
+  for (;;) {
+    const cfgPath = path.join(dir, ".editorconfig");
+    if (fs.existsSync(cfgPath)) {
+      try {
+        const text = fs.readFileSync(cfgPath, "utf-8");
+        let root = false;
+        let style: string | undefined;
+        let size: number | undefined;
+        let width: number | undefined;
+        for (const raw of text.split(/\r?\n/)) {
+          const line = raw.trim();
+          if (!line || line.startsWith("#") || line.startsWith(";")) continue;
+          if (line.startsWith("[")) continue;
+          const eq = line.indexOf("=");
+          if (eq === -1) continue;
+          const key = line.slice(0, eq).trim();
+          const value = line.slice(eq + 1).trim();
+          if (key === "root" && value === "true") root = true;
+          if (key === "indent_style") style = value;
+          if (key === "indent_size") {
+            const n = Number(value);
+            if (Number.isFinite(n) && n > 0) size = n;
+          }
+          if (key === "tab_width") {
+            const n = Number(value);
+            if (Number.isFinite(n) && n > 0) width = n;
+          }
+        }
+        const result: { tabSize?: number; insertSpaces?: boolean } = {};
+        if (style === "tab") {
+          result.insertSpaces = false;
+          result.tabSize = width ?? 4;
+        } else if (style === "space") {
+          result.insertSpaces = true;
+          result.tabSize = size ?? 2;
+        } else if (size !== undefined) {
+          result.tabSize = size;
+        }
+        return result;
+      } catch {
+        return {};
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return {};
+    dir = parent;
+  }
+}
+
+/** Resolve LSP FormattingOptions for a file about to be formatted. */
+function resolveFormatOptions(
+  filePath: string,
+  content: string,
+): { tabSize: number; insertSpaces: boolean } {
+  const fromConfig = getEditorConfigFormatting(filePath);
+  const detected = detectIndentFromContent(content);
+  return {
+    tabSize: fromConfig.tabSize ?? detected.tabSize ?? 2,
+    insertSpaces: fromConfig.insertSpaces ?? detected.insertSpaces ?? true,
+  };
+}
+
+function formatOnWriteEnabled(): boolean {
+  const v = process.env.PI_LSP_FORMAT_ON_WRITE;
+  return v === "1" || v === "true" || v === "on";
+}
+
+/** Format a file via its primary server and write the result back to disk.
+ *  Returns the number of edits applied, or 0 when nothing changed. */
+async function formatFileWithLsp(
+  cwd: string,
+  absPath: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<number> {
+  const serverRoot = getServerRootForFile(cwd, absPath);
+  const server = getPrimaryServerForFile(serverRoot, absPath);
+  if (!server) return 0;
+  const client = await getOrCreateServer(server.name, server.config, serverRoot);
+  const content = fs.readFileSync(absPath, "utf-8");
+  client.syncFile(absPath);
+  const options = resolveFormatOptions(absPath, content);
+  const edits = await client.request<TextEdit[] | null>(
+    "textDocument/formatting",
+    { textDocument: { uri: fileToUri(absPath) }, options },
+    timeoutMs,
+    signal,
+  );
+  if (!edits?.length) return 0;
+  const formatted = applyTextEditsToContent(content, edits);
+  if (formatted === content) return 0;
+  fs.writeFileSync(absPath, formatted);
+  client.syncFile(absPath);
+  return edits.length;
+}
+
+// ── Diagnostics ledger (dedupe) ─────────────────────────────
+// Learned from OMP lsp/diagnostics-ledger.ts: consecutive edits of the same
+// file re-report the same errors; the ledger tracks which diagnostic
+// identities were already shown and only surfaces fresh ones.
+
+/** Strip a leading `path:line:col` prefix so the same error at the same
+ *  location after an edit still counts as "seen". */
+function diagnosticIdentity(message: string): string {
+  // formatDiag renders positions as `L<line>:<col>` — tolerate the L prefix.
+  return message.replace(/^.*?:\s*L?\d+:\d+\s+/, "");
+}
+
+class DiagnosticsLedger {
+  #seen = new Map<string, Set<string>>();
+
+  /** Returns only messages not previously reported for this file. */
+  reduce(absPath: string, messages: string[]): string[] {
+    const previous = this.#seen.get(absPath);
+    const currentIdentities = new Set<string>();
+    const fresh: string[] = [];
+    for (const message of messages) {
+      const identity = diagnosticIdentity(message);
+      currentIdentities.add(identity);
+      if (!previous?.has(identity)) fresh.push(message);
+    }
+    if (currentIdentities.size === 0) {
+      this.#seen.delete(absPath); // clean file: forget history
+    } else {
+      this.#seen.set(absPath, currentIdentities);
+    }
+    return fresh;
+  }
+
+  reset(absPath: string): void {
+    this.#seen.delete(absPath);
+  }
+}
+
+const diagnosticsLedger = new DiagnosticsLedger();
+
+function diagnosticsDeduplicateEnabled(): boolean {
+  const v = process.env.PI_LSP_DIAGNOSTICS_DEDUPLICATE;
+  if (v === "0" || v === "false" || v === "off") return false;
+  return true;
+}
+
+// ── On-demand server install ─────────────────────────────────
+// Learned from opencode lsp/server.ts: when a matched server's command is
+// missing, install it at runtime instead of failing. defaults.json carries
+// `install` metadata ({type, package}); PI_LSP_DISABLE_DOWNLOAD=1 opts out.
+
+function downloadEnabled(): boolean {
+  return process.env.PI_LSP_DISABLE_DOWNLOAD !== "1";
+}
+
+/** In-flight installs per server name — dedupe concurrent attempts. */
+const pendingInstalls = new Map<string, Promise<string | null>>();
+
+/** Install a server per its `install` metadata; resolves to the installed
+ *  command path (same name as the command) or null on failure. */
+async function installServer(
+  name: string,
+  config: ServerConfig,
+  cwd: string,
+): Promise<string | null> {
+  const inst = config.install;
+  if (!inst?.type || !inst.package) return null;
+  const inflight = pendingInstalls.get(name);
+  if (inflight) return inflight;
+
+  const promise = (async (): Promise<string | null> => {
+    const installCmd: string[] | null =
+      inst.type === "npm"
+        ? ["npm", "install", "-g", inst.package]
+        : inst.type === "pip"
+          ? ["pip3", "install", "--user", inst.package]
+          : inst.type === "go"
+            ? ["go", "install", inst.package]
+            : inst.type === "rustup"
+              ? ["rustup", "component", "add", inst.package]
+              : inst.type === "cargo"
+                ? ["cargo", "install", inst.package]
+                : inst.type === "brew"
+                  ? ["brew", "install", inst.package]
+                  : null;
+    if (!installCmd) return null;
+    try {
+      const { code } = await execCollect(installCmd, {
+        cwd,
+        timeoutMs: 300_000,
+      });
+      if (code !== 0) return null;
+      // Re-resolve the command after install (node_modules/.bin, PATH…).
+      return which(config.command, cwd);
+    } catch {
+      return null;
+    }
+  })();
+
+  pendingInstalls.set(name, promise);
+  promise.finally(() => {
+    if (pendingInstalls.get(name) === promise) pendingInstalls.delete(name);
+  });
+  return promise;
 }
 
 // ── Extension ──────────────────────────────────────────────────
@@ -1644,6 +2611,50 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         const fileRel = path.relative(cwd, absPath) || params.file;
 
         if (action === "diagnostics") {
+          // file == "*": workspace-wide subprocess diagnostics (cargo check /
+          // tsc --noEmit / go build / pyright) — the CI signal without LSP.
+          if (params.file === "*") {
+            const ws = await runWorkspaceDiagnostics(
+              cwd,
+              Math.min(timeoutMs, 60_000),
+              abort,
+            );
+            return ok(
+              `Workspace diagnostics — ${ws.projectType}\n${ws.output}`,
+              { workspace: true, command: ws.command?.join(" ") ?? null },
+            );
+          }
+          // Directory or glob: aggregate per-file diagnostics.
+          const expanded = expandDiagnosticsTargets(cwd, params.file);
+          if (expanded) {
+            const lines: string[] = [];
+            let total = 0;
+            const servers = new Set<string>();
+            for (const f of expanded) {
+              const r = await collectDiagnosticsForFile(
+                cwd,
+                f,
+                Math.min(timeoutMs, 8_000),
+                abort,
+                false,
+              );
+              if (r.text) {
+                lines.push(r.text);
+                total += r.count;
+                for (const sv of r.servers) servers.add(sv);
+              }
+            }
+            if (!lines.length)
+              return ok(`No diagnostics for ${params.file}`);
+            const truncated =
+              lines.length > MAX_GLOB_DIAGNOSTIC_TARGETS
+                ? lines.slice(0, MAX_GLOB_DIAGNOSTIC_TARGETS)
+                : lines;
+            return ok(
+              `Diagnostics for ${params.file} (${expanded.length} file(s), ${total} issue(s)) [${[...servers].join(", ")}]\n${truncated.join("\n")}`,
+              { count: total, files: expanded.length },
+            );
+          }
           const result = await collectDiagnosticsForFile(
             cwd,
             absPath,
@@ -1673,6 +2684,16 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           NAV_ACTIONS.has(action) ||
           action === "rename" ||
           action === "code_actions";
+        // Project-load awareness (learned from OMP): navigation requests made
+        // before the server finishes loading the project can return false
+        // negatives (rust-analyzer cold-start can take tens of seconds).
+        // The $/progress tracker resolves once loading is done; the 15s
+        // fallback timer bounds the wait, and failures never block.
+        if (NAV_ACTIONS.has(action)) {
+          await client
+            .waitForProjectLoaded(timeoutMs, abort)
+            .catch(() => {});
+        }
         if (needPos && (typeof params.line !== "number" || params.line < 1)) {
           throw new Error(`'line' (1-indexed) required for ${action}`);
         }
@@ -1928,6 +2949,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
   // ── Footer status ─────────────────────────────────
   pi.on("session_start", async (_event, ctx) => {
     setStatusReporter(() => updateFooterStatus(ctx));
+    startIdleSweeper();
     updateFooterStatus(ctx);
     // Custom footer: keep the built-in layout but right-align the `lsp`
     // status while other extension statuses (usage, …) stay left-aligned.
@@ -2037,16 +3059,35 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
       return;
 
     try {
-      const { text, count } = await collectDiagnosticsForFile(
+      // Format-on-write (default off, PI_LSP_FORMAT_ON_WRITE=1): normalize the
+      // file before diagnostics so reported errors match final content.
+      let formatNote = "";
+      if (formatOnWriteEnabled()) {
+        try {
+          const edits = await formatFileWithLsp(ctx.cwd, absPath, 8_000);
+          if (edits > 0)
+            formatNote = `\n[lsp] auto-formatted (${edits} edit(s))`;
+        } catch {
+          /* formatting is best-effort */
+        }
+      }
+      const result = await collectDiagnosticsForFile(
         ctx.cwd,
         absPath,
         6_000,
         undefined,
         true, // errors only for automatic feedback
       );
-      if (!text) return;
-      const suffix = count > 0 ? `\n\n[lsp diagnostics]\n${text}` : ""; // stay quiet on clean files to save tokens
-      if (!suffix) return;
+      // Dedupe ledger (OMP-style): consecutive edits of the same file must
+      // not re-report the same errors. Clean files reset the history.
+      let lines = result.lines;
+      if (diagnosticsDeduplicateEnabled()) {
+        lines = diagnosticsLedger.reduce(absPath, result.lines);
+      }
+      if (lines.length === 0 && !formatNote) return; // quiet: nothing new
+      const header = result.text.split("\n")[0];
+      const body = lines.length ? `\n${lines.join("\n")}` : "";
+      const suffix = `\n\n[lsp diagnostics]\n${header}${body}${formatNote}`;
 
       const updated = [...content];
       const firstText = updated.findIndex((c) => c.type === "text");
@@ -2066,6 +3107,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
   });
 
   pi.on("session_shutdown", async () => {
+    stopIdleSweeper();
     setStatusReporter(undefined);
     for (const srv of activeServers.values()) {
       try {
@@ -2106,6 +3148,22 @@ export const __test__ = {
   getServerRootForFile,
   findServersInSubprojects,
   prewarmServer,
+  sweepIdleServers,
+  idleTimeoutMs,
+  detectIndentFromContent,
+  getEditorConfigFormatting,
+  resolveFormatOptions,
+  formatOnWriteEnabled,
+  diagnosticIdentity,
+  DiagnosticsLedger,
+  diagnosticsDeduplicateEnabled,
+  downloadEnabled,
+  expandDiagnosticsTargets,
+  globToRegExp,
+  runWorkspaceDiagnostics,
+  detectProjectType,
+  formatFileWithLsp,
+  installServer,
   resetManager(): void {
     activeServers.clear();
     brokenServers.clear();

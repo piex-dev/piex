@@ -32,6 +32,20 @@ const {
   getServerRootForFile,
   findServersInSubprojects,
   prewarmServer,
+  sweepIdleServers,
+  idleTimeoutMs,
+  detectIndentFromContent,
+  getEditorConfigFormatting,
+  resolveFormatOptions,
+  formatOnWriteEnabled,
+  diagnosticIdentity,
+  DiagnosticsLedger,
+  diagnosticsDeduplicateEnabled,
+  downloadEnabled,
+  expandDiagnosticsTargets,
+  globToRegExp,
+  runWorkspaceDiagnostics,
+  detectProjectType,
   resetManager,
 } = __test__;
 
@@ -311,6 +325,29 @@ describe("getOrCreateServer with mock via custom config", () => {
     await client.shutdown();
     resetManager();
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("collectDiagnosticsForFile falls back to push when pull fails", async () => {
+    resetManager();
+    const prev = process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND;
+    process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND =
+      `${process.execPath} ${MOCK} --stdio --fail-pull`;
+    try {
+      const dir = tmpDir();
+      fs.writeFileSync(path.join(dir, "package.json"), "{}");
+      const f = path.join(dir, "x.ts");
+      fs.writeFileSync(f, "const x = ERROR_HERE;\n");
+      const result = await collectDiagnosticsForFile(dir, f, 5000, undefined, true);
+      expect(result.count).toBeGreaterThan(0);
+      expect(result.text).toContain("error");
+    } finally {
+      if (prev === undefined) {
+        delete process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND;
+      } else {
+        process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND = prev;
+      }
+      resetManager();
+    }
   });
 });
 
@@ -798,4 +835,489 @@ describe("read prewarming (opencode-style)", () => {
     resetManager();
     fs.rmSync(dir, { recursive: true, force: true });
   });
+
+describe("0.5.0: pull diagnostics (opencode-style full pull)", () => {
+  let dir: string;
+  let client: InstanceType<typeof LspClient>;
+
+  beforeEach(async () => {
+    resetManager();
+    dir = tmpDir();
+    client = LspClient.spawn(process.execPath, [MOCK], dir);
+    await client.initialize(fileToUri(dir), { initializationOptions: { mock: true } });
+  });
+
+  afterEach(async () => {
+    try { await client.shutdown(); } catch { /* ok */ }
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("static diagnosticProvider → supportsPullDiagnostics + pull returns errors", async () => {
+    expect(client.supportsPullDiagnostics()).toBe(true);
+    const f = path.join(dir, "pull.ts");
+    fs.writeFileSync(f, "const x = ERROR_HERE;\n");
+    client.syncFile(f, "typescript");
+    const uri = fileToUri(f);
+    const { items, matched } = await client.pullDiagnostics(uri, 3000);
+    expect(matched).toBe(true);
+    expect(items.some((d) => d.message.includes("mock error"))).toBe(true);
+  });
+
+  test("clean file pull: matched with zero items", async () => {
+    const f = path.join(dir, "clean-pull.ts");
+    fs.writeFileSync(f, "const ok = 1;\n");
+    client.syncFile(f, "typescript");
+    const { items, matched } = await client.pullDiagnostics(fileToUri(f), 3000);
+    expect(matched).toBe(true);
+    expect(items.length).toBe(0);
+  });
+
+  test("relatedDocuments surface dependent-file errors", async () => {
+    const f = path.join(dir, "rel.ts");
+    fs.writeFileSync(f, "RELATED_HERE\n");
+    client.syncFile(f, "typescript");
+    const uri = fileToUri(f);
+    const { items, matched } = await client.pullDiagnostics(uri, 3000);
+    expect(matched).toBe(true);
+    // dependent file diagnostics merged into the shared cache
+    const depUri = uri.replace(/\.\w+$/, "") + "-dep.ts";
+    const dep = client.getDiagnostics(depUri);
+    expect(dep.some((d) => d.message.includes("mock error"))).toBe(true);
+    expect(items.length).toBe(0); // current file itself is clean
+  });
+});
+
+describe("0.5.0: dynamic capability registration", () => {
+  let dir: string;
+  let client: InstanceType<typeof LspClient>;
+
+  beforeEach(async () => {
+    resetManager();
+    dir = tmpDir();
+    client = LspClient.spawn(process.execPath, [MOCK, "--dynamic-diag"], dir);
+    await client.initialize(fileToUri(dir), { initializationOptions: { mock: true } });
+  });
+
+  afterEach(async () => {
+    try { await client.shutdown(); } catch { /* ok */ }
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("no static provider; registration flips supportsPullDiagnostics", async () => {
+    // tsserver-style: capabilities arrive only after client/registerCapability
+    expect(client.supportsPullDiagnostics()).toBe(false);
+    const changed = await client.waitForRegistrationChange(3000);
+    expect(changed).toBe(true);
+    expect(client.supportsPullDiagnostics()).toBe(true);
+    expect(client.supportsWorkspacePullDiagnostics()).toBe(true);
+  });
+
+  test("identifier pulls work after dynamic registration", async () => {
+    await client.waitForRegistrationChange(3000);
+    const f = path.join(dir, "dyn.ts");
+    fs.writeFileSync(f, "const x = ERROR_HERE;\n");
+    client.syncFile(f, "typescript");
+    const { items, matched } = await client.pullDiagnostics(fileToUri(f), 3000);
+    expect(matched).toBe(true);
+    expect(items.some((d) => d.message.includes("mock error"))).toBe(true);
+  });
+});
+
+describe("0.5.0: $/progress project-load tracking", () => {
+  let dir: string;
+  let client: InstanceType<typeof LspClient>;
+
+  beforeEach(async () => {
+    resetManager();
+    dir = tmpDir();
+    client = LspClient.spawn(process.execPath, [MOCK, "--progress"], dir);
+    await client.initialize(fileToUri(dir), { initializationOptions: { mock: true } });
+  });
+
+  afterEach(async () => {
+    try { await client.shutdown(); } catch { /* ok */ }
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("waitForProjectLoaded resolves when begin/end complete", async () => {
+    // server sends begin ~100ms after initialized, end ~300ms later
+    const start = Date.now();
+    await client.waitForProjectLoaded(10_000);
+    const elapsed = Date.now() - start;
+    expect(elapsed).toBeGreaterThanOrEqual(300);
+    expect(elapsed).toBeLessThan(5_000);
+  });
+
+});
+
+describe("0.5.0: idle reaping", () => {
+  test("sweepIdleServers reaps idle servers and keeps active ones", async () => {
+    resetManager();
+    const prev = process.env.PI_LSP_IDLE_TIMEOUT_MS;
+    process.env.PI_LSP_IDLE_TIMEOUT_MS = "50"; // 50ms idle budget
+    try {
+      const dir = tmpDir();
+      const f = path.join(dir, "idle.ts");
+      fs.writeFileSync(f, "const x = 1;\n");
+      const client = await getOrCreateServer(
+        "mock",
+        { command: process.execPath, args: [MOCK], fileTypes: [".ts"], rootMarkers: [] },
+        dir,
+      );
+      client.syncFile(f);
+      // Freshly active: must survive the sweep.
+      __test__.sweepIdleServers();
+      expect(__test__.getActiveCount()).toBe(1);
+      expect(client.alive).toBe(true);
+      // Idle past the budget: reaped.
+      await new Promise((r) => setTimeout(r, 120));
+      __test__.sweepIdleServers();
+      expect(__test__.getActiveCount()).toBe(0);
+      // shutdown() is fire-and-forget inside the sweep; give it a beat
+      await new Promise((r) => setTimeout(r, 150));
+      expect(client.alive).toBe(false);
+      fs.rmSync(dir, { recursive: true, force: true });
+    } finally {
+      if (prev === undefined) delete process.env.PI_LSP_IDLE_TIMEOUT_MS;
+      else process.env.PI_LSP_IDLE_TIMEOUT_MS = prev;
+      resetManager();
+    }
+  });
+
+  test("idleTimeoutMs: env override and disabled via 0", () => {
+    const prev = process.env.PI_LSP_IDLE_TIMEOUT_MS;
+    try {
+      delete process.env.PI_LSP_IDLE_TIMEOUT_MS;
+      expect(__test__.idleTimeoutMs()).toBe(30 * 60 * 1000);
+      process.env.PI_LSP_IDLE_TIMEOUT_MS = "0";
+      expect(__test__.idleTimeoutMs()).toBe(0);
+      process.env.PI_LSP_IDLE_TIMEOUT_MS = "120000";
+      expect(__test__.idleTimeoutMs()).toBe(120_000);
+      process.env.PI_LSP_IDLE_TIMEOUT_MS = "garbage";
+      expect(__test__.idleTimeoutMs()).toBe(30 * 60 * 1000);
+    } finally {
+      if (prev === undefined) delete process.env.PI_LSP_IDLE_TIMEOUT_MS;
+      else process.env.PI_LSP_IDLE_TIMEOUT_MS = prev;
+    }
+  });
+});
+
+describe("0.6.0: indent detection & FormattingOptions", () => {
+  test("detectIndentFromContent: 2-space, 4-space, tab, GCD", () => {
+    expect(detectIndentFromContent("")).toEqual({});
+    expect(detectIndentFromContent("a\n  b\n    c\n")).toEqual({
+      insertSpaces: true,
+      tabSize: 2,
+    });
+    expect(detectIndentFromContent("a\n    b\n        c\n")).toEqual({
+      insertSpaces: true,
+      tabSize: 4,
+    });
+    // mixed 2/4/6 → GCD 2
+    expect(detectIndentFromContent("a\n  b\n    c\n      d\n")).toEqual({
+      insertSpaces: true,
+      tabSize: 2,
+    });
+    expect(detectIndentFromContent("a\n\tb\n\t\tc\n")).toEqual({
+      insertSpaces: false,
+    });
+    // blank lines carry no signal
+    expect(detectIndentFromContent("\n\n  x\n")).toEqual({
+      insertSpaces: true,
+      tabSize: 2,
+    });
+  });
+
+  test("getEditorConfigFormatting reads nearest .editorconfig", () => {
+    const dir = tmpDir();
+    fs.writeFileSync(
+      path.join(dir, ".editorconfig"),
+      "root = true\n[*]\nindent_style = space\nindent_size = 4\n",
+    );
+    const f = path.join(dir, "src", "a.ts");
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    expect(getEditorConfigFormatting(f)).toEqual({
+      insertSpaces: true,
+      tabSize: 4,
+    });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("resolveFormatOptions: editorconfig wins over sniffing", () => {
+    const dir = tmpDir();
+    fs.writeFileSync(path.join(dir, ".editorconfig"), "[*]\nindent_style = tab\n");
+    const f = path.join(dir, "a.py");
+    const opts = resolveFormatOptions(f, "x\n  y\n");
+    expect(opts).toEqual({ tabSize: 4, insertSpaces: false });
+    // no editorconfig → sniffing
+    const bare = path.join(tmpDir(), "b.py");
+    expect(resolveFormatOptions(bare, "x\n  y\n")).toEqual({
+      tabSize: 2,
+      insertSpaces: true,
+    });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("formatOnWriteEnabled env toggle", () => {
+    const prev = process.env.PI_LSP_FORMAT_ON_WRITE;
+    delete process.env.PI_LSP_FORMAT_ON_WRITE;
+    expect(formatOnWriteEnabled()).toBe(false);
+    process.env.PI_LSP_FORMAT_ON_WRITE = "1";
+    expect(formatOnWriteEnabled()).toBe(true);
+    if (prev === undefined) delete process.env.PI_LSP_FORMAT_ON_WRITE;
+    else process.env.PI_LSP_FORMAT_ON_WRITE = prev;
+  });
+});
+
+describe("0.6.0: diagnostics ledger dedupe", () => {
+  test("diagnosticIdentity strips location prefix", () => {
+    expect(diagnosticIdentity("/proj/a.ts:L3:1 error [ts] msg")).toBe(
+      "error [ts] msg",
+    );
+    expect(diagnosticIdentity("a.ts:L1:1 error msg")).toBe("error msg");
+    expect(diagnosticIdentity("no prefix here")).toBe("no prefix here");
+  });
+
+  test("reduce reports fresh errors once, resets on clean", () => {
+    const ledger = new DiagnosticsLedger();
+    const f = "/proj/a.ts";
+    const err = (n: number) => `a.ts:L${n}:1 error [ts] err${n}`;
+    // first report: everything is fresh
+    expect(ledger.reduce(f, [err(1), err(2)])).toEqual([err(1), err(2)]);
+    // same identities again: nothing fresh
+    expect(ledger.reduce(f, [err(1), err(2)])).toEqual([]);
+    // new error alongside seen ones: only the new one
+    expect(ledger.reduce(f, [err(1), err(3)])).toEqual([err(3)]);
+    // clean file resets history
+    expect(ledger.reduce(f, [])).toEqual([]);
+    expect(ledger.reduce(f, [err(1)])).toEqual([err(1)]);
+  });
+});
+
+describe("0.6.0: diagnostics target expansion", () => {
+  test("globToRegExp: * single segment, ** crosses", () => {
+    expect(globToRegExp("src/*.ts").test("src/a.ts")).toBe(true);
+    expect(globToRegExp("src/*.ts").test("src/sub/a.ts")).toBe(false);
+    expect(globToRegExp("src/**/*.ts").test("src/sub/a.ts")).toBe(true);
+    expect(globToRegExp("src/**/*.ts").test("src/a.ts")).toBe(true);
+    expect(globToRegExp("*.ts").test("a.ts")).toBe(true);
+    expect(globToRegExp("*.ts").test("src/a.ts")).toBe(false);
+  });
+
+  test("expandDiagnosticsTargets: directory walk & glob", () => {
+    const dir = tmpDir();
+    fs.mkdirSync(path.join(dir, "src"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "node_modules", "pkg"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "src", "a.ts"), "x");
+    fs.writeFileSync(path.join(dir, "src", "b.ts"), "x");
+    fs.writeFileSync(path.join(dir, "node_modules", "pkg", "c.ts"), "x");
+    fs.writeFileSync(path.join(dir, "README.md"), "x");
+    // directory → all files except vendored dirs
+    const fromDir = expandDiagnosticsTargets(dir, "src");
+    expect(fromDir?.length).toBe(2);
+    // glob → cwd-relative match
+    const fromGlob = expandDiagnosticsTargets(dir, "src/*.ts");
+    expect(fromGlob?.length).toBe(2);
+    // single file → null (existing path handles it)
+    expect(expandDiagnosticsTargets(dir, "src/a.ts")).toBeNull();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("0.6.0: workspace subprocess diagnostics", () => {
+  test("detectProjectType routes by root markers", async () => {
+    const dir = tmpDir();
+    fs.writeFileSync(path.join(dir, "Cargo.toml"), "[package]\n");
+    const rust = await detectProjectType(dir, 3000);
+    expect(rust.type).toBe("rust");
+    expect(rust.command).toEqual(["cargo", "check", "--message-format=short"]);
+    fs.rmSync(dir, { recursive: true, force: true });
+
+    const tsDir = tmpDir();
+    fs.writeFileSync(path.join(tsDir, "tsconfig.json"), "{}");
+    const ts = await detectProjectType(tsDir, 3000);
+    expect(ts.type).toBe("typescript");
+    expect(ts.command).toEqual(["npx", "tsc", "--noEmit"]);
+    fs.rmSync(tsDir, { recursive: true, force: true });
+
+    const bare = tmpDir();
+    const none = await detectProjectType(bare, 3000);
+    expect(none.type).toBe("unknown");
+    expect(none.command).toBeNull();
+    fs.rmSync(bare, { recursive: true, force: true });
+  });
+
+  test("runWorkspaceDiagnostics: unknown project reports guidance", async () => {
+    const dir = tmpDir();
+    const res = await runWorkspaceDiagnostics(dir, 5000);
+    expect(res.command).toBeNull();
+    expect(res.output).toContain("Cannot detect project type");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("0.6.0: install metadata & download gate", () => {
+  test("defaults.json carries install metadata for core servers", () => {
+    const d = loadDefaults();
+    expect(
+      (d["typescript-language-server"] as Record<string, unknown>)?.install,
+    ).toEqual({ type: "npm", package: "typescript-language-server" });
+    expect(
+      (d["rust-analyzer"] as Record<string, unknown>)?.install,
+    ).toEqual({ type: "rustup", package: "rust-analyzer" });
+    expect(
+      (d["gopls"] as Record<string, unknown>)?.install,
+    ).toEqual({ type: "go", package: "golang.org/x/tools/gopls@latest" });
+  });
+
+  test("downloadEnabled respects PI_LSP_DISABLE_DOWNLOAD", () => {
+    const prev = process.env.PI_LSP_DISABLE_DOWNLOAD;
+    delete process.env.PI_LSP_DISABLE_DOWNLOAD;
+    expect(downloadEnabled()).toBe(true);
+    process.env.PI_LSP_DISABLE_DOWNLOAD = "1";
+    expect(downloadEnabled()).toBe(false);
+    if (prev === undefined) delete process.env.PI_LSP_DISABLE_DOWNLOAD;
+    else process.env.PI_LSP_DISABLE_DOWNLOAD = prev;
+  });
+
+  test("diagnosticsDeduplicateEnabled default on, toggleable", () => {
+    const prev = process.env.PI_LSP_DIAGNOSTICS_DEDUPLICATE;
+    delete process.env.PI_LSP_DIAGNOSTICS_DEDUPLICATE;
+    expect(diagnosticsDeduplicateEnabled()).toBe(true);
+    process.env.PI_LSP_DIAGNOSTICS_DEDUPLICATE = "0";
+    expect(diagnosticsDeduplicateEnabled()).toBe(false);
+    if (prev === undefined) delete process.env.PI_LSP_DIAGNOSTICS_DEDUPLICATE;
+    else process.env.PI_LSP_DIAGNOSTICS_DEDUPLICATE = prev;
+  });
+});
+
+describe("0.6.0: format-on-write end-to-end", () => {
+  const withMockOverride = async <T>(fn: (dir: string) => Promise<T>): Promise<T> => {
+    resetManager();
+    const prev = process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND;
+    process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND =
+      `${process.execPath} ${MOCK} --stdio`;
+    try {
+      const dir = tmpDir();
+      fs.writeFileSync(path.join(dir, "package.json"), "{}");
+      const result = await fn(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
+      return result;
+    } finally {
+      if (prev === undefined) {
+        delete process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND;
+      } else {
+        process.env.PI_TYPESCRIPT_LANGUAGE_SERVER_LSP_COMMAND = prev;
+      }
+      resetManager();
+    }
+  };
+
+  test("formatFileWithLsp applies server edits to disk", async () => {
+    await withMockOverride(async (dir) => {
+      const f = path.join(dir, "fmt.ts");
+      fs.writeFileSync(f, "const x = 1;\n");
+      const edits = await __test__.formatFileWithLsp(dir, f, 5000);
+      expect(edits).toBeGreaterThan(0);
+      expect(fs.readFileSync(f, "utf-8")).toContain("// formatted");
+    });
+  });
+
+  test("formatFileWithLsp returns 0 when no server matches", async () => {
+    resetManager();
+    const dir = tmpDir(); // no markers → no server routed
+    const f = path.join(dir, "x.ts");
+    fs.writeFileSync(f, "const x = 1;\n");
+    const edits = await __test__.formatFileWithLsp(dir, f, 2000);
+    expect(edits).toBe(0);
+    expect(fs.readFileSync(f, "utf-8")).toBe("const x = 1;\n");
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("review fixes: glob ?, go.work argv, pull fallback", () => {
+  test("globToRegExp: ? matches a single character", () => {
+    expect(globToRegExp("src/?.ts").test("src/a.ts")).toBe(true);
+    expect(globToRegExp("src/?.ts").test("src/ab.ts")).toBe(false);
+    expect(globToRegExp("src/?.ts").test("src/sub/a.ts")).toBe(false);
+  });
+
+  test("pull matched=false falls back to push settle (no false-clean)", async () => {
+    resetManager();
+    const dir = tmpDir();
+    const f = path.join(dir, "fb.ts");
+    fs.writeFileSync(f, "const x = ERROR_HERE;\n");
+    const client = LspClient.spawn(
+      process.execPath,
+      [MOCK, "--fail-pull"],
+      dir,
+    );
+    await client.initialize(fileToUri(dir), { initializationOptions: { mock: true } });
+    client.syncFile(f, "typescript");
+    const uri = fileToUri(f);
+    // static diagnosticProvider advertised → pull attempted, server rejects,
+    // matched=false → push settle must still surface the error
+    expect(client.supportsPullDiagnostics()).toBe(true);
+    const { items, matched } = await client.pullDiagnostics(uri, 3000);
+    expect(matched).toBe(false);
+    expect(items.length).toBe(0); // pull returned nothing
+    // fallback path used by collectDiagnosticsForFile:
+    const pushed = await client.waitForDiagnostics(uri, 3000);
+    expect(pushed.diagnostics.some((d) => d.message.includes("mock error"))).toBe(true);
+    await client.shutdown();
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("push/pull cache split (opencode-style)", () => {
+  test("push and pull diagnostics merge without clobbering each other", async () => {
+    resetManager();
+    const dir = tmpDir();
+    const f = path.join(dir, "split.ts");
+    fs.writeFileSync(f, "const x = ERROR_HERE;\n");
+    const client = LspClient.spawn(process.execPath, [MOCK], dir);
+    await client.initialize(fileToUri(dir), { initializationOptions: { mock: true } });
+    client.syncFile(f, "typescript");
+    const uri = fileToUri(f);
+    // push: mock publishes after didOpen
+    const pushed = await client.waitForDiagnostics(uri, 3000);
+    expect(pushed.diagnostics.length).toBe(1);
+    // pull: same file returns the same error, relatedDocuments adds a dep file
+    const pulled = await client.pullDiagnostics(uri, 3000);
+    expect(pulled.matched).toBe(true);
+    // merged: same diagnostic must not appear twice
+    const merged = client.getDiagnostics(uri);
+    expect(merged.length).toBe(1);
+    await client.shutdown();
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("pull cache is cleared on content change (stale results dropped)", async () => {
+    resetManager();
+    const dir = tmpDir();
+    const f = path.join(dir, "stale.ts");
+    fs.writeFileSync(f, "const x = ERROR_HERE;\n");
+    const client = LspClient.spawn(process.execPath, [MOCK], dir);
+    await client.initialize(fileToUri(dir), { initializationOptions: { mock: true } });
+    client.syncFile(f, "typescript");
+    const uri = fileToUri(f);
+    await client.pullDiagnostics(uri, 3000);
+    expect(client.getDiagnostics(uri).length).toBe(1);
+    // edit the file to clean content: pull cache must be dropped
+    fs.writeFileSync(f, "const ok = 1;\n");
+    client.syncFile(f, "typescript");
+    // wait for the new push (empty) to settle
+    const { diagnostics } = await client.waitForDiagnostics(uri, 3000);
+    expect(diagnostics.length).toBe(0);
+    await client.shutdown();
+    resetManager();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
 });

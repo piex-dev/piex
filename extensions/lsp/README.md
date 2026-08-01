@@ -7,11 +7,11 @@ LSP（Language Server Protocol）扩展：注册 `lsp` 工具，并在 `edit`/`w
 - **lsp 工具**：stdio JSON-RPC 客户端，按项目 rootMarkers 发现 server，会话内复用进程
 - **~50 个默认 server**（`defaults.json`）：typescript、rust-analyzer、gopls、pyright、clangd、biome/eslint（linter）等
 - **导航**：definition / type_definition / implementation / references / hover / symbols / workspace_symbols
-- **诊断**：单文件聚合多 server；relatedInformation；写后自动 ERROR 反馈；push 诊断静默期 settle（慢服务器先推空后推真，不会误报干净）；server 声明 `diagnosticProvider` 时改用 LSP 3.17 pull 诊断
+- **诊断**：单文件聚合多 server；relatedInformation；写后自动 ERROR 反馈；push 诊断静默期 settle（慢服务器先推空后推真，不会误报干净）；LSP 3.17 pull 诊断（relatedDocuments、并行 identifier、动态 capability 注册、workspace/diagnostic fallback）；诊断 ledger 去重（默认开，连续编辑不重复骚扰）；`file:"*"` workspace 子进程诊断（cargo check / tsc --noEmit / go build / pyright）；目录/glob 批量诊断
 - **重构**：rename（默认 preview）、code_actions（list / apply）
-- **格式化**：format（写回磁盘）
+- **格式化**：format（写回磁盘）；formatOnWrite（`PI_LSP_FORMAT_ON_WRITE=1`，`.editorconfig` → 内容缩进嗅探 → 2 空格 fallback）
 - **健壮性**：server stderr 捕获进错误消息；重叠 TextEdit 拒绝应用（防文件损坏）；Windows `.bat/.cmd` 经 `cmd.exe` 包装 spawn
-- **运维**：status / reload；`AbortSignal` 超时取消；`PI_<NAME>_LSP_COMMAND` 环境变量覆盖单 server 命令
+- **运维**：status / reload；`AbortSignal` 超时取消；`PI_<NAME>_LSP_COMMAND` 环境变量覆盖单 server 命令；按需自动下载（server 命令缺失时按 `install` 元数据安装：npm/pip/go/rustup/brew）；idle 空闲回收（`PI_LSP_IDLE_TIMEOUT_MS` 默认 30min，0=关）
 
 ## 使用说明
 
@@ -33,11 +33,16 @@ Python（pyright，pipx → uv → pip3）、Go（gopls，go install）、Rust�
   会自动探测全局 typescript 并注入 `tsserver.path`，workspace 有本地
   `node_modules/typescript` 时优先用本地的。
 
-关闭写后诊断（默认开启）：
+## 环境变量
 
-```bash
-export PI_LSP_DIAGNOSTICS_ON_EDIT=0
-```
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `PI_LSP_DIAGNOSTICS_ON_EDIT` | on | 写后自动附加 ERROR 诊断；`0` 关闭 |
+| `PI_LSP_DIAGNOSTICS_DEDUPLICATE` | on | 诊断 ledger 去重（同一错误不重复骚扰）；`0` 关闭 |
+| `PI_LSP_FORMAT_ON_WRITE` | off | 写后自动格式化（会改磁盘内容，需显式开启）；`1` 开启 |
+| `PI_LSP_DISABLE_DOWNLOAD` | off | 关闭按需自动下载缺失的 language server；`1` 关闭 |
+| `PI_LSP_IDLE_TIMEOUT_MS` | 1800000 | server 空闲回收阈值（30min）；`0` 关闭回收 |
+| `PI_<NAME>_LSP_COMMAND` | — | 覆盖单 server 启动命令（override 命令不触发自动下载） |
 
 ## Footer 状态
 
