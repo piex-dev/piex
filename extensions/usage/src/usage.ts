@@ -126,6 +126,7 @@ export default function usageExtension(pi: ExtensionAPI): void {
     latestCtx = ctx; // keep the poll/ticker on the freshest session's ui
     const adapter = adapterForProvider(provider);
     if (adapter === activeAdapter) {
+      activeProvider = provider;
       if (adapter) void refresh(ctx);
       return;
     }
@@ -148,8 +149,11 @@ export default function usageExtension(pi: ExtensionAPI): void {
   });
 
   // Refresh right after each turn so quota changes appear immediately.
+  // Re-derive the adapter from THIS session's model: pi runs multiple sessions
+  // in one process (/new, /resume, /fork) and module-level state is shared —
+  // reusing a stale adapter is how one session's quota ends up on another's bar.
   pi.on("turn_end", async (_event, ctx) => {
-    if (activeAdapter) void refresh(ctx as unknown as CtxLike);
+    activateFor(ctx.model?.provider, ctx as unknown as CtxLike);
   });
 
   const pollSeconds = Number(process.env.USAGE_POLL_SECONDS ?? 300);
@@ -175,3 +179,18 @@ export default function usageExtension(pi: ExtensionAPI): void {
     tickTimer = null;
   });
 }
+
+/** Test-only exports (not part of the public package API). */
+export const __test__ = {
+  reset(): void {
+    activeAdapter = null;
+    activeProvider = undefined;
+    activeSnapshot = null;
+    lastError = null;
+    latestCtx = null;
+    if (pollTimer) clearInterval(pollTimer);
+    if (tickTimer) clearInterval(tickTimer);
+    pollTimer = null;
+    tickTimer = null;
+  },
+};

@@ -34,6 +34,7 @@ Requires the provider credential configured in pi (`/login` → Kimi Code / xAI 
 ## How it works
 
 - **Model-gated display**: on `session_start` / `model_select` the extension checks `model.provider`; only providers with an adapter show quota, everything else clears the status bar.
+- **Multi-session safe**: pi runs several sessions in one process (`/new`, `/resume`, `/fork`). Module-level state is shared, so `turn_end` re-derives the adapter from the **current** session's model instead of reusing a stale one — one session's quota can never land on another session's bar (fixed in 0.1.1).
 - **Credential**: `ctx.modelRegistry.getProviderAuth(provider)` — resolves OAuth access tokens or API keys; pi auto-refreshes expired OAuth tokens.
 - **Refresh**: immediately after every turn (`turn_end`), plus a background poll (default 300s, `USAGE_POLL_SECONDS` to override) and a 30s local countdown ticker that re-renders without hitting the API.
 - **Resilience**: undocumented endpoints may change — a failed fetch shows `<label>: offline` and retries on the next cycle. xAI monthly unified billing (`USAGE_SHOW_XAI_MONTHLY=1`) is off by default — the official console does not show that figure.

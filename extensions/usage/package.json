@@ -1,6 +1,6 @@
 {
   "name": "@piex-dev/usage",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Real-time subscription quota in the pi status bar — Kimi For Coding and xAI Grok (SuperGrok), shown only for the active model's provider",
   "license": "MIT",
