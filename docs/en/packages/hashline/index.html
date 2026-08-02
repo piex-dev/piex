@@ -249,6 +249,7 @@ Phase 3    Undo · Auto/Raw Read · LSP integration · denser tests</code></pre>
           <table>
             <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
             <tbody>
+              <tr><td>0.1.3</td><td>2026-08-02</td><td>Auto-repair warnings now show the actual dropped lines (up to 3 lines, 80-char truncated preview); the update diff echo gains an "anchor on the new line numbers" next-edit hint; the tag mismatch message points back to this session's diff echo; WARN assertion tests added for every repair path (boundary echo, duplicate prefix/suffix)</td></tr>
               <tr><td>0.1.2</td><td>2026-07-25</td><td>Upgraded <code>@oh-my-pi/hashline</code> to ^17.1.3; auto-apply two upstream patches via <code>patch-package</code> + <code>postinstall</code> (<code>findDuplicateSuffix</code>/<code>findDuplicatePrefix</code> boundary echo false-positive fix, <code>import.meta.dir</code> Node 18 compatibility fix)</td></tr>
               <tr><td>0.1.1</td><td>2026-07-14</td><td>Initial release: wraps <code>@oh-my-pi/hashline</code>, overrides built-in edit; Phase 1 guards (Noop Loop / Duplicate Edit / dialect normalize); Node.js native FS + realpath path normalization</td></tr>
             </tbody>

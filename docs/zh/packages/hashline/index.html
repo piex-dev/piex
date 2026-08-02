@@ -249,6 +249,7 @@ Phase 3    Undo · Auto/Raw Read · LSP 联动 · 测试网</code></pre>
           <table>
             <thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead>
             <tbody>
+              <tr><td>0.1.3</td><td>2026-08-02</td><td>自动修复 WARN 列出被丢弃行的实际内容（最多 3 行、80 字符截断预览）；update 的 diff 回显追加「锚定新行号」提示；tag mismatch 消息提示复用本会话 diff 回显的新行号；补齐 boundary echo 与 duplicate prefix/suffix 各修复路径的 WARN 断言测试</td></tr>
               <tr><td>0.1.2</td><td>2026-07-25</td><td>升级 <code>@oh-my-pi/hashline</code> 至 ^17.1.3；通过 <code>patch-package</code> + <code>postinstall</code> 自动应用两个上游补丁（<code>findDuplicateSuffix</code>/<code>findDuplicatePrefix</code> 边界回显误判修复、<code>import.meta.dir</code> Node 18 兼容性修复）</td></tr>
               <tr><td>0.1.1</td><td>2026-07-14</td><td>初始版本：封装 <code>@oh-my-pi/hashline</code>，覆盖内置 edit；Phase 1 容错层（Noop Loop / Duplicate Edit / 方言归一化）；Node.js 原生 FS + realpath 路径规范化</td></tr>
             </tbody>

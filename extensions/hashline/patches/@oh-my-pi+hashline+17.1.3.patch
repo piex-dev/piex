@@ -1,4 +1,5 @@
 diff --git a/node_modules/@oh-my-pi/hashline/src/apply.ts b/node_modules/@oh-my-pi/hashline/src/apply.ts
+index eff2175..046a41c 100644
 --- a/node_modules/@oh-my-pi/hashline/src/apply.ts
 +++ b/node_modules/@oh-my-pi/hashline/src/apply.ts
 @@ -133,6 +133,12 @@ function bucketAnchorEditsByLine(edits: IndexedEdit[]): Map<number, IndexedEdit[
@@ -121,3 +122,94 @@ diff --git a/node_modules/@oh-my-pi/hashline/src/apply.ts b/node_modules/@oh-my-
  function findBoundaryEcho(group: ReplacementGroup, fileLines: readonly string[]): BoundaryEcho | undefined {
  	const leadingMax = countDuplicateLeadingBoundaryLines(group, fileLines);
  	if (leadingMax === 0) return undefined;
+@@ -677,11 +723,28 @@ function findBoundaryEcho(group: ReplacementGroup, fileLines: readonly string[])
+ 	return { leading: leadingMax, trailing: trailingMax };
+ }
+ 
++
++/** Preview of dropped payload lines (joined + truncated) so the model can judge whether the auto-repair was correct. */
++function formatDroppedLines(lines: readonly string[], maxLines = 3): string {
++	const shown = lines.slice(0, maxLines).map(l => {
++		const t = l.length > 80 ? l.slice(0, 77) + "…" : l;
++		return t.trim() === "" ? "‹blank›" : t;
++	}).join(" | ");
++	const more = lines.length > maxLines ? ` …(+${lines.length - maxLines} more)` : "";
++	return shown + more;
++}
++
+ function describeBoundaryEchoRepair(group: ReplacementGroup, echo: BoundaryEcho): string {
++	const lead = group.payload.slice(0, echo.leading);
++	const trail = group.payload.slice(group.payload.length - echo.trailing);
++	const leadPart = echo.leading > 0 ? `\n  dropped leading: ${formatDroppedLines(lead)}` : "";
++	const trailPart = echo.trailing > 0 ? `\n  dropped trailing: ${formatDroppedLines(trail)}` : "";
+ 	return (
+ 		`Auto-repaired a replacement boundary echo at line ${group.startLine}: ` +
+-		`dropped ${echo.leading} leading and ${echo.trailing} trailing payload line(s) already present outside the range. ` +
+-		`Issue the payload as the final desired content for the selected range only — never restate unchanged lines bordering the range.`
++		`dropped ${echo.leading} leading and ${echo.trailing} trailing payload line(s) already present outside the range.` +
++		`${leadPart}${trailPart}\n` +
++		`If those lines were intentional content (not a restated keeper), re-issue with the range widened to cover them. ` +
++		`Otherwise issue the payload as the final desired content for the selected range only — never restate unchanged lines bordering the range.`
+ 	);
+ }
+ 
+@@ -736,13 +799,19 @@ function findOneSidedBoundaryEcho(
+ 	return { side, count };
+ }
+ 
+-function describeOneSidedEchoRepair(group: ReplacementGroup, side: "leading" | "trailing", count: number): string {
++function describeOneSidedEchoRepair(
++	group: ReplacementGroup,
++	side: "leading" | "trailing",
++	count: number,
++	dropped: readonly string[],
++): string {
+ 	const where = side === "leading" ? "above" : "below";
+ 	return (
+ 		`Auto-repaired a replacement boundary echo at line ${group.startLine}: ` +
+-		`dropped ${count} ${side} payload line(s) identical to the surviving line(s) just ${where} the range. ` +
+-		`The range was one line short of the content you retyped — issue the payload as the final content for the ` +
+-		`selected range only, and widen the range to consume any keeper you restate.`
++		`dropped ${count} ${side} payload line(s) identical to the surviving line(s) just ${where} the range: ` +
++		`${formatDroppedLines(dropped)}\n` +
++		`If that was intentional content, widen the range to consume the keeper. Otherwise issue the payload as the final ` +
++		`content for the selected range only, and widen the range to consume any keeper you restate.`
+ 	);
+ }
+ 
+@@ -873,10 +942,14 @@ function repairReplacementBoundaries(
+ 					oneSided.side === "leading"
+ 						? inserts.slice(oneSided.count)
+ 						: inserts.slice(0, inserts.length - oneSided.count);
++				const droppedLines =
++					oneSided.side === "leading"
++						? group.payload.slice(0, oneSided.count)
++						: group.payload.slice(group.payload.length - oneSided.count);
+ 				slots.push({
+ 					kind: "edits",
+ 					edits: [...trimmed, ...deletes],
+-					warning: describeOneSidedEchoRepair(group, oneSided.side, oneSided.count),
++					warning: describeOneSidedEchoRepair(group, oneSided.side, oneSided.count, droppedLines),
+ 				});
+ 				continue;
+ 			}
+@@ -891,7 +964,8 @@ function repairReplacementBoundaries(
+ 				edits: [...inserts.slice(0, inserts.length - dupSuffix), ...deletes],
+ 				warning: describeBoundaryRepair(
+ 					group,
+-					`dropped ${dupSuffix} duplicated trailing payload line(s) already present below the range`,
++					`dropped ${dupSuffix} duplicated trailing payload line(s) already present below the range: ` +
++						formatDroppedLines(group.payload.slice(group.payload.length - dupSuffix)),
+ 				),
+ 			});
+ 			continue;
+@@ -903,7 +977,8 @@ function repairReplacementBoundaries(
+ 				edits: [...inserts.slice(dupPrefix), ...deletes],
+ 				warning: describeBoundaryRepair(
+ 					group,
+-					`dropped ${dupPrefix} duplicated leading payload line(s) already present above the range`,
++					`dropped ${dupPrefix} duplicated leading payload line(s) already present above the range: ` +
++						formatDroppedLines(group.payload.slice(0, dupPrefix)),
+ 				),
+ 			});
+ 			continue;

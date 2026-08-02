@@ -515,7 +515,13 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           // create/delete 不附 diff：新建文件全量是噪音，删除无内容可显示。
           if (section.op === "update") {
             const preview = buildEditPreview(section.before, section.after);
-            if (preview !== null) parts.push(preview);
+            if (preview !== null) {
+              parts.push(preview);
+              parts.push(
+                `Next-edit hint: the diff above lists new line numbers — anchor the next edit on them, ` +
+                  `or re-read the file for a fresh snapshot (continuing from pre-edit line numbers is the #1 way to hit a wrong line).`,
+              );
+            }
 
             // ── Phase 2.4 HTML 结构校验（delta） ──────────────────
             // 对比编辑前后平衡，只报本次编辑引入/加剧的失衡。
@@ -611,7 +617,8 @@ export default function hashlineExtension(pi: ExtensionAPI) {
                 text:
                   `Tag mismatch on ${err.path}: the file has changed since you last read it. ` +
                   `Expected tag #${err.expectedFileHash}, got #${err.actualFileHash}. ` +
-                  `Re-read the file with \`read\` to get a fresh tag, then re-issue the edit.`,
+                  `If you edited this file earlier in this session, anchor on the NEW line numbers from that edit's ` +
+                  `diff echo — or re-read the file with \`read\` to get a fresh tag, then re-issue the edit.`,
               },
             ],
             details: {},

@@ -326,3 +326,64 @@ describe("markdown fence guard (patched @oh-my-pi/hashline)", () => {
     );
   });
 });
+
+describe("boundary echo WARN includes dropped-line content", () => {
+  test("two-sided echo warning surfaces both dropped edges", async () => {
+    // 范围 2.=3.，body 双侧复述 A（上方）和 D（下方）→ findBoundaryEcho
+    // 触发修复，WARN 应包含两侧被丢弃行的内容。
+    const { after, echoRepairWarnings } = await applySwap(
+      "A\nB\nC\nD\n",
+      "SWAP 2.=3:",
+      ["A", "B-new", "C-new", "D"],
+    );
+    expect(after).toBe("A\nB-new\nC-new\nD\n");
+    expect(echoRepairWarnings.length).toBeGreaterThan(0);
+    expect(echoRepairWarnings[0]).toMatch(/dropped leading: A/);
+    expect(echoRepairWarnings[0]).toMatch(/dropped trailing: D/);
+  });
+  test("one-sided echo warning surfaces the dropped line text", async () => {
+    // 范围 2.=3.，body 尾部复述 range 下方的 `const d = 4;`（无括号、delta 为零）
+    // → findOneSidedBoundaryEcho 触发单侧修复，WARN 应包含被丢弃行内容。
+    const { after, echoRepairWarnings } = await applySwap(
+      "const a = 1;\nconst b = 2;\nconst c = 3;\nconst d = 4;\n",
+      "SWAP 2.=3:",
+      ["const b = 2;", "const c = 3;", "const d = 4;"],
+    );
+    expect(after).toBe("const a = 1;\nconst b = 2;\nconst c = 3;\nconst d = 4;\n");
+    expect(echoRepairWarnings.length).toBeGreaterThan(0);
+    expect(echoRepairWarnings[0]).toMatch(/const d = 4;/);
+  });
+
+  test("duplicate-suffix repair surfaces the dropped line text", async () => {
+    // payload 的括号平衡比 range 少一个 `}`（delta 非零 → 跳过 one-sided），
+    // 尾部复述的 `}` 平衡差恰好等于 delta → findDuplicateSuffix 触发修复，
+    // WARN 应包含被丢弃行内容。
+    const { after, echoRepairWarnings } = await applySwap(
+      "function f() {\n  const a = 1;\n  const b = 2;\n}\nconst z = 0;\n",
+      "SWAP 2.=3:",
+      ["  const a = 10;", "  const b = 20;", "}"],
+    );
+    expect(after).toBe(
+      "function f() {\n  const a = 10;\n  const b = 20;\n}\nconst z = 0;\n",
+    );
+    expect(echoRepairWarnings.length).toBeGreaterThan(0);
+    expect(echoRepairWarnings[0]).toMatch(/duplicated trailing payload line\(s\).*below the range: \}/);
+  });
+
+  test("duplicate-prefix repair surfaces the dropped line text", async () => {
+    // dupSuffix 的镜像：payload 多一个 `{`（delta 非零），头部复述 range 上方
+    // 的 `function f() {` → findDuplicatePrefix 触发修复，WARN 应包含被丢弃行内容。
+    const { after, echoRepairWarnings } = await applySwap(
+      "const z = 0;\nfunction f() {\n  const a = 1;\n  const b = 2;\n}\n",
+      "SWAP 3.=4:",
+      ["function f() {", "  const a = 10;", "  const b = 20;"],
+    );
+    expect(after).toBe(
+      "const z = 0;\nfunction f() {\n  const a = 10;\n  const b = 20;\n}\n",
+    );
+    expect(echoRepairWarnings.length).toBeGreaterThan(0);
+    expect(echoRepairWarnings[0]).toMatch(
+      /duplicated leading payload line\(s\).*above the range: function f\(\) \{/,
+    );
+  });
+});
