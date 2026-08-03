@@ -460,6 +460,17 @@ export async function pollDeviceCodeFlow(
 // Token Refresh
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/** True when the OAuth server rejected the credential as dead (revoked/expired). */
+export function isOAuthUnauthorized(body: string, status: number): boolean {
+  if (status === 401 || status === 403) return true;
+  try {
+    const payload: unknown = JSON.parse(body);
+    return isRecord(payload) && payload.error === "invalid_grant";
+  } catch {
+    return false;
+  }
+}
+
 async function refreshXAIToken(
   credentials: OAuthCredentials,
 ): Promise<OAuthCredentials> {
@@ -489,9 +500,25 @@ async function refreshXAIToken(
   });
 
   if (!response.ok) {
+    let body = "";
+    try {
+      body = await response.text();
+    } catch {
+      /* ignore */
+    }
+    if (isOAuthUnauthorized(body, response.status)) {
+      // The stored credential is dead; pi preserves it for retry, so point the
+      // user at the only real remedy instead of a generic failure. Keep the
+      // server detail (status / error_description) for diagnosis when 401/403
+      // is not actually a revoked token (gateway/WAF, misconfigured client_id).
+      const detail = formatOAuthErrorDetail(body, response.status);
+      throw new OAuthError(
+        `xAI token refresh unauthorized (${detail}): login revoked or expired — run /login to re-authenticate`,
+      );
+    }
     let detail = "";
     try {
-      detail = formatOAuthErrorDetail(await response.text(), response.status);
+      detail = formatOAuthErrorDetail(body, response.status);
     } catch {
       /* ignore */
     }

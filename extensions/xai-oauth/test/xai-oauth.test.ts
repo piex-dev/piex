@@ -5,12 +5,44 @@
 import { describe, expect, test } from "bun:test";
 import {
   formatOAuthErrorDetail,
+  isOAuthUnauthorized,
   LoginCancelledError,
   OAuthError,
   parseXAITokenResponse,
   pollDeviceCodeFlow,
   validateXAIEndpoint,
 } from "../src/xai-oauth.ts";
+
+describe("isOAuthUnauthorized", () => {
+  test("detects invalid_grant JSON error code", () => {
+    expect(
+      isOAuthUnauthorized(
+        JSON.stringify({
+          error: "invalid_grant",
+          error_description: "Refresh token has been revoked",
+        }),
+        400,
+      ),
+    ).toBe(true);
+  });
+
+  test("detects 401 and 403 statuses regardless of body", () => {
+    expect(isOAuthUnauthorized("", 401)).toBe(true);
+    expect(isOAuthUnauthorized("not json", 403)).toBe(true);
+  });
+
+  test("other error codes are not unauthorized", () => {
+    expect(
+      isOAuthUnauthorized(JSON.stringify({ error: "slow_down" }), 400),
+    ).toBe(false);
+    expect(
+      isOAuthUnauthorized(JSON.stringify({ error: "server_error" }), 500),
+    ).toBe(false);
+    expect(
+      isOAuthUnauthorized(JSON.stringify({ error: "invalid_request" }), 400),
+    ).toBe(false);
+  });
+});
 
 describe("validateXAIEndpoint", () => {
   test("accepts https x.ai hosts", () => {

@@ -1,0 +1,41 @@
+{
+  "private": true,
+  "name": "@piex-dev/aidp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Internal OpenAI-compatible gateway provider for pi — gpt-5.6-sol via a /crawl endpoint",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "extensions/aidp"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "aidp",
+    "gateway",
+    "gpt"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/aidp.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/aidp.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "*"
+  }
+}
