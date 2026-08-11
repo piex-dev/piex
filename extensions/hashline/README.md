@@ -26,6 +26,26 @@
 配套补丁更新：`patches/@oh-my-pi+hashline+17.1.3.patch` 新增 `formatDroppedLines` 辅助
 （WARN 内容预览）；补丁可逆验证通过（patch -p1 -R / -p1 往返一致）。
 
+## 优化记录（v0.1.4）
+
+针对「read 输出无行号 → 模型猜行号、seen-lines guard 静默失效」的根因修复
+（2026-08-02 复盘发现：pi 内置 read 的 tool_result 是裸文本，行号只在终端渲染层；
+prompt 却承诺 `LINE:TEXT` 格式，模型只能按内容位置猜行号）：
+
+- **P0 read 输出行号化**：read hook 现在把文本块重写为 `N:TEXT` 行号格式
+  （含 read offset 基准、跳过 pi 截断/limit 脚注及其前分隔空行——分隔空行
+  若编号会顶掉下一个真实行号，截断读的边界行会被模型误当空行盲改；仅文件
+  末尾真实哨兵空行编号计入 seen），模型看到真实行号，seen-lines guard 真正
+  生效——「编辑未显示的行」会被拦截。
+- **删除未 seen 行告警（Phase 2.6）**：diff 回显中 removed 行若不在最近 read
+  的 seen 集合里，追加 `[WARN]` 提示行号可能偏移（覆盖「范围终点猜错」形态）。
+- **fence 包裹剥离收紧**：`normalizeInput` 只在首行是 fence 且末行是**裸** ` ``` `
+  时剥离代码块包裹；payload 以 `+``` ` 结尾（编辑 fence 块的 SWAP）不再误剥。
+- **duplicate/noop 指纹 per-section**：payloadKey 改为按 `path + section.diff`
+  分别计算，多文件 payload 重发其中一部分时也能命中检测。
+- **HTML 属性值引号跳过**：`<div data-x="<section>">` 引号内的尖括号不再误计。
+- **大文件 diff 降级**：LCS 超限时输出行数统计摘要，不再无回显。
+
 ## 使用说明
 
 ```bash

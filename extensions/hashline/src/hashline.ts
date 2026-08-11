@@ -75,26 +75,68 @@ const promptPath = _require.resolve("@oh-my-pi/hashline/prompt.md");
 const HASHLINE_PROMPT = readFileSync(promptPath, "utf-8");
 
 // ---------------------------------------------------------------------------
-// Line-number prefix pattern for seen-lines extraction
-// Matches ` 123:` or `  456-460:` (collapsed summary row).
+// P0 — read 输出行号化
 // ---------------------------------------------------------------------------
 
-const LINE_PREFIX_RE = /^[ *]?(\d+)(?:-(\d+))?:[\t ]/;
+/**
+ * pi read content 尾部由 pi 附加的说明行，不是文件内容，不编号。
+ * 覆盖 pi read 的全部脚注形态：截断提示（Showing lines/Truncated）、
+ * limit 剩余行提示（N more lines in file）、首行超限提示（First line）、
+ * 单行超限提示（Line N is …）。
+ */
+const READ_FOOTNOTE_RE =
+  /^\[(?:Showing lines|Truncated|Line \d+ is|First line|\d+ more lines)/;
 
 /**
- * Extract the set of 1-indexed line numbers that were actually displayed to
- * the model in a hashline-formatted read body. Summary rows (`NN-MM:`) only
- * count their boundary lines — the elided interior was never shown.
+ * 把 pi read 返回的裸文件文本重写为 hashline 的 `N:TEXT` 行号格式。
+ *
+ * pi 内置 read 的 tool_result content 是纯文本（行号只在终端渲染层出现），
+ * 而 prompt 承诺 read 输出是 LINE:TEXT 行。没有行号时模型只能按内容位置
+ * 猜行号——这正是「行号估算错误」的根源；同时 parseSeenLines 提取不到
+ * 任何行 → seen-lines guard 静默失效。行号化后两者同时解决：模型看到
+ * 真实行号，guard 拿到 seen 集合。
+ *
+ * `startLine` 是本次 read 的 1-indexed 起始行号（来自 read 的 offset 参数）。
+ * 空行也编号并计入 seen：DEL/SWAP 范围可以合法包含空行，漏掉它们会让
+ * 合法编辑被 seen-lines guard 误拒。
  */
-function parseSeenLines(body: string): number[] {
-  const seen: number[] = [];
-  for (const row of body.split("\n")) {
-    const match = LINE_PREFIX_RE.exec(row);
-    if (!match) continue;
-    seen.push(Number(match[1]));
-    if (match[2] !== undefined) seen.push(Number(match[2]));
+export function numberizeReadBody(
+  body: string,
+  startLine: number,
+): { text: string; seenLines: number[] } {
+  const lines = body.split("\n");
+
+  // 脚注区域 = 第一个脚注行 + 其前连续空行（pi 用 `\n\n` 分隔正文与脚注）。
+  // 分隔空行不是文件内容：若编号会顶掉「下一个真实行号」——截断读的边界
+  // 行（如 200 行文件读到第 50 行时，分隔空行会被编号成 51 并计入 seen），
+  // 模型会以为 51 是空行，在其上盲改真实内容，seen-lines guard 与 Phase 2.6
+  // 告警都因 51 已入 seen 而失灵。只有 body 末尾没有脚注时的末尾空行才是
+  // 文件真实哨兵行（引擎的 append-past-end 锚点，apply.ts trailingPhantomLine），
+  // 需要编号。
+  let footnoteStart = lines.findIndex((line) =>
+    READ_FOOTNOTE_RE.test(line.trimStart()),
+  );
+  if (footnoteStart < 0) {
+    footnoteStart = lines.length; // 无脚注：不跳过任何行
+  } else {
+    while (footnoteStart > 0 && lines[footnoteStart - 1] === "") {
+      footnoteStart--;
+    }
   }
-  return seen;
+
+  const numbered: string[] = [];
+  const seenLines: number[] = [];
+  let lineNo = startLine;
+  for (let i = 0; i < lines.length; i++) {
+    if (i >= footnoteStart) {
+      numbered.push(lines[i]); // 脚注区域：不编号、不进入 seen
+      continue;
+    }
+    numbered.push(`${lineNo}:${lines[i]}`);
+    seenLines.push(lineNo);
+    lineNo++;
+  }
+  return { text: numbered.join("\n"), seenLines };
 }
 
 // ---------------------------------------------------------------------------
@@ -143,29 +185,28 @@ async function recordSnapshot(
  * 预处理 hashline DSL 输入，吸收模型常见格式偏差。
  *
  * - 去除首尾空白
- * - 统一换行符（CRLF → LF）
  * - 移除 ` ``` ` 代码块包裹（模型偶尔把 DSL 当代码块输出）
  * - 压缩多余空行
  *
+ * 换行符不做归一化：@oh-my-pi/hashline 解析层按 `\r?\n` 切分（input.ts），
+ * CRLF 由 parser 吸收，此处无需处理。
+ *
  * 不修改 DSL 语义——不调整路径、不重写操作符——安全操作。
  */
-function normalizeInput(raw: string): string {
+export function normalizeInput(raw: string): string {
   let input = raw.trim();
 
-  // 移除 markdown 代码块包裹（模型偶尔多发）。语言标识在围栏行上，
-  // 逐行剥掉首尾两行即可，同时兼容 ```lang 与裸 ``` 两种写法——
-  // 不能用正则删“首行无空白的行”，那会误删 [PATH#TAG] 节头。
-  if (input.startsWith("```") && input.endsWith("```")) {
-    const lines = input.split("\n");
-    if (lines.length > 1) {
-      input = lines.slice(1, -1).join("\n").trim();
-    }
+  // 移除 markdown 代码块包裹（模型偶尔多发）。条件收紧防误剥：
+  // - 首行必须是 fence（可带任意非空白语言标签：``` / ```md / ```c++ / ```c#）
+  // - 末行必须是**裸** fence。payload 内部的 fence body 行写作 `+``` `，
+  //   以 `+` 开头，旧实现 `endsWith("```")` 会把「payload 最后一行是 +``` 」的
+  //   DSL（编辑 markdown fence 块的 SWAP）误判为包裹，剥掉后丢一行 body。
+  const allLines = input.split("\n");
+  const firstFence = /^```\S*$/.test(allLines[0]?.trim());
+  const lastFence = allLines[allLines.length - 1]?.trim() === "```";
+  if (firstFence && lastFence && allLines.length > 2) {
+    input = allLines.slice(1, -1).join("\n").trim();
   }
-
-  // 统一换行符
-  input = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-  // 压缩多余空行（模型可能在 section 之间插入多个空行）。
   // 安全：DSL 的 body 行一律带 `+` 前缀（空行写作单独的 `+`），
   // 合法 payload 中不存在真正的空行内容。
   input = input.replace(/\n{3,}/g, "\n\n");
@@ -217,7 +258,12 @@ function stripHtmlNoScanZones(content: string): string {
 export function checkTagBalance(
   content: string,
 ): Record<string, [number, number]> {
-  const text = stripHtmlNoScanZones(content);
+  // 属性值内的尖括号（如 <div data-x="<section>">）不是标签：先剥引号内容。
+  // 已知边界（启发式代价，仅影响 WARN 且为 delta 校验）：正文散文中的引号对
+  // （如 don't … that's）若跨越真实标签会被一并吞掉，可能漏报/误报；属性值内
+  // 转义引号（\"）会破坏配对。正确区分属性值与正文需要状态机，不值得为 WARN
+  // 提示引入。
+  const text = stripHtmlNoScanZones(content).replace(/"[^"]*"|'[^']*'/g, "");
   const openCounts: Record<string, number> = {};
   const closeCounts: Record<string, number> = {};
   for (const m of text.matchAll(/<(\w+)[\s>]/g)) {
@@ -367,12 +413,31 @@ export function buildNumberedLineDiff(
  * make accidental neighbor deletion visible; the numbered after-rows double
  * as fresh anchors for the next edit. Returns null when no diff is available.
  */
-function buildEditPreview(before: string, after: string): string | null {
+export function buildEditPreview(
+  before: string,
+  after: string,
+): { preview: string; removedLines: number[] } | null {
   const numbered = buildNumberedLineDiff(before, after);
-  if (numbered === null) return null;
+  if (numbered === null) {
+    // 超限降级：没有逐行 diff，但行数变化仍有价值。
+    const aLines = before.split("\n").length;
+    const bLines = after.split("\n").length;
+    const delta = bLines - aLines;
+    return {
+      preview: `diff (+${Math.max(0, delta)}/-${Math.max(0, -delta)}): ` +
+        `file too large for line diff (${aLines} → ${bLines} lines)`,
+      removedLines: [],
+    };
+  }
   const { preview, addedLines, removedLines } =
     buildCompactDiffPreview(numbered);
   if (addedLines + removedLines === 0) return null;
+  // removed 行带编辑前行号（`-N|` 前缀），供「删除未 seen 行」告警使用。
+  const removedLineNumbers: number[] = [];
+  for (const row of numbered.split("\n")) {
+    const m = /^-(\d+)\|/.exec(row);
+    if (m) removedLineNumbers.push(Number(m[1]));
+  }
   const rows = preview.split("\n");
   const capped =
     rows.length > DIFF_PREVIEW_MAX_LINES
@@ -381,10 +446,11 @@ function buildEditPreview(before: string, after: string): string | null {
           `… (${rows.length - DIFF_PREVIEW_MAX_LINES} more rows)`,
         ].join("\n")
       : preview;
-  return `diff (+${addedLines}/-${removedLines}):\n${capped}`;
+  return {
+    preview: `diff (+${addedLines}/-${removedLines}):\n${capped}`,
+    removedLines: removedLineNumbers,
+  };
 }
-
-// ---------------------------------------------------------------------------
 // Extension entry
 // ---------------------------------------------------------------------------
 
@@ -407,14 +473,8 @@ export default function hashlineExtension(pi: ExtensionAPI) {
 
       // ── Phase 1.3 方言归一化 ──────────────────────────────────
       const input = normalizeInput(rawInput);
-
-      // ── 计算 payload 指纹（用于 noop loop guard + duplicate 检测）
-      // 已知局限：指纹针对整个输入；多文件 payload 事后只重发其中一部分
-      // 文件时指纹不同，duplicate 检测覆盖不到这种 partial resend。
-      const payloadKey = computePayloadKey(input);
-
-      // Parse the hashline input
-      let patch: Patch;
+      // ── Parse the hashline input
+      let patch: ReturnType<typeof Patch.parse>;
       try {
         patch = Patch.parse(input, { cwd });
       } catch (err) {
@@ -429,12 +489,39 @@ export default function hashlineExtension(pi: ExtensionAPI) {
         };
       }
 
-      // ── Phase 1.2 Duplicate Edit 检测（逐 section 检查） ──────
-      for (const section of patch.sections) {
-        const sectionPath = path.resolve(cwd, section.path);
-        if (!editGuard.isDuplicateApplied(sectionPath, payloadKey)) continue;
+      // ── 每 section 的 payload 指纹（基于 parse 产物） ──
+      // PatchSectionResult（apply 产物）没有 diff 字段，apply 后无法重算；
+      // 在此一次性计算，检测/记录/计数三处按顺序配对复用，保证 key 一致。
+      // 若在 apply 后直接取 section.diff，运行时是 undefined，key 退化为
+      // "path\nundefined"——记录 key 与检测 key 不一致 → E_DUPLICATE_EDIT
+      // 永不命中；且同一文件的不同 payload 共享同一 key → noop 计数跨
+      // payload 误聚合，3 次不同尝试就误抛 E_NOOP_LOOP。
+      const sectionKeys = patch.sections.map((section) =>
+        computePayloadKey(`${section.path}\n${section.diff}`),
+      );
 
-        // 同一 payload 曾成功应用 → 检查文件是否在两次调用间被修改
+      // ── apply 前捕获各 section 的 seen-lines ──
+      // patcher.apply 会更新 store 快照（编辑后内容，无 seen 信息），
+      // 「删除未 seen 行」告警需要的 seen 集合必须在 apply 前取。
+      // key 用绝对路径，与 read hook 的 recordSnapshot 对齐：
+      // read ./a.ts + payload 写 a.ts 时 resolve 后一致，告警不会静默跳过。
+      const seenBeforeApply = new Map<string, Set<number>>();
+      for (const section of patch.sections) {
+        const absPath = path.resolve(cwd, section.path);
+        const snap = store.head(canonicalSnapshotKey(absPath));
+        if (snap?.seenLines && snap.seenLines.size > 0) {
+          seenBeforeApply.set(absPath, snap.seenLines);
+        }
+      }
+
+      // ── Phase 1.2 Duplicate Edit 检测（逐 section 检查） ──────
+      // payloadKey 按 section 分别计算（path + DSL 原文）：多文件 payload
+      // 事后重发其中一部分时也能命中检测（旧实现指纹整个输入，partial
+      // resend 覆盖不到）。
+      for (let i = 0; i < patch.sections.length; i++) {
+        const section = patch.sections[i];
+        const sectionPath = path.resolve(cwd, section.path);
+        if (!editGuard.isDuplicateApplied(sectionPath, sectionKeys[i])) continue;
         try {
           const raw = await fsp.readFile(sectionPath, "utf-8");
           const { text: content } = stripBom(raw);
@@ -476,7 +563,8 @@ export default function hashlineExtension(pi: ExtensionAPI) {
         const parts: string[] = [];
         let allNoop = true;
 
-        for (const section of result.sections) {
+        for (let i = 0; i < result.sections.length; i++) {
+          const section = result.sections[i];
           if (section.op === "noop") {
             parts.push(
               `No changes to ${section.path}. ` +
@@ -516,15 +604,35 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           if (section.op === "update") {
             const preview = buildEditPreview(section.before, section.after);
             if (preview !== null) {
-              parts.push(preview);
+              parts.push(preview.preview);
+
+              // ── Phase 2.6 删除未 seen 行告警 ────────────────────
+              // 行号估算错误最常见的形态是「范围终点猜错」：起点 read 过、
+              // 终点是没看过的行（或看的是旧快照）。diff 的 removed 行若
+              // 不在最近 read 的 seen 集合里，明确提示，让模型停下核对
+              // 而不是继续叠加错误。
+              const seen = seenBeforeApply.get(path.resolve(cwd, section.path));
+              if (seen && seen.size > 0) {
+                const unseenRemoved = preview.removedLines.filter(
+                  (n) => !seen.has(n),
+                );
+                if (unseenRemoved.length > 0) {
+                  parts.push(
+                    `[WARN] This edit deleted line(s) ${unseenRemoved.join(", ")} that were never ` +
+                      `displayed by a recent read of ${section.path} — your line numbers may be off. ` +
+                      `The diff preview does not show deleted content — re-read the file to verify ` +
+                      `the range before proceeding.`,
+                  );
+                }
+              }
+
               parts.push(
                 `Next-edit hint: the diff above lists new line numbers — anchor the next edit on them, ` +
                   `or re-read the file for a fresh snapshot (continuing from pre-edit line numbers is the #1 way to hit a wrong line).`,
               );
             }
-
-            // ── Phase 2.4 HTML 结构校验（delta） ──────────────────
             // 对比编辑前后平衡，只报本次编辑引入/加剧的失衡。
+            // ── Phase 2.4 HTML 结构校验（delta） ──────────────────
             if (section.path.endsWith(".html")) {
               const worsened = worsenedImbalances(
                 checkTagBalance(section.before),
@@ -565,12 +673,13 @@ export default function hashlineExtension(pi: ExtensionAPI) {
           // Record new snapshot after successful edit. 只读一次：同一份
           // normalized 内容同时用于 snapshot 和 Phase 1.2 的 applied 记录。
           const absolutePath = path.resolve(cwd, section.path);
+          const sectionKey = sectionKeys[i];
           const normalized = await readNormalized(absolutePath);
           if (normalized !== null) {
             store.record(canonicalSnapshotKey(absolutePath), normalized);
             editGuard.recordApplied(
               absolutePath,
-              payloadKey,
+              sectionKey,
               computeFileHash(normalized),
             );
           }
@@ -580,10 +689,12 @@ export default function hashlineExtension(pi: ExtensionAPI) {
         if (allNoop && result.sections.length > 0) {
           let maxCount = 0;
           let escalate = false;
-          for (const section of result.sections) {
+          for (let i = 0; i < result.sections.length; i++) {
+            const section = result.sections[i];
+            const sectionKey = sectionKeys[i];
             const r = editGuard.recordNoop(
               path.resolve(cwd, section.path),
-              payloadKey,
+              sectionKey,
             );
             if (r.count > maxCount) maxCount = r.count;
             if (r.escalate) escalate = true;
@@ -642,25 +753,45 @@ export default function hashlineExtension(pi: ExtensionAPI) {
   pi.on("tool_result", async (event, ctx) => {
     if (event.toolName !== "read") return;
 
-    const input = event.input as { path?: string } | undefined;
+    const input = event.input as { path?: string; offset?: number } | undefined;
     const filePath = input?.path;
     if (!filePath) return;
 
     // Resolve to absolute. ctx.cwd is the project worktree directory.
     const absolutePath = path.resolve(ctx.cwd, filePath);
+    const startLine = input?.offset ?? 1;
 
-    // Extract seen lines from the read body (lines the model actually saw)
     const content = Array.isArray(event.content)
       ? event.content
       : [{ type: "text", text: String(event.content ?? "") }];
-    const textBlocks = content
-      .filter((c): c is { type: "text"; text: string } => c.type === "text")
-      .map((c) => c.text)
-      .join("\n");
-    const seenLines = parseSeenLines(textBlocks);
+
+    // ── P0: read 输出行号化 ────────────────────────────────────────
+    // pi 内置 read 的 content 是裸文件文本（行号只在终端渲染层出现），
+    // 而 prompt 承诺 read 输出是 LINE:TEXT 行。没有行号时模型只能按
+    // 内容位置猜行号（「行号估算错误」的根源），且 parseSeenLines 提取
+    // 不到任何行 → seen-lines guard 静默失效。行号化后两者同时解决。
+    // 图片 read 的 text 块是说明文本（"Read image file …"），不是文件
+    // 内容，保持原样。
+    // 仅重写第一个 text 块：pi 的 read 对文本文件始终返回单个 text 块（图片
+    // 读返回 text+image，text 是说明文字不走行号化）。若未来出现多 text 块，
+    // 后续块保持原样（其行号也无法从第一块延续，防御性注释）。
+    const updated = [...content];
+    let seenLines: number[] = [];
+    const firstTextIdx = updated.findIndex((c: any) => c.type === "text");
+    if (firstTextIdx >= 0) {
+      const raw = updated[firstTextIdx].text;
+      if (!/^Read image file\b/.test(raw)) {
+        const numbered = numberizeReadBody(raw, startLine);
+        updated[firstTextIdx] = { ...updated[firstTextIdx], text: numbered.text };
+        seenLines = numbered.seenLines;
+      }
+    }
 
     // Record snapshot with seen-lines tracking for the patcher's guard
-    const tag = await recordSnapshot(absolutePath, seenLines);
+    const tag = await recordSnapshot(
+      absolutePath,
+      seenLines.length > 0 ? seenLines : undefined,
+    );
 
     // ── Phase 1.1/1.2 模型主动 re-read → 重置该路径的 guard 状态 ──
     // 模型看到最新内容后有意重发同一 payload 是合法的，noop 计数也从头开始。
@@ -670,9 +801,7 @@ export default function hashlineExtension(pi: ExtensionAPI) {
 
     // Prepend [filePath#tag] header to the first text block
     const header = formatHashlineHeader(filePath, tag);
-    const firstTextIdx = content.findIndex((c: any) => c.type === "text");
     if (firstTextIdx >= 0) {
-      const updated = [...content];
       updated[firstTextIdx] = {
         ...updated[firstTextIdx],
         text: `${header}\n${updated[firstTextIdx].text}`,
@@ -681,7 +810,7 @@ export default function hashlineExtension(pi: ExtensionAPI) {
     }
 
     return {
-      content: [{ type: "text", text: header }, ...content],
+      content: [{ type: "text", text: header }, ...updated],
     };
   });
 }

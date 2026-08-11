@@ -9,14 +9,17 @@ import * as os from "node:os";
 import * as path from "node:path";
 // Imported first: hashline.ts self-loads the Bun polyfill before @oh-my-pi/hashline.
 import {
+  buildEditPreview,
   buildNumberedLineDiff,
   checkFenceBalance,
   checkTagBalance,
+  normalizeInput,
+  numberizeReadBody,
   worsenedFenceImbalance,
   worsenedImbalances,
 } from "../src/hashline.ts";
-import { PiexNodeFilesystem } from "../src/filesystem.js";
 
+import { PiexNodeFilesystem } from "../src/filesystem.js";
 // Dynamic import AFTER the polyfill is in place (see hashline.ts import above).
 const { Patcher, Patch, InMemorySnapshotStore } =
   await import("@oh-my-pi/hashline");
@@ -385,5 +388,148 @@ describe("boundary echo WARN includes dropped-line content", () => {
     expect(echoRepairWarnings[0]).toMatch(
       /duplicated leading payload line\(s\).*above the range: function f\(\) \{/,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P0 — read 输出行号化（numberizeReadBody）
+// ---------------------------------------------------------------------------
+
+describe("numberizeReadBody", () => {
+  test("numbers lines starting from 1 by default", () => {
+    const r = numberizeReadBody("a\nb\nc", 1);
+    expect(r.text).toBe("1:a\n2:b\n3:c");
+    expect(r.seenLines).toEqual([1, 2, 3]);
+  });
+
+  test("respects the read offset as the starting line", () => {
+    const r = numberizeReadBody("x\ny", 100);
+    expect(r.text).toBe("100:x\n101:y");
+    expect(r.seenLines).toEqual([100, 101]);
+  });
+
+  test("blank lines are numbered and count as seen", () => {
+    // DEL/SWAP 范围可以合法包含空行；漏掉它们会让 seen-lines guard 误拒。
+    const r = numberizeReadBody("a\n\nb", 1);
+    expect(r.text).toBe("1:a\n2:\n3:b");
+    expect(r.seenLines).toEqual([1, 2, 3]);
+  });
+
+  test("pi footnote lines are not numbered and not seen", () => {
+    // 脚注前的空分隔行也不是文件内容：若编号会顶掉下一个真实行号
+    // （200 行文件读到第 2 行时，分隔空行会被编号成 3 并计入 seen，
+    // 模型会以为第 3 行是空行而在其上盲改真实内容）。
+    const r = numberizeReadBody(
+      "a\nb\n\n[Showing lines 1-2 of 100. Use offset=3 to continue.]",
+      1,
+    );
+    expect(r.text).toBe(
+      "1:a\n2:b\n\n[Showing lines 1-2 of 100. Use offset=3 to continue.]",
+    );
+    expect(r.seenLines).toEqual([1, 2]);
+  });
+
+  test("limit footnote variant ([N more lines in file]) is not numbered", () => {
+    const r = numberizeReadBody(
+      "a\nb\n\n[198 more lines in file. Use offset=3 to continue.]",
+      1,
+    );
+    expect(r.text).toBe(
+      "1:a\n2:b\n\n[198 more lines in file. Use offset=3 to continue.]",
+    );
+    expect(r.seenLines).toEqual([1, 2]);
+  });
+
+  test("multiple blank separator lines before footnote are all skipped", () => {
+    const r = numberizeReadBody(
+      "a\n\n\n[Showing lines 1-1 of 100. Use offset=2 to continue.]",
+      1,
+    );
+    expect(r.text).toBe(
+      "1:a\n\n\n[Showing lines 1-1 of 100. Use offset=2 to continue.]",
+    );
+    expect(r.seenLines).toEqual([1]);
+  });
+
+  test("trailing empty line is numbered when no footnote follows", () => {
+    // 文件以换行结尾 → 末尾空行是引擎的 append-past-end 哨兵锚点
+    // （apply.ts trailingPhantomLine），真实可寻址，需要编号计入 seen。
+    const r = numberizeReadBody("a\nb\n", 1);
+    expect(r.text).toBe("1:a\n2:b\n3:");
+    expect(r.seenLines).toEqual([1, 2, 3]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P1 — normalizeInput fence 剥离防误剥
+// ---------------------------------------------------------------------------
+
+describe("normalizeInput fence stripping", () => {
+  test("strips bare ``` wrapper", () => {
+    const r = normalizeInput("```\n[file#abcd]\nSWAP 1.=1:\n+x\n```");
+    expect(r).toBe("[file#abcd]\nSWAP 1.=1:\n+x");
+  });
+
+  test("strips ```lang wrapper", () => {
+    const r = normalizeInput("```hashline\n[file#abcd]\nDEL 1\n```");
+    expect(r).toBe("[file#abcd]\nDEL 1");
+  });
+
+  test("does NOT strip when payload ends with a +``` body row", () => {
+    // 编辑 markdown fence 块的 SWAP：body 最后一行是 `+``` `，不是包裹的
+    // closing fence。旧实现 `endsWith("```")` 会误剥并丢掉一行 body。
+    const raw = "```\n[file.md#abcd]\nSWAP 2.=4:\n+```go\n+code\n+```\n```";
+    const r = normalizeInput(raw);
+    expect(r).toContain("SWAP 2.=4:");
+    expect(r).toContain("+```");
+    expect(r.split("\n").filter((l) => l.startsWith("+")).length).toBe(3);
+  });
+
+  test("leaves non-wrapped input unchanged", () => {
+    const raw = "[file#abcd]\nSWAP 1.=1:\n+x";
+    expect(normalizeInput(raw)).toBe(raw);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P2 — checkTagBalance 属性值引号内尖括号
+// ---------------------------------------------------------------------------
+
+describe("checkTagBalance attribute quotes", () => {
+  test("tags inside quoted attribute values are ignored", () => {
+    const html = `<body><div data-x="<section>"><span></span></div></body>`;
+    expect(checkTagBalance(html)).toEqual({});
+  });
+
+  test("single-quoted attribute values too", () => {
+    const html = `<body><div data-x='<div>'></div></body>`;
+    expect(checkTagBalance(html)).toEqual({});
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P2 — buildEditPreview 超限降级 + removed 行号提取
+// ---------------------------------------------------------------------------
+
+describe("buildEditPreview", () => {
+  test("returns removed line numbers for unseen-line warning", () => {
+    const r = buildEditPreview("a\nb\nc\nd", "a\nB\nc\nd");
+    expect(r).not.toBeNull();
+    expect(r!.removedLines).toEqual([2]);
+    expect(r!.preview).toContain("diff (+1/-1)");
+  });
+
+  test("degrades to line-count summary when LCS is too large", () => {
+    const bigA = Array.from({ length: 3000 }, (_, i) => `line ${i}`).join("\n");
+    const bigB = bigA + "\nnew line";
+    const r = buildEditPreview(bigA, bigB);
+    expect(r).not.toBeNull();
+    expect(r!.preview).toMatch(/file too large for line diff/);
+    expect(r!.preview).toContain("3000 → 3001");
+    expect(r!.removedLines).toEqual([]);
+  });
+
+  test("returns null when nothing changed", () => {
+    expect(buildEditPreview("a\nb", "a\nb")).toBeNull();
   });
 });
