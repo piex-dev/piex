@@ -172,8 +172,9 @@ export default function gatewayExtension(pi: ExtensionAPI) {
   pi.registerProvider("aidp", {
     name: "AIDP",
     // models.json mode: leave baseUrl unset so pi keeps the models.json baseUrl
-    // for each model; env mode: AIDP_BASE_URL applies to all registered models.
-    baseUrl,
+    // for each model (passing AIDP_BASE_URL here would override it in pi's
+    // composition); env mode: AIDP_BASE_URL applies to all registered models.
+    baseUrl: jsonModelIds ? undefined : baseUrl,
     apiKey: "$AIDP_API_KEY",
     api: "openai-completions",
     streamSimple: streamGateway,
