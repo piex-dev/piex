@@ -48,6 +48,8 @@ export interface TurnRecord {
   outputTokens?: number;
   /** This turn's own cache hit rate (0-100); absent before prompt tokens are billed. */
   cacheRatePercent?: number;
+  /** True when t/s was suppressed: the delivery was too bursty to be a real decode. */
+  bufferedDelivery?: true;
 }
 
 interface UsageLike {
@@ -107,6 +109,23 @@ interface ActiveTurn {
  * meaningless — e.g. 1252 tokens in 97ms "= 12,907 t/s" is noise, not signal.
  */
 export const MIN_DECODE_MS = 200;
+
+/**
+ * Decode samples only count when the delivery is continuous enough to be
+ * meaningful. Two guards:
+ *  - absolute floor (MIN_DECODE_MS): an entire response replayed in <200ms
+ *    is gateway buffering, not decoding;
+ *  - relative guard: the delivery must span at least half the first-token
+ *    latency. A buffering gateway flushes its cache in a fraction of the
+ *    TTFT it took to fill it (e.g. TTFT 22s, then 1000 tokens in 0.9s =
+ *    "1147 t/s"), which reads as impossible decode speed.
+ */
+export function isBufferedDelivery(
+  decodeMs: number,
+  ttftMs: number | undefined,
+): boolean {
+  return decodeMs < Math.max(MIN_DECODE_MS, (ttftMs ?? 0) / 2);
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // Pure metric logic (unit-tested)
@@ -197,7 +216,9 @@ export function deriveTurnRecord(
     outputTokens >= 0
   ) {
     const decodeMs = Math.max(0, turn.lastUpdateTs - turn.firstTokenTs);
-    if (decodeMs >= MIN_DECODE_MS) {
+    if (isBufferedDelivery(decodeMs, record.ttftMs)) {
+      record.bufferedDelivery = true;
+    } else {
       record.tokensPerSecond = outputTokens / (decodeMs / 1000);
     }
   }
@@ -273,7 +294,8 @@ export function liveThroughput(turn: ActiveTurn): number | undefined {
   if (typeof outputTokens !== "number" || !Number.isFinite(outputTokens))
     return undefined;
   const decodeMs = Math.max(0, turn.lastUpdateTs - turn.firstTokenTs);
-  if (decodeMs < MIN_DECODE_MS) return undefined;
+  const ttftMs = Math.max(0, turn.firstTokenTs - turn.startTs);
+  if (isBufferedDelivery(decodeMs, ttftMs)) return undefined;
   return outputTokens / (decodeMs / 1000);
 }
 
@@ -339,6 +361,7 @@ function detailMessage(): string {
     if (t.ttftMs !== undefined) parts.push(formatDuration(t.ttftMs));
     if (t.tokensPerSecond !== undefined)
       parts.push(`${formatRate(t.tokensPerSecond)}t/s`);
+    if (t.bufferedDelivery) parts.push("buffered");
     if (t.outputTokens !== undefined) parts.push(`↓${t.outputTokens}`);
     if (t.cacheRatePercent !== undefined)
       parts.push(`cache ${t.cacheRatePercent}%`);

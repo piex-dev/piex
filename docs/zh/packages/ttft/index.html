@@ -76,7 +76,7 @@
         <p>缓存命中率也在统计范围内（会话累计 + 每轮），但<strong>不上状态栏</strong>：pi 内置 footer 已展示最新一轮的 <code>CH%</code>，同栏再出现一个不同口径的 cache 数字只会混淆。累计命中率放在 <code>/ttft</code> 明细中，与 deepseek-harness 的 <code>cache N%</code> 同口径。</p>
 
         <h2 id="theory">技术原理</h2>
-        <p><strong>指标的事件来源</strong>：TTFT 用 <code>turn_start.timestamp</code>（pi 在每轮 LLM 请求前发射，带时间戳）到首个 <code>message_update</code>（逐 token 流式事件，首个即为首 token）的差值，首 token 即上屏；tokens/s 用首 token 到末次流式更新的时长除 <code>usage.output</code>，三者齐备且 decode ≥ 200ms 才采样（burst 抑制），<code>message_end</code> 在流结束瞬间就携带 usage（早于工具执行），精确 t/s 随即上屏；cache 命中率用 <code>usage</code> 的四个 disjoint bucket（<code>input/output/cacheRead/cacheWrite</code>）按 <code>cacheRead / (input + cacheRead + cacheWrite)</code> 计算，与 deepseek-harness 的 <code>TokenTotals</code> 同构，公式照搬，展示在 <code>/ttft</code> 明细。</p>
+        <p><strong>指标的事件来源</strong>：TTFT 用 <code>turn_start.timestamp</code>（pi 在每轮 LLM 请求前发射，带时间戳）到首个 <code>message_update</code>（逐 token 流式事件，首个即为首 token）的差值，首 token 即上屏；tokens/s 用首 token 到末次流式更新的时长除 <code>usage.output</code>，三者齐备且 decode ≥ 200ms 且 ≥ TTFT 一半才采样（双重防缓冲回放），<code>message_end</code> 在流结束瞬间就携带 usage（早于工具执行），精确 t/s 随即上屏；cache 命中率用 <code>usage</code> 的四个 disjoint bucket（<code>input/output/cacheRead/cacheWrite</code>）按 <code>cacheRead / (input + cacheRead + cacheWrite)</code> 计算，与 deepseek-harness 的 <code>TokenTotals</code> 同构，公式照搬，展示在 <code>/ttft</code> 明细。</p>
         <p><strong>缓存展示的取舍：一个状态栏只有一个 cache 数字</strong>。pi 0.84+ 内置 footer 已展示 <code>↑input ↓output R W CH%</code>，其中 <code>CH</code> 是<strong>最新一条 assistant 消息</strong>的命中率；deepseek-harness 展示的是<strong>会话累计</strong>命中率。<code>@piex-dev/ttft</code> 补上了后者（session 内所有消息的 bucket 先累加再求比，长会话里更能反映「前缀复用是否持续生效」），但放在 <code>/ttft</code> 明细而非状态栏：状态栏出现两个不同口径的 cache 值（内置 <code>CH</code> 与本包累计值）会让用户无法判断该看哪个。状态栏只展示 pi 完全缺失的 TTFT 与吞吐，cache 信号归 <code>/ttft</code>。</p>
         <p><strong>持久化与重建</strong>：每轮落定后 <code>pi.appendEntry("ttft", …)</code> 写入自定义 entry（不进 LLM context）；<code>session_start</code> 时扫描 <code>sessionManager.getEntries()</code> 重建。轮次历史只来自 <code>ttft</code> 自定义 entry，token 累计只来自 assistant/toolResult 消息与 compaction/branch_summary 的 usage（与 pi 内置 footer 同一套算法，自定义工具可上报 usage），两个来源互不重叠，重建不会重复计数。TTFT 锚点用 <code>turn_start</code>：pi 在请求组装前发射该事件，因此测的是<strong>端到端</strong>首 token 延迟（含 prompt 组装），与 deepseek-harness 的 step 级口径语义一致。</p>
 
@@ -87,7 +87,7 @@
         <h3 id="example">用法</h3>
         <p>零配置。首轮对话后状态栏自动出现：</p>
         <div class="blog-code"><div class="blog-code-bar"><span>status bar</span></div><pre><code>TTFT &lt;延迟&gt; · &lt;tokens/s&gt;t/s</code></pre></div>
-        <p>首 token 一到，<code>TTFT</code> 立即上屏且本轮不再变化；流结束（<code>message_end</code>，早于工具执行）即补精确 <code>t/s</code>，decode 短于 200ms 的 burst 采样不展示 t/s（网关缓冲噪声）；整个 segment 用 dim 渲染，与状态栏其他字符一致。缓存命中率不上状态栏，避免与 pi 内置 footer 的 <code>CH%</code> 撞车，详情看这里：</p>
+        <p>首 token 一到，<code>TTFT</code> 立即上屏且本轮不再变化；流结束（<code>message_end</code>，早于工具执行）即补精确 <code>t/s</code>，decode 短于 200ms 或短于 TTFT 一半的缓冲回放不展示 t/s（网关分块回放噪声，<code>/ttft</code> 标注 <code>buffered</code>）；整个 segment 用 dim 渲染，与状态栏其他字符一致。缓存命中率不上状态栏，避免与 pi 内置 footer 的 <code>CH%</code> 撞车，详情看这里：</p>
         <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>/ttft    # 会话平均 TTFT、token 累计、会话累计命中率、每轮 TTFT/吞吐/输出/命中率表格</code></pre></div>
         <h3 id="verify">验证</h3>
         <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi -e ./extensions/ttft/src/ttft.ts -p "say hi" --no-session
@@ -101,7 +101,7 @@ message_end       流结束即拿 usage → 精确 t/s 上屏（早于工具执�
 turn_end          采样 usage，推导 TurnRecord，appendEntry 持久化
 session_start     从 entries 重建历史 + token 累计
 session_shutdown  清空活动引用，防止跨会话串扰</code></pre></div>
-        <p><strong>关键细节</strong>：只在首 token、流结束与轮次落定三个时刻重绘，流式期间不做逐 token 重绘；状态栏只放 TTFT 与 t/s，cache 累计（<code>totals</code>）持续维护但只进 <code>/ttft</code> 明细；decode 短于 200ms 的采样视为网关缓冲 burst，t/s 不展示但输出 token 数仍记录；pi 单进程跑多个 session（<code>/new</code>、<code>/resume</code>、<code>/fork</code>），module-level 状态在 <code>session_start</code> 全量重建，事件处理器校验 session id，旧 session 的迟到事件无法污染新 session 的状态栏；轮次编号重建时取历史最大编号 + 1，<code>/resume</code> 后不会从 1 重排；<code>appendEntry</code> 失败不影响状态栏（best-effort 持久化）；无 timing 或无首 token 的轮次不产生记录，与 deepseek-harness「无采样即不显示」一致。</p>
+        <p><strong>关键细节</strong>：只在首 token、流结束与轮次落定三个时刻重绘，流式期间不做逐 token 重绘；状态栏只放 TTFT 与 t/s，cache 累计（<code>totals</code>）持续维护但只进 <code>/ttft</code> 明细；decode 短于 200ms 或短于 TTFT 一半的采样视为网关缓冲回放，t/s 不展示并在 <code>/ttft</code> 标注 <code>buffered</code>，但输出 token 数仍记录；分块回放是典型伪装：TTFT 22s 后 1000 token 在 0.9s 内刷完，会读出不可能的「1147 t/s」；pi 单进程跑多个 session（<code>/new</code>、<code>/resume</code>、<code>/fork</code>），module-level 状态在 <code>session_start</code> 全量重建，事件处理器校验 session id，旧 session 的迟到事件无法污染新 session 的状态栏；轮次编号重建时取历史最大编号 + 1，<code>/resume</code> 后不会从 1 重排；<code>appendEntry</code> 失败不影响状态栏（best-effort 持久化）；无 timing 或无首 token 的轮次不产生记录，与 deepseek-harness「无采样即不显示」一致。</p>
 
         <h2 id="design">设计参考</h2>
         <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>机制</th><th>piex 取舍</th></tr></thead><tbody>
@@ -121,7 +121,7 @@ session_shutdown  清空活动引用，防止跨会话串扰</code></pre></div>
 </tbody></table></div>
         <h3 id="versions">版本记录</h3>
         <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
-<tr><td>0.1.0</td><td>2026-08-18</td><td>初始版本：每轮 TTFT + tokens/s 状态栏展示（<code>message_end</code> 即上屏 t/s，早于工具执行；decode 短于 200ms 的 burst 采样不展示 t/s）；cache 统计（会话累计 + 每轮）归 <code>/ttft</code> 明细，不与内置 footer CH% 撞车；<code>appendEntry</code> 持久化与 <code>session_start</code> 重建；<code>/ttft</code> 详情命令；多会话隔离；18 项单测</td></tr>
+<tr><td>0.1.0</td><td>2026-08-18</td><td>初始版本：每轮 TTFT + tokens/s 状态栏展示（<code>message_end</code> 即上屏 t/s，早于工具执行；decode 短于 200ms 或短于 TTFT 一半的缓冲回放不展示 t/s，<code>/ttft</code> 标注 <code>buffered</code>）；cache 统计（会话累计 + 每轮）归 <code>/ttft</code> 明细，不与内置 footer CH% 撞车；<code>appendEntry</code> 持久化与 <code>session_start</code> 重建；<code>/ttft</code> 详情命令；多会话隔离；21 项单测</td></tr>
 </tbody></table></div>
       </div>
       <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/usage/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">usage</span></a><a class="blog-nav-card is-next" href="/zh/packages/xai-oauth/"><span class="blog-nav-label">下一个 →</span><span class="blog-nav-title">xai-oauth</span></a></nav>

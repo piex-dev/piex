@@ -65,7 +65,7 @@ TTFT <延迟> · <tokens/s>t/s
 ```
 
 - 首 token 一到，`TTFT` 立即上屏且本轮不再变化（首 token 延迟就此定格）
-- 流结束（`message_end`，早于工具执行）即补精确 `t/s`；decode < 200ms 的 burst 采样不展示 t/s（网关缓冲噪声）
+- 流结束（`message_end`，早于工具执行）即补精确 `t/s`；decode 短于 200ms 或短于 TTFT 一半的缓冲回放不展示 t/s（网关分块回放噪声，`/ttft` 标注 `buffered`）
 - 整个 segment 用 dim 渲染，与状态栏其他字符（pwd/model/context）一致
 - 缓存命中率不上状态栏，避免与 pi 内置 footer 的 `CH%` 撞车
 
@@ -96,7 +96,7 @@ session_shutdown  清空活动引用，防止跨会话串扰
 ```
 
 - **渲染时机**：只在首 token、流结束（`message_end`，usage 早于工具执行到达）与轮次落定三个时刻重绘，流式期间不做逐 token 重绘；`message_end` 即上屏精确 t/s，避免状态栏在工具执行期间只挂 TTFT
-- **解码时长下限**：decode < 200ms 的采样视为网关缓冲 burst（如 1252 token 在 97ms 内回放），t/s 无意义，直接不展示；输出 token 数仍记录
+- **解码时长下限**：decode 短于 200ms 或短于 TTFT 一半的采样视为网关缓冲回放，t/s 不展示并在 `/ttft` 标注 `buffered`；输出 token 数仍记录。分块回放是典型伪装：TTFT 22s 后 1000 token 在 0.9s 内刷完，会读出不可能的「1147 t/s」
 - **渲染内容**：状态栏只放 TTFT 与 t/s；cache 累计（`totals`）持续维护但只进 `/ttft` 明细
 - **多会话隔离**：pi 单进程跑多个 session（`/new`、`/resume`、`/fork`），module-level 状态在 `session_start` 全量重建，事件处理器校验 session id，旧 session 的迟到事件无法污染新 session 的状态栏
 - **轮次编号**：重建时取历史最大编号 + 1，`/resume` 后新轮次不会从 1 重排
@@ -125,4 +125,4 @@ session_shutdown  清空活动引用，防止跨会话串扰
 
 | 版本 | 日期 | 变更 |
 | --- | --- | --- |
-| 0.1.0 | 2026-08-18 | 初始版本：每轮 TTFT + tokens/s 状态栏展示（`message_end` 即上屏 t/s，早于工具执行；decode < 200ms 的 burst 采样不展示 t/s）；cache 统计（会话累计 + 每轮）归 `/ttft` 明细，不与内置 footer CH% 撞车；`appendEntry` 持久化与 `session_start` 重建；`/ttft` 详情命令；多会话隔离；18 项单测 |
+| 0.1.0 | 2026-08-18 | 初始版本：每轮 TTFT + tokens/s 状态栏展示（`message_end` 即上屏 t/s，早于工具执行；decode 短于 200ms 或短于 TTFT 一半的缓冲回放不展示 t/s，`/ttft` 标注 `buffered`）；cache 统计（会话累计 + 每轮）归 `/ttft` 明细，不与内置 footer CH% 撞车；`appendEntry` 持久化与 `session_start` 重建；`/ttft` 详情命令；多会话隔离；21 项单测 |

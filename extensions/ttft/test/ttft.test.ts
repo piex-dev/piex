@@ -189,6 +189,7 @@ describe("pure metrics", () => {
     );
     expect(record?.ttftMs).toBe(1000);
     expect(record?.tokensPerSecond).toBeUndefined();
+    expect(record?.bufferedDelivery).toBe(true);
     expect(record?.outputTokens).toBe(100);
   });
 
@@ -206,7 +207,46 @@ describe("pure metrics", () => {
     );
     expect(record?.ttftMs).toBe(22_000);
     expect(record?.tokensPerSecond).toBeUndefined();
+    expect(record?.bufferedDelivery).toBe(true);
     expect(record?.outputTokens).toBe(1252);
+  });
+
+  test("deriveTurnRecord: decode shorter than half the TTFT → chunked replay, suppressed", () => {
+    // The user-observed pattern: TTFT 22s (gateway buffered the response),
+    // then ~1000 tokens flushed in 0.9s — reads as "1147 t/s", which is the
+    // gateway's replay speed, not model decode speed.
+    const record = deriveTurnRecord(
+      {
+        turn: 1,
+        startTs: 0,
+        firstTokenTs: 22_000,
+        lastUpdateTs: 22_900,
+        finalUsage: null,
+      },
+      usage({ output: 1032 }),
+    );
+    expect(record?.ttftMs).toBe(22_000);
+    expect(record?.tokensPerSecond).toBeUndefined();
+    expect(record?.bufferedDelivery).toBe(true);
+    expect(record?.outputTokens).toBe(1032);
+  });
+
+  test("deriveTurnRecord: long continuous decode after a long TTFT stays sampled", () => {
+    // 22s to first token, then a real 40s stream — decode dominates the TTFT,
+    // so the rate is credible and must survive the relative guard.
+    const record = deriveTurnRecord(
+      {
+        turn: 1,
+        startTs: 0,
+        firstTokenTs: 22_000,
+        lastUpdateTs: 62_000,
+        finalUsage: null,
+      },
+      usage({ output: 2000 }),
+    );
+    expect(record?.ttftMs).toBe(22_000);
+    expect(record?.tokensPerSecond).toBeCloseTo(50, 5);
+    expect(record?.bufferedDelivery).toBeUndefined();
   });
 
   test("rebuildFromEntries: custom entries drive turns, message usage drives totals", () => {
@@ -373,7 +413,37 @@ describe("event flow", () => {
     expect(statuses.ttft).toBe("TTFT 1.0s");
     const record = pi.appended[0].data as TurnRecord;
     expect(record.tokensPerSecond).toBeUndefined();
+    expect(record.bufferedDelivery).toBe(true);
     expect(record.outputTokens).toBe(1252);
+  });
+
+  test("chunked replay: t/s stays off the bar even when message_end carries usage", async () => {
+    const pi = makePi();
+    const statuses: StatusMap = {};
+    ttftExtension(pi as never);
+    const ctx = makeCtx("s1", statuses);
+    await pi.emit("session_start", {}, ctx);
+    let now = 0;
+    setNow(() => now);
+    await pi.emit("turn_start", { timestamp: 0 }, ctx);
+    now = 22_000; // gateway buffers the whole response: first token at 22s
+    await pi.emit("message_update", { message: { role: "assistant" } }, ctx);
+    now = 22_900; // then ~1000 tokens flush in 0.9s
+    await pi.emit("message_update", { message: { role: "assistant" } }, ctx);
+    await pi.emit(
+      "message_end",
+      { message: { role: "assistant", usage: usage({ output: 1032 }) } },
+      ctx,
+    );
+    // The live bar must not claim "1147 t/s".
+    expect(statuses.ttft).toBe("TTFT 22s");
+    await pi.emit(
+      "turn_end",
+      { message: { role: "assistant", usage: usage({ output: 1032 }) } },
+      ctx,
+    );
+    expect(statuses.ttft).toBe("TTFT 22s");
+    expect((pi.appended[0].data as TurnRecord).bufferedDelivery).toBe(true);
   });
 
   test("message_end for non-assistant messages is ignored", async () => {
