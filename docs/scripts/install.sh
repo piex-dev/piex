@@ -126,7 +126,7 @@ done
 # Fallback: registry mode run from OUTSIDE the repo (no local discovery) →
 # use the full published list (all non-private @piex-dev packages).
 if [[ ${#PACKAGES[@]} -eq 0 ]]; then
-  PACKAGES=(hashline dap lsp plan review subagent init theme-dark-terminal xai-oauth btw context goal)
+  PACKAGES=(hashline dap lsp plan review subagent init theme-dark-terminal xai-oauth btw context goal usage ttft)
   PKG_PATHS=()
 fi
 

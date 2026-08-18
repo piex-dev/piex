@@ -94,6 +94,8 @@
         "Autonomous goal completion: agent_settled-gated continuation, goal_id stale guard, goal_blocked impasse, and token-budget wrap-up.",
       "pkg.usage.desc":
         "Real-time subscription quota and balances in the bar: Kimi/Grok/Zhipu/MiniMax quotas, Copilot tier/limit, DeepSeek/OpenRouter balances — switches with the model.",
+      "pkg.ttft.desc":
+        "Per-turn TTFT and decode throughput in the status bar, session cache-hit rate in /ttft.",
       "pkg.theme.desc":
         "High-contrast dark terminal theme with green/blue/red accents, distributed via pi.themes.",
 
@@ -195,6 +197,7 @@
       "pkg.goal.desc":
         "自主目标完成：agent_settled 空闲边界续跑、goal_id stale 守卫、goal_blocked 阻塞通道、token 预算 wrap-up。",
       "pkg.usage.desc": "状态栏实时展示订阅状态：Kimi/Grok/Zhipu/MiniMax 配额、Copilot 档位/限流、DeepSeek/OpenRouter 余额，随模型切换。",
+      "pkg.ttft.desc": "状态栏实时展示每轮 TTFT 与解码吞吐，会话累计缓存命中率在 /ttft 查看。",
       "docs.design.sub": "核心原则与架构模式",
       "docs.arch.title": "架构概览",
       "docs.arch.sub": "结构、工具注册、API 映射",

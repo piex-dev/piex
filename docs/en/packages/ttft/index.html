@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ttft — First-Token Latency Live in the Status Bar, Cache Rate in /ttft — PieX</title>
+  <meta name="description" content="Per-turn TTFT and decode throughput in the pi status bar, painted the moment the first token arrives; session-cumulative cache-hit rate in /ttft detail; history survives /resume." />
+  <link rel="canonical" href="https://piex.dev/en/packages/ttft/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/ttft/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/ttft/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/ttft/" />
+  <meta property="og:title" content="ttft — First-Token Latency Live in the Status Bar, Cache Rate in /ttft — PieX" />
+  <meta property="og:description" content="Per-turn TTFT and decode throughput in the pi status bar, painted the moment the first token arrives; session-cumulative cache-hit rate in /ttft detail; history survives /resume." />
+  <meta property="og:url" content="https://piex.dev/en/packages/ttft/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="true" class="active" role="radio">EN</button><button data-lang="zh" aria-checked="false" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/subagent/">subagent</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <a href="/en/packages/goal/">goal</a>
+      <a href="/en/packages/usage/">usage</a>
+<a href="/en/packages/ttft/" class="is-active">ttft</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a>
+      <a href="/en/packages/dap/">dap</a>
+      <a href="/en/packages/lsp/">lsp</a>
+      <a href="/en/packages/plan/">plan</a>
+      <a href="/en/packages/review/">review</a>
+      <a href="/en/packages/subagent/">subagent</a>
+      <a href="/en/packages/xai-oauth/">xai-oauth</a>
+      <a href="/en/packages/btw/">btw</a>
+      <a href="/en/packages/context/">context</a>
+      <a href="/en/packages/goal/">goal</a>
+      <a href="/en/packages/usage/">usage</a>
+<a href="/en/packages/ttft/" class="is-active">ttft</a>
+      <p class="docs-nav-group">Prompts</p>
+      <a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p>
+      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></div>
+<header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">TTFT</span><span class="blog-tag">Latency</span><span class="blog-tag">Cache</span><span class="blog-tag">Throughput</span><span class="blog-tag">Status Bar</span><span class="blog-tag">Extension</span><code class="pkg-tag">@piex-dev/ttft</code></div><h1>ttft — First-Token Latency Live in the Status Bar, Cache Rate in /ttft</h1></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">💡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p>Per-turn TTFT and decode throughput in the pi status bar, painted the moment the first token arrives; session-cumulative and per-turn cache-hit rates in <code>/ttft</code> detail; history survives <code>/resume</code>.</p></div></div>
+
+        <h2 id="intro">Overview</h2>
+        <p>Two of the most impactful signals in a coding agent are invisible: <strong>how long until the model starts typing</strong> (TTFT) and <strong>how fast it types</strong> (decode throughput). pi's built-in footer shows token usage, cost, and the latest message's cache-hit rate, but has no TTFT and no throughput. <code>@piex-dev/ttft</code> ports that capability from <a href="https://github.com/deepseek-ai/deepseek-harness">deepseek-harness</a>'s StatsLine to the pi status bar:</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>status bar</span></div><pre><code>TTFT 1.2s · 45.3t/s</code></pre></div>
+        <p>Fully automatic: TTFT is painted the instant the first token arrives, exact throughput follows when the stream completes (before tools run). Each turn is persisted via <code>pi.appendEntry</code>, so <code>/resume</code> rebuilds the full history.</p>
+        <p>Cache-hit statistics (session-cumulative + per-turn) are computed too, but they stay <strong>off the status bar</strong>: pi's built-in footer already shows the latest turn's <code>CH%</code>, and a second, differently-scoped cache number on the same bar would only confuse. The cumulative rate lives in <code>/ttft</code>, matching deepseek-harness's <code>cache N%</code> semantics.</p>
+
+        <h2 id="theory">How it works</h2>
+        <p><strong>Event sources</strong>: TTFT is the delta from <code>turn_start.timestamp</code> (emitted by pi before each LLM request, with a timestamp) to the first <code>message_update</code> (token-by-token stream events; the first is the first token), painted immediately. Throughput divides decode wall time (first token → last stream update) by <code>usage.output</code>, sampled only when all three exist and decode ≥ 200ms (burst suppression); <code>message_end</code> carries usage the moment the stream completes, before tools run, so the exact t/s hits the bar right away. The cache rate folds the four disjoint usage buckets (<code>input/output/cacheRead/cacheWrite</code>) with <code>cacheRead / (input + cacheRead + cacheWrite)</code>, the same formula as deepseek-harness's <code>TokenTotals</code>, shown in <code>/ttft</code> detail.</p>
+        <p><strong>One cache number per bar</strong>: pi 0.84+ already renders <code>↑input ↓output R W CH%</code>, where <code>CH</code> is the <strong>latest assistant message</strong>'s hit rate; deepseek-harness shows the <strong>session-cumulative</strong> rate (buckets summed first, then divided). <code>@piex-dev/ttft</code> fills the latter gap (in a long session it better reflects whether prefix reuse keeps paying off), but puts it in <code>/ttft</code> instead of the bar: two cache values with different scopes side by side would leave users unsure which one to read. The bar shows only what pi is missing entirely (TTFT and throughput); cache signals belong to <code>/ttft</code>.</p>
+        <p><strong>Persistence &amp; rebuild</strong>: each settled turn appends a <code>ttft</code> custom entry via <code>pi.appendEntry("ttft", …)</code> (never sent to the LLM); <code>session_start</code> scans <code>sessionManager.getEntries()</code> and rebuilds. Turn history comes only from <code>ttft</code> custom entries; token totals come only from assistant/toolResult-message and compaction/branch-summary usage (the same algorithm as pi's built-in footer, custom tools can report usage). The two sources never overlap, so rebuilding cannot double-count. The TTFT anchor is <code>turn_start</code>: pi emits it before the request is assembled, so this measures <strong>end-to-end</strong> first-token latency (including prompt assembly), the same step-level semantics deepseek-harness uses.</p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/ttft</code></pre></div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/ttft" target="_blank" rel="noopener"><code>extensions/ttft</code></a></p>
+        <h3 id="example">Usage</h3>
+        <p>Zero configuration. The segment appears automatically after the first turn:</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>status bar</span></div><pre><code>TTFT &lt;latency&gt; · &lt;tokens/s&gt;t/s</code></pre></div>
+        <p><code>TTFT</code> is painted the moment the first token arrives and stays fixed for the turn; the exact <code>t/s</code> follows when the stream completes (<code>message_end</code>, before tools run); decode samples shorter than 200ms show no t/s (gateway-buffering noise); the whole segment renders dim, matching the rest of the footer. Cache rates stay off the bar to avoid colliding with pi's built-in <code>CH%</code>; see them here:</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>/ttft    # session avg TTFT, token totals, cumulative cache rate,
+         # per-turn TTFT/throughput/output/rate table</code></pre></div>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi -e ./extensions/ttft/src/ttft.ts -p "say hi" --no-session
+bun test extensions/ttft/test/ttft.test.ts</code></pre></div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>Package: <a href="https://github.com/piex-dev/piex/tree/main/extensions/ttft" target="_blank" rel="noopener"><code>extensions/ttft</code></a>, a single <code>src/ttft.ts</code> (~300 lines) with pure metric logic (formatting, hit-rate formula, turn-record derivation) layered from event wiring, fully unit-tested.</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>events</span></div><pre><code>turn_start        record the turn anchor (event.timestamp)
+message_update    first assistant update → first token, paintStatus
+message_end       stream completes with usage → exact t/s on the bar (before tools)
+turn_end          sample usage, derive TurnRecord, appendEntry persistence
+session_start     rebuild history + token totals from entries
+session_shutdown  drop live references, prevent cross-session leaks</code></pre></div>
+        <p><strong>Key details</strong>: repaints happen only at first token, stream completion, and turn settle, never per token during streaming; the bar carries TTFT and t/s only, while cache totals are maintained continuously but rendered solely in <code>/ttft</code>; decode samples shorter than 200ms count as gateway-buffering bursts, so t/s is suppressed while the output token count is still recorded; pi runs several sessions in one process (<code>/new</code>, <code>/resume</code>, <code>/fork</code>), so module state is fully rebuilt on <code>session_start</code> and handlers verify the session id, keeping stale-session events off another session's bar; turn numbering resumes from the historical max + 1; <code>appendEntry</code> failures never break the status bar (best-effort persistence); turns without timing or a first token produce no record, matching deepseek-harness's "no sample, no display".</p>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead><tbody>
+<tr><td><strong>deepseek-harness StatsLine</strong></td><td>Internal <code>timing.stepStartTime/firstTokenTime/completedTime</code>, durable projection, avg TTFT / tokens-per-second / cache rate</td><td><strong>Public-event approximation</strong>: <code>turn_start</code> + <code>message_update</code> + <code>usage</code> deliver the same signal; <code>appendEntry</code> replaces the projection; cache rate moves to <code>/ttft</code> detail instead of the bar</td></tr>
+<tr><td><strong>pi built-in footer</strong></td><td>Token usage, cost, latest message's <code>CH%</code></td><td><strong>Complementary, no overlap</strong>: built-in CH is the latest turn; this package's bar shows only TTFT and throughput, the cumulative rate belongs to <code>/ttft</code></td></tr>
+<tr><td><strong>terminal timer tools</strong></td><td>Manual timing or post-hoc stats, no event-driven updates</td><td><strong>Event-driven</strong>: painted at first token, zero interaction</td></tr>
+</tbody></table></div>
+<p>Core tradeoffs: always-visible status beats a query command (waiting anxiety happens in the moment, not in retrospection); one signal, one home (cache already has a built-in display, so this package only adds the missing scope instead of a second bar segment); persistence beats memory (<code>/resume</code> is a frequent action, and stats that reset lose their meaning).</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Direction</th><th>Plan</th></tr></thead><tbody>
+<tr><td>Tool-time stats</td><td>Accumulate LLM vs. tool durations via <code>tool_execution_start</code> → <code>tool_execution_end</code> (aligning with deepseek-harness StatsLine's duration groups)</td></tr>
+<tr><td>Avg TTFT on the bar</td><td>Average TTFT currently lives in <code>/ttft</code> only; consider an <code>avg</code> segment (pending space evaluation)</td></tr>
+<tr><td>ttft history view</td><td><code>/ttft --last 10</code> to show only the last N turns</td></tr>
+<tr><td>Cache-miss hints</td><td>Reuse pi's cache-stats thinking: annotate likely causes (TTL expiry, model switch) in <code>/ttft</code> on sudden hit-rate drops</td></tr>
+</tbody></table></div>
+        <h3 id="versions">Versions</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
+<tr><td>0.1.0</td><td>2026-08-18</td><td>Initial release: per-turn TTFT + tokens/s in the status bar (<code>message_end</code> paints t/s before tools run; burst samples below 200ms decode show no t/s); cache stats (session-cumulative + per-turn) in <code>/ttft</code> detail, no collision with the built-in footer CH%; <code>appendEntry</code> persistence with <code>session_start</code> rebuild; <code>/ttft</code> detail command; multi-session isolation; 18 unit tests</td></tr>
+</tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/en/packages/usage/"><span class="blog-nav-label">← Previous</span><span class="blog-nav-title">usage</span></a><a class="blog-nav-card is-next" href="/en/packages/xai-oauth/"><span class="blog-nav-label">Next →</span><span class="blog-nav-title">xai-oauth</span></a></nav>
+      <p class="blog-source-link">Source Markdown: <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/ttft.md" target="_blank" rel="noopener">docs/packages/ttft.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">On this page</p><nav><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+  <script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

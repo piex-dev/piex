@@ -1,0 +1,43 @@
+{
+  "name": "@piex-dev/ttft",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Per-turn TTFT and decode throughput in the pi status bar, session cache-hit rate in /ttft",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "extensions/ttft"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "ttft",
+    "time-to-first-token",
+    "latency",
+    "throughput",
+    "tokens-per-second",
+    "cache-hit",
+    "status-bar"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/ttft.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/ttft.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

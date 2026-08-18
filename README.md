@@ -49,6 +49,7 @@ pi -e ./extensions/hashline/src/hashline.ts
 | context   | `@piex-dev/context`   | Context usage report — `/context` command showing token usage breakdown                        |
 | goal      | `@piex-dev/goal`      | Autonomous goal completion — `/goal` command with token-budget wrap-up and impasse channel     |
 | usage      | `@piex-dev/usage`     | Real-time subscription status in the status bar — Kimi For Coding, xAI Grok & GitHub Copilot, shown for the active model's provider |
+| ttft       | `@piex-dev/ttft`      | Per-turn TTFT and decode throughput in the status bar; session cache-hit rate in /ttft                                         |
 
 ### Prompts
 
