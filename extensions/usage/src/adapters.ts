@@ -27,10 +27,21 @@ export interface AdapterSnapshot {
 export interface AdapterFetchContext {
   /** Model provider id currently active (drives per-provider routing). */
   provider: string;
+  /** Active model origin, used to avoid forwarding proxy credentials upstream. */
+  model?: { provider?: string; baseUrl?: string };
   modelRegistry: {
     getProviderAuth(
       provider: string,
-    ): Promise<{ auth?: { apiKey?: string; headers?: Record<string, string> } } | undefined>;
+    ): Promise<
+      | {
+          auth?: {
+            apiKey?: string;
+            headers?: Record<string, string>;
+            baseUrl?: string;
+          };
+        }
+      | undefined
+    >;
   };
 }
 
@@ -803,7 +814,301 @@ export const openrouterAdapter: QuotaAdapter = {
   },
 };
 
-export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter, deepseekAdapter, zhipuAdapter, minimaxAdapter, openrouterAdapter];
+// ────────────────────────────────────────────────────────────────────────────────
+// OpenAI Codex — GET https://chatgpt.com/backend-api/wham/usage
+// ChatGPT 订阅额度（Plus/Pro/Team）：primary_window + secondary_window 的
+// used_percent / limit_window_seconds / reset_at（epoch 秒，非毫秒）；
+// credits（has_credits/unlimited/balance）、plan_type（pro/plus/…）。
+// 认证：Pi 的 `openai-codex` provider OAuth bearer token（pi 自动刷新）。
+// ────────────────────────────────────────────────────────────────────────────────
+
+const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
+const CODEX_ORIGIN = "https://chatgpt.com";
+
+interface CodexRateLimitWindow {
+  used_percent?: unknown;
+  limit_window_seconds?: unknown;
+  reset_at?: unknown;
+  reset_after_seconds?: unknown;
+}
+
+interface CodexRateLimitDetails {
+  allowed?: unknown;
+  limit_reached?: unknown;
+  primary_window?: CodexRateLimitWindow | null;
+  secondary_window?: CodexRateLimitWindow | null;
+}
+
+interface CodexCredits {
+  has_credits?: unknown;
+  unlimited?: unknown;
+  balance?: unknown;
+}
+
+interface CodexUsagePayload {
+  plan_type?: unknown;
+  rate_limit?: CodexRateLimitDetails | null;
+  credits?: CodexCredits | null;
+  additional_rate_limits?: unknown;
+  rate_limit_reset_credits?: { available_count?: unknown } | null;
+  rate_limit_reached_type?: { type?: unknown } | null;
+  spend_control?: { reached?: unknown } | null;
+}
+
+interface CodexFeatureWindow {
+  name: string;
+  position: "Primary" | "Secondary";
+  window: CodexRateLimitWindow;
+}
+
+function codexRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  return value as Record<string, unknown>;
+}
+
+function sanitizeCodexText(value: unknown, maxLength = 160): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+  return text || undefined;
+}
+
+/** Window label from limit_window_seconds: 18_000→5H, 604_800→7D. */
+function codexWindowLabel(seconds: number | undefined, fallback = "Limit"): string {
+  if (seconds === undefined || seconds <= 0) return fallback;
+  const totalMin = Math.max(1, Math.round(seconds / 60));
+  if (totalMin % 1440 === 0) return `${totalMin / 1440}D`;
+  if (totalMin % 60 === 0) return `${totalMin / 60}H`;
+  return `${totalMin}M`;
+}
+
+function codexUsedPercent(value: unknown): number | undefined {
+  const used = toNumber(value);
+  if (used === undefined) return undefined;
+  return Math.min(100, Math.max(0, used));
+}
+
+function codexResetMs(window: CodexRateLimitWindow | undefined): number | undefined {
+  if (!window) return undefined;
+  const resetAt = parseResetMs(window.reset_at);
+  if (resetAt !== undefined && resetAt > 0) return resetAt;
+  const resetAfter = toNumber(window.reset_after_seconds);
+  return resetAfter !== undefined && resetAfter > 0
+    ? Date.now() + resetAfter * 1000
+    : undefined;
+}
+
+function planLabel(planType: unknown): string | undefined {
+  const raw = sanitizeCodexText(planType, 80);
+  if (!raw) return undefined;
+  const label = raw.replace(/_/g, "-").replace(/-/g, " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** "GPT-5.3-Codex-Spark" → "Spark"; falls back to a truncated name. */
+function codexFeatureLabel(name: string): string {
+  const parts = name.split(/[-_\s]+/).filter(Boolean);
+  const last = parts[parts.length - 1] ?? name;
+  if (last && last.length <= 14) return last;
+  return name.length <= 14 ? name : `${name.slice(0, 12)}…`;
+}
+
+function codexWindowSeconds(window: CodexRateLimitWindow): number {
+  const seconds = toNumber(window.limit_window_seconds);
+  return seconds !== undefined && seconds > 0 ? seconds : Number.MAX_SAFE_INTEGER;
+}
+
+function codexPushWindow(
+  segments: AdapterSegment[],
+  detail: string[],
+  position: string,
+  window: CodexRateLimitWindow | null | undefined,
+): void {
+  if (!window) return;
+  const used = codexUsedPercent(window.used_percent);
+  if (used === undefined) return;
+  const seconds = toNumber(window.limit_window_seconds);
+  const label = codexWindowLabel(seconds, position);
+  const resetMs = codexResetMs(window);
+  segments.push({
+    text: `${label}:${Math.round(used)}%`,
+    ratio: used / 100,
+    countdownMs: resetMs !== undefined ? resetMs - Date.now() : undefined,
+  });
+  detail.push(`${position} limit: ${Math.round(used)}% used`);
+  detail.push(`  window ${label}${resetMs !== undefined ? ` · resets ${formatResetTime(resetMs)}` : ""}`);
+}
+
+/** Preserve both windows for every additional feature limit. */
+function codexAdditionalEntries(item: unknown): CodexFeatureWindow[] {
+  const value = codexRecord(item);
+  const rawName = value?.limit_name ?? value?.metered_feature;
+  const name = sanitizeCodexText(rawName);
+  const rateLimit = codexRecord(value?.rate_limit);
+  if (!name || !rateLimit) return [];
+
+  const entries: CodexFeatureWindow[] = [];
+  for (const [key, position] of [
+    ["primary_window", "Primary"],
+    ["secondary_window", "Secondary"],
+  ] as const) {
+    const window = codexRecord(rateLimit[key]) as CodexRateLimitWindow | undefined;
+    if (window && codexUsedPercent(window.used_percent) !== undefined) {
+      entries.push({ name, position, window });
+    }
+  }
+  return entries;
+}
+
+function codexOfficialOrigin(value: string | undefined): boolean {
+  if (!value) return true;
+  try {
+    return new URL(value).origin === CODEX_ORIGIN;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveCodexBearer(ctx: AdapterFetchContext): Promise<string> {
+  if (
+    ctx.model?.provider === "openai-codex" &&
+    !codexOfficialOrigin(ctx.model.baseUrl)
+  ) {
+    throw new Error("codex usage refuses a custom model base URL");
+  }
+
+  const resolved = await ctx.modelRegistry.getProviderAuth("openai-codex");
+  const auth = resolved?.auth;
+  if (!codexOfficialOrigin(auth?.baseUrl)) {
+    throw new Error("codex usage refuses proxy-resolved credentials");
+  }
+  const headers = auth?.headers ?? {};
+  const authHeader = headers.Authorization ?? headers.authorization;
+  const token = authHeader ? authHeader.replace(/^Bearer\s+/i, "") : auth?.apiKey;
+  if (!token) throw new Error("no openai-codex credential; run /login");
+  return token;
+}
+
+export const codexAdapter: QuotaAdapter = {
+  id: "codex",
+  label: "Codex",
+  providerIds: ["openai-codex"],
+
+  async fetch(ctx) {
+    const token = await resolveCodexBearer(ctx);
+    const res = await fetch(CODEX_USAGE_URL, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "User-Agent": "pi-usage",
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`codex usage API returned ${res.status}`);
+    const rawPayload = await res.json();
+    if (!codexRecord(rawPayload)) throw new Error("codex usage response was not an object");
+    const payload = rawPayload as CodexUsagePayload;
+
+    const segments: AdapterSegment[] = [];
+    const detail: string[] = [];
+    const plan = planLabel(payload.plan_type);
+    detail.push(`OpenAI Codex${plan ? ` (${plan})` : ""}`);
+
+    const rateLimitRecord = codexRecord(payload.rate_limit);
+    const rateLimit = rateLimitRecord as CodexRateLimitDetails | undefined;
+    if (rateLimit) {
+      codexPushWindow(segments, detail, "Primary", rateLimit.primary_window);
+      codexPushWindow(segments, detail, "Secondary", rateLimit.secondary_window);
+    }
+
+    const reachedType = sanitizeCodexText(payload.rate_limit_reached_type?.type, 80);
+    const isLimited =
+      rateLimit?.limit_reached === true ||
+      rateLimit?.allowed === false ||
+      payload.spend_control?.reached === true ||
+      (reachedType !== undefined && reachedType !== "unknown");
+    if (isLimited) {
+      segments.unshift({ text: "Codex limited", tone: "error" });
+      detail.push(
+        `status: limited${reachedType ? ` (${reachedType.replace(/_/g, " ")})` : ""}`,
+      );
+    }
+
+    // Preserve all per-feature windows in detail. Surface the most-used one
+    // (shortest window as tie-breaker) so status reflects the nearest limit.
+    const rawAdditional = Array.isArray(payload.additional_rate_limits)
+      ? payload.additional_rate_limits
+      : [];
+    const additionalEntries = rawAdditional.flatMap(codexAdditionalEntries);
+    const tightest = [...additionalEntries].sort((a, b) => {
+      const usedDiff =
+        (codexUsedPercent(b.window.used_percent) ?? -1) -
+        (codexUsedPercent(a.window.used_percent) ?? -1);
+      return usedDiff || codexWindowSeconds(a.window) - codexWindowSeconds(b.window);
+    })[0];
+    if (tightest) {
+      const used = codexUsedPercent(tightest.window.used_percent);
+      const seconds = toNumber(tightest.window.limit_window_seconds);
+      const resetMs = codexResetMs(tightest.window);
+      if (used !== undefined) {
+        segments.push({
+          text: `${codexFeatureLabel(tightest.name)} ${codexWindowLabel(seconds)}:${Math.round(used)}%`,
+          ratio: used / 100,
+          countdownMs: resetMs !== undefined ? resetMs - Date.now() : undefined,
+        });
+      }
+    }
+    for (const entry of additionalEntries) {
+      const used = codexUsedPercent(entry.window.used_percent);
+      if (used === undefined) continue;
+      const seconds = toNumber(entry.window.limit_window_seconds);
+      const resetMs = codexResetMs(entry.window);
+      const label = codexWindowLabel(seconds, entry.position);
+      detail.push(`${entry.name} ${entry.position} limit: ${Math.round(used)}% used`);
+      detail.push(
+        `  window ${label}${resetMs !== undefined ? ` · resets ${formatResetTime(resetMs)}` : ""}`,
+      );
+    }
+
+    // Keep no-balance states as a fallback so credits-only payloads remain useful
+    // without adding noise when rate-limit windows are present.
+    let creditsFallback: AdapterSegment | undefined;
+    const creditsRecord = codexRecord(payload.credits);
+    const credits = creditsRecord as CodexCredits | undefined;
+    if (credits?.has_credits === true) {
+      if (credits.unlimited === true) {
+        segments.push({ text: "Credits:∞" });
+        detail.push("Credits: unlimited");
+      } else {
+        const balance = toNumber(credits.balance);
+        if (balance !== undefined) {
+          segments.push({ text: `Credits:${balance}` });
+          detail.push(`Credits: ${balance} available`);
+        } else {
+          creditsFallback = { text: "Credits:available" };
+          detail.push("Credits: available");
+        }
+      }
+    } else if (credits?.has_credits === false) {
+      creditsFallback = { text: "Credits:none" };
+      detail.push("Credits: none");
+    }
+
+    const resetCount = toNumber(payload.rate_limit_reset_credits?.available_count);
+    if (resetCount !== undefined && resetCount >= 0) {
+      detail.push(`usage limit resets: ${Math.floor(resetCount)}`);
+    }
+
+    if (segments.length === 0 && creditsFallback) segments.push(creditsFallback);
+    if (segments.length === 0) throw new Error("codex usage payload has no quota data");
+    return { segments, detail };
+  },
+};
+
+export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter, deepseekAdapter, zhipuAdapter, minimaxAdapter, openrouterAdapter, codexAdapter];
 
 /** Find the adapter matching a model provider id, or undefined. */
 export function adapterForProvider(provider: string | undefined): QuotaAdapter | undefined {

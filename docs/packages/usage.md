@@ -9,13 +9,13 @@ install: pi install npm:@piex-dev/usage
 source: extensions/usage
 ---
 
-> 状态栏实时展示 7 个 provider 的订阅配额与余额：Kimi/Grok/Zhipu/MiniMax 显示百分比 + 重置倒计时，Copilot 显示档位与限流，DeepSeek/OpenRouter 显示余额；快用完变黄/红，切换模型自动切换。
+> 状态栏实时展示 8 个 provider 的订阅配额与余额：Kimi/Grok/Zhipu/MiniMax/Codex 显示百分比 + 重置倒计时，Copilot 显示档位与限流，DeepSeek/OpenRouter 显示余额；快用完变黄/红，切换模型自动切换。
 
 ## 简介
 
 订阅制 coding agent（Kimi For Coding、SuperGrok、GitHub Copilot 等）都有用量配额，但官方查看方式要么打开网页控制台，要么靠记忆。真到 429 报错才发现配额用完了，体验很差。
 
-`@piex-dev/usage` 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok/Zhipu/MiniMax 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态，DeepSeek/OpenRouter 显示余额；切换模型自动切换数据源。全自动，零操作。
+`@piex-dev/usage` 把可获得的订阅状态直接放到 pi 状态栏：Kimi/Grok/Zhipu/MiniMax/Codex 显示百分比 + 重置倒计时，Copilot 显示订阅档位与限流状态，DeepSeek/OpenRouter 显示余额；切换模型自动切换数据源。全自动，零操作。
 
 > Zhipu / MiniMax / OpenRouter 三个适配器从 [cc-switch](https://github.com/farion1231/cc-switch) 的用量/余额查询能力迁移而来（其 `balance.rs` 与 `coding_plan.rs` 服务）；cc-switch 中的 SiliconFlow / StepFun / Novita 余额与火山方舟 AK/SK 签名配额在 pi 没有对应 provider，未迁移。
 
@@ -23,6 +23,7 @@ source: extensions/usage
 Usage: 5-Hour:21%🕙3h45 7-Day:26%🕙6d17h                     Kimi / Zhipu / MiniMax
 Usage: 7-Day:32%🕙4d3h                                      Grok
 Usage: Copilot Pro
+Usage: 5H:21%🕙3h45 7D:26%🕙6d17h Credits:12                 OpenAI Codex（Plus/Pro/Team）
 Usage: 今¥7.81 7d¥26.91 30d¥148.46 充值余额:¥50,560.02      DeepSeek
 Usage: 余额:$37.50                                          OpenRouter
 ```
@@ -39,6 +40,7 @@ Usage: 余额:$37.50                                          OpenRouter
 | --- | --- | --- |
 | Kimi | `GET https://api.kimi.com/coding/v1/usages` | 周配额（limit/used/remaining/resetTime）+ 滚动窗口限制 |
 | Grok | `GET https://cli-chat-proxy.grok.com/v1/billing?format=credits` | 周 credits 百分比 + 周期起止 |
+| Codex | `GET https://chatgpt.com/backend-api/wham/usage` | ChatGPT 订阅额度：账号主/次窗口（5h/周，按秒数标注）+ 分特性窗口（如 Spark 5h）+ credits + 订阅档位；`reset_at` 为 epoch 秒 |
 | Zhipu（智谱） | `GET {open.bigmodel.cn\|api.z.ai}/api/monitor/usage/quota/limit` | 5 小时 + 周窗口配额（百分比），API key 认证（**不加 Bearer 前缀**） |
 | MiniMax | `GET https://api.minimaxi.com\|io/v1/api/openplatform/coding_plan/remains` | 5 小时 + 周窗口配额（剩余百分比反转） |
 
@@ -90,10 +92,10 @@ pi install npm:@piex-dev/usage
 
 ### 用法
 
-零操作：选中 Kimi / Grok / 智谱 / MiniMax / OpenRouter / DeepSeek / Copilot 模型即自动展示，切走自动清除。
+零操作：选中 Kimi / Grok / 智谱 / MiniMax / Codex / OpenRouter / DeepSeek / Copilot 模型即自动展示，切走自动清除。
 
 ```bash
-/usage    # 手动刷新 + 显示详情（各窗口用量/重置时间、会员等级、SKU、余额明细、每日消费）
+/usage    # 手动刷新 + 显示详情（各窗口用量/重置时间、会员等级、SKU、余额明细、每日消费、Codex 订阅档位/分特性窗口）
 ```
 
 ### 渲染与颜色规则
@@ -124,7 +126,7 @@ pi -e ./extensions/usage/src/usage.ts -p "say hi" --no-session
 
 ## 实现方案
 
-包路径：[`extensions/usage`](https://github.com/piex-dev/piex/tree/main/extensions/usage)，`src/adapters.ts`（7 个数据源适配器）+ `src/usage.ts`（事件编排）约 800 行。
+包路径：[`extensions/usage`](https://github.com/piex-dev/piex/tree/main/extensions/usage)，`src/adapters.ts`（8 个数据源适配器）+ `src/usage.ts`（事件编排）。
 
 ### 适配器架构
 
@@ -138,7 +140,8 @@ src/adapters.ts                      src/usage.ts
 │  ├─ deepseekAdapter     │          │ /usage 命令           │
 │  ├─ zhipuAdapter        │          └──────────────────────┘
 │  ├─ minimaxAdapter      │
-│  └─ openrouterAdapter   │
+│  ├─ openrouterAdapter   │
+│  └─ codexAdapter        │
 │  providerIds + fetch()  │
 └─────────────────────────┘
 ```
@@ -150,6 +153,7 @@ src/adapters.ts                      src/usage.ts
 - **Bearer 去重**：`getProviderAuth` 返回的 header 已含 `Bearer` 前缀，统一剥离后由 adapter 拼接，避免 `Bearer Bearer` 双前缀（xAI 严格拒绝）
 - **Zhipu 裸 key**：智谱 quota 接口不接受 Bearer 前缀，直接以原始 API key 作 `Authorization`（cc-switch 实测约定）
 - **Grok 双 provider**：`xai` / `xai-oauth` 两个 provider id 都匹配，token 按序 fallback；Zhipu / MiniMax 同理（国内/国际站域名不同）
+- **Codex 窗口与 origin 门禁**：wham/usage 的 `reset_at` 为 epoch **秒**，缺失时回退 `reset_after_seconds`，两者都没有则不伪造重置时间；窗口标签由 `limit_window_seconds` 推算。只允许官方 `https://chatgpt.com` model/auth origin，自定义代理直接拒绝，避免把代理凭据发送给 OpenAI
 - **颜色优先级**：`tone`（金额阈值预警）优先于 `ratio`（配额百分比预警），两者不会叠加冲突
 - **容错**：接口字段可能随官方改版变化，解析失败显示 `<label>: offline` 并在下轮自动重试；DeepSeek 消费 token 失效自动降级为仅余额；Grok 月度接口为 best-effort，失败不影响主展示
 
@@ -168,7 +172,7 @@ src/adapters.ts                      src/usage.ts
 
 ### 路线图
 
-1. **更多 provider**：Claude 订阅（`api.anthropic.com/api/oauth/usage`）、Codex（`wham/usage`）走同一 adapter 接口即可接入；cc-switch 的 SiliconFlow / StepFun / Novita 余额与火山方舟 AK/SK 配额待 pi 支持对应 provider 后迁移。
+1. **更多 provider**：Claude 订阅（`api.anthropic.com/api/oauth/usage`）走同一 adapter 接口即可接入；cc-switch 的 SiliconFlow / StepFun / Novita 余额与火山方舟 AK/SK 配额待 pi 支持对应 provider 后迁移。（Codex 已接入，见 0.2.0）
 2. **阈值自定义**：`USAGE_WARN_RATIO` / `USAGE_ERROR_RATIO` 环境变量化。
 3. **用量趋势**：本地记录每次快照，状态栏切换显示「较上次 -2%」。
 4. **窗口明细可折叠**：多个滚动窗口时默认只显示最紧的，详情页看全量。
@@ -177,6 +181,7 @@ src/adapters.ts                      src/usage.ts
 
 | 版本 | 日期 | 变更 |
 | --- | --- | --- |
+| 0.2.0 | 2026-08-28 | OpenAI Codex（`openai-codex`）适配器：`GET https://chatgpt.com/backend-api/wham/usage`，展示账号主/次窗口 + 使用率最高的分特性窗口（同值取最短周期，如 `Spark 5H`）+ credits + 订阅档位；兼容 credits-only/限流响应，限流显式标红；`reset_at` epoch 秒与 `reset_after_seconds` 倒计时；`/usage` 详情保留全部特性主/次窗口及重置时间；自定义代理 origin 拒绝转发凭据 |
 | 0.1.0 | 2026-07-31 | 初始版本：Kimi（周配额 + 滚动窗口）+ Grok（周 credits）状态栏实时展示；按模型门控；turn_end + 300s 轮询 + 30s 倒计时三层刷新；`/usage` 详情命令；`USAGE_SHOW_XAI_MONTHLY` 可选月度展示 |
 | 0.1.0 | 2026-08-01 | Copilot 档位/限流状态（`Copilot Pro` / `Copilot Free(OSS)` / `limited` 倒计时） |
 | 0.1.0 | 2026-08-01 | DeepSeek 余额 + 官方消费统计（`DEEPSEEK_PLATFORM_TOKEN`：今天/7 天/30 天 + 每日明细，失效降级）；金额阈值 `tone`（<¥20 黄 / <¥5 红） |

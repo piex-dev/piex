@@ -1,8 +1,8 @@
 {
   "name": "@piex-dev/usage",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
-  "description": "Real-time subscription quota in the pi status bar — Kimi For Coding and xAI Grok (SuperGrok), shown only for the active model's provider",
+  "description": "Real-time subscription quota in the pi status bar — Kimi For Coding, xAI Grok, GitHub Copilot & OpenAI Codex, shown only for the active model's provider",
   "license": "MIT",
   "author": "debugtalk",
   "publishConfig": {
@@ -25,7 +25,8 @@
     "supergrok",
     "usage",
     "quota",
-    "status-bar"
+    "status-bar",
+    "codex"
   ],
   "pi": {
     "extensions": [
