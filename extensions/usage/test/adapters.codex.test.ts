@@ -17,6 +17,8 @@ const ORIGINAL_FETCH = globalThis.fetch;
 const NOW_SECONDS = Math.floor(Date.now() / 1000);
 
 interface CtxOptions {
+  /** null intentionally omits the model id. */
+  modelId?: string | null;
   modelBaseUrl?: string;
   authBaseUrl?: string;
   useAuthHeader?: boolean;
@@ -30,6 +32,9 @@ function makeCtx(
     provider: "openai-codex",
     model: {
       provider: "openai-codex",
+      ...(options.modelId === null
+        ? {}
+        : { id: options.modelId ?? "gpt-5.3-codex-spark" }),
       baseUrl: options.modelBaseUrl ?? "https://chatgpt.com/backend-api/codex",
     },
     modelRegistry: {
@@ -237,6 +242,80 @@ describe("codex adapter", () => {
     expect(
       snapshot.detail.filter((line) => line.includes("resets")),
     ).toHaveLength(2);
+  });
+
+  test("only the active model's feature window reaches the status bar", async () => {
+    mockPayload({
+      plan_type: "pro",
+      rate_limit: fullPayload.rate_limit,
+      additional_rate_limits: [
+        {
+          limit_name: "GPT-5.3 Codex Spark",
+          rate_limit: {
+            primary_window: {
+              used_percent: 10,
+              limit_window_seconds: 18_000,
+              reset_at: NOW_SECONDS + 18_000,
+            },
+          },
+        },
+      ],
+    });
+
+    // gpt-5.3-codex-spark matches Spark → status bar shows it.
+    const sparkCtx = makeCtx("t-spark", { modelId: "gpt-5.3-codex-spark" });
+    expect(
+      (await codexAdapter.fetch(sparkCtx)).segments.map((s) => s.text),
+    ).toEqual(["5H:60%", "7D:80%", "Spark 5H:10%"]);
+
+    // gpt-5.6-sol does not match Spark → status bar keeps only the account
+    // windows; the feature still appears in /usage detail.
+    const solCtx = makeCtx("t-sol", { modelId: "gpt-5.6-sol" });
+    const solSnapshot = await codexAdapter.fetch(solCtx);
+    expect(solSnapshot.segments.map((s) => s.text)).toEqual([
+      "5H:60%",
+      "7D:80%",
+    ]);
+    expect(solSnapshot.detail.join("\n")).toContain(
+      "GPT-5.3 Codex Spark Primary limit: 10% used",
+    );
+
+    // Missing model identity fails closed instead of reverting to all features.
+    const noIdSnapshot = await codexAdapter.fetch(
+      makeCtx("t-no-id", { modelId: null }),
+    );
+    expect(noIdSnapshot.segments.map((s) => s.text)).toEqual([
+      "5H:60%",
+      "7D:80%",
+    ]);
+  });
+
+  test("matches a stable metered feature when limit_name is absent", async () => {
+    mockPayload({
+      plan_type: "pro",
+      rate_limit: fullPayload.rate_limit,
+      additional_rate_limits: [
+        {
+          metered_feature: "codex_bengalfox",
+          rate_limit: {
+            primary_window: {
+              used_percent: 10,
+              limit_window_seconds: 18_000,
+              reset_at: NOW_SECONDS + 18_000,
+            },
+          },
+        },
+      ],
+    });
+
+    const snapshot = await codexAdapter.fetch(
+      makeCtx("t-metered", { modelId: "gpt-5.3-codex-spark" }),
+    );
+    expect(snapshot.segments.map((s) => s.text)).toEqual([
+      "5H:60%",
+      "7D:80%",
+      "Spark 5H:10%",
+    ]);
   });
 
   test("does not fabricate reset times or 0M window labels", async () => {

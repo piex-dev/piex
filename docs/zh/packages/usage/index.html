@@ -125,7 +125,7 @@ Usage: 余额:$37.50                                          OpenRouter</code><
 </tbody></table></div>
         <h3 id="versions">版本记录</h3>
         <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody>
-<tr><td>0.2.0</td><td>2026-08-28</td><td>OpenAI Codex（<code>openai-codex</code>）适配器：账号主/次窗口 + 使用率最高的分特性窗口（同值取最短周期）+ credits + 订阅档位；兼容 credits-only/限流响应并显式标红；保留全部特性主/次窗口与重置时间；拒绝自定义代理 origin 转发凭据</td></tr>
+<tr><td>0.2.0</td><td>2026-08-28</td><td>OpenAI Codex（<code>openai-codex</code>）适配器：账号主/次窗口 + <strong>当前模型所属</strong>的分特性窗口（如 <code>Spark 5H</code>，仅在使用 <code>gpt-5.3-codex-spark</code> 时显示，其他模型的分特性窗口只进详情）+ credits + 订阅档位；兼容 credits-only/限流响应并显式标红；保留全部特性主/次窗口与重置时间；拒绝自定义代理 origin 转发凭据</td></tr>
 <tr><td>0.1.0</td><td>2026-07-31</td><td>初始版本：Kimi（周配额 + 滚动窗口）+ Grok（周 credits）状态栏实时展示；按模型门控；turn_end + 300s 轮询 + 30s 倒计时三层刷新；<code>/usage</code> 详情命令；<code>USAGE_SHOW_XAI_MONTHLY</code> 可选月度展示</td></tr>
 </tbody></table></div>
       </div>

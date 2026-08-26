@@ -27,8 +27,8 @@ export interface AdapterSnapshot {
 export interface AdapterFetchContext {
   /** Model provider id currently active (drives per-provider routing). */
   provider: string;
-  /** Active model origin, used to avoid forwarding proxy credentials upstream. */
-  model?: { provider?: string; baseUrl?: string };
+  /** Active model identity, used for feature matching and origin validation. */
+  model?: { provider?: string; id?: string; baseUrl?: string };
   modelRegistry: {
     getProviderAuth(
       provider: string,
@@ -857,6 +857,8 @@ interface CodexUsagePayload {
 
 interface CodexFeatureWindow {
   name: string;
+  limitName?: string;
+  meteredFeature?: string;
   position: "Primary" | "Secondary";
   window: CodexRateLimitWindow;
 }
@@ -921,6 +923,38 @@ function codexWindowSeconds(window: CodexRateLimitWindow): number {
   return seconds !== undefined && seconds > 0 ? seconds : Number.MAX_SAFE_INTEGER;
 }
 
+interface CodexMeteredFeature {
+  label: string;
+  modelIds: readonly string[];
+}
+
+/** Stable server feature ids mapped to their label and limited model ids. */
+const CODEX_METERED_FEATURES: Readonly<Record<string, CodexMeteredFeature>> = {
+  codexbengalfox: { label: "Spark", modelIds: ["gpt-5.3-codex-spark"] },
+};
+
+/** "gpt-5.3-codex-spark" / "GPT-5.3 Codex Spark" → "gpt53codexspark". */
+function codexNormalize(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function codexFeatureMatchesModel(
+  entry: CodexFeatureWindow,
+  modelId: string,
+): boolean {
+  const model = codexNormalize(modelId);
+  if (!model) return false;
+  if (entry.limitName && codexNormalize(entry.limitName) === model) return true;
+  if (!entry.meteredFeature) return false;
+  const feature = codexNormalize(entry.meteredFeature);
+  return (
+    feature === model ||
+    CODEX_METERED_FEATURES[feature]?.modelIds.some(
+      (candidate) => codexNormalize(candidate) === model,
+    ) === true
+  );
+}
+
 function codexPushWindow(
   segments: AdapterSegment[],
   detail: string[],
@@ -945,8 +979,12 @@ function codexPushWindow(
 /** Preserve both windows for every additional feature limit. */
 function codexAdditionalEntries(item: unknown): CodexFeatureWindow[] {
   const value = codexRecord(item);
-  const rawName = value?.limit_name ?? value?.metered_feature;
-  const name = sanitizeCodexText(rawName);
+  const limitName = sanitizeCodexText(value?.limit_name);
+  const meteredFeature = sanitizeCodexText(value?.metered_feature);
+  const knownFeature = meteredFeature
+    ? CODEX_METERED_FEATURES[codexNormalize(meteredFeature)]
+    : undefined;
+  const name = limitName ?? knownFeature?.label ?? meteredFeature;
   const rateLimit = codexRecord(value?.rate_limit);
   if (!name || !rateLimit) return [];
 
@@ -957,7 +995,7 @@ function codexAdditionalEntries(item: unknown): CodexFeatureWindow[] {
   ] as const) {
     const window = codexRecord(rateLimit[key]) as CodexRateLimitWindow | undefined;
     if (window && codexUsedPercent(window.used_percent) !== undefined) {
-      entries.push({ name, position, window });
+      entries.push({ name, limitName, meteredFeature, position, window });
     }
   }
   return entries;
@@ -1037,13 +1075,18 @@ export const codexAdapter: QuotaAdapter = {
       );
     }
 
-    // Preserve all per-feature windows in detail. Surface the most-used one
-    // (shortest window as tie-breaker) so status reflects the nearest limit.
+    // Keep every feature in /usage detail, but surface only the active model's
+    // own feature window. Missing model identity fails closed instead of showing
+    // an unrelated Spark window.
     const rawAdditional = Array.isArray(payload.additional_rate_limits)
       ? payload.additional_rate_limits
       : [];
     const additionalEntries = rawAdditional.flatMap(codexAdditionalEntries);
-    const tightest = [...additionalEntries].sort((a, b) => {
+    const currentModelId = ctx.model?.id;
+    const statusWindowEntries = currentModelId
+      ? additionalEntries.filter((entry) => codexFeatureMatchesModel(entry, currentModelId))
+      : [];
+    const tightest = [...statusWindowEntries].sort((a, b) => {
       const usedDiff =
         (codexUsedPercent(b.window.used_percent) ?? -1) -
         (codexUsedPercent(a.window.used_percent) ?? -1);

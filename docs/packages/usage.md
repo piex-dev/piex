@@ -181,7 +181,7 @@ src/adapters.ts                      src/usage.ts
 
 | 版本 | 日期 | 变更 |
 | --- | --- | --- |
-| 0.2.0 | 2026-08-28 | OpenAI Codex（`openai-codex`）适配器：`GET https://chatgpt.com/backend-api/wham/usage`，展示账号主/次窗口 + 使用率最高的分特性窗口（同值取最短周期，如 `Spark 5H`）+ credits + 订阅档位；兼容 credits-only/限流响应，限流显式标红；`reset_at` epoch 秒与 `reset_after_seconds` 倒计时；`/usage` 详情保留全部特性主/次窗口及重置时间；自定义代理 origin 拒绝转发凭据 |
+| 0.2.0 | 2026-08-28 | OpenAI Codex（`openai-codex`）适配器：`GET https://chatgpt.com/backend-api/wham/usage`，展示账号主/次窗口 + **当前模型所属**的分特性窗口（如 `Spark 5H`，仅当使用 `gpt-5.3-codex-spark` 时；其他模型的分特性窗口只在 `/usage` 详情）+ credits + 订阅档位；兼容 credits-only/限流响应，限流显式标红；`reset_at` epoch 秒与 `reset_after_seconds` 倒计时；`/usage` 详情保留全部特性主/次窗口及重置时间；自定义代理 origin 拒绝转发凭据 |
 | 0.1.0 | 2026-07-31 | 初始版本：Kimi（周配额 + 滚动窗口）+ Grok（周 credits）状态栏实时展示；按模型门控；turn_end + 300s 轮询 + 30s 倒计时三层刷新；`/usage` 详情命令；`USAGE_SHOW_XAI_MONTHLY` 可选月度展示 |
 | 0.1.0 | 2026-08-01 | Copilot 档位/限流状态（`Copilot Pro` / `Copilot Free(OSS)` / `limited` 倒计时） |
 | 0.1.0 | 2026-08-01 | DeepSeek 余额 + 官方消费统计（`DEEPSEEK_PLATFORM_TOKEN`：今天/7 天/30 天 + 每日明细，失效降级）；金额阈值 `tone`（<¥20 黄 / <¥5 红） |

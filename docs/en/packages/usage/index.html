@@ -125,7 +125,7 @@ Usage: 余额:$37.50                                          OpenRouter</code><
 </tbody></table></div>
         <h3 id="versions">Version history</h3>
         <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody>
-<tr><td>0.2.0</td><td>2026-08-28</td><td>OpenAI Codex (<code>openai-codex</code>) adapter: account primary/secondary windows + the most-used feature window (shortest duration as tie-breaker) + credits + plan; credits-only and limited responses remain displayable, with explicit red limited state; all feature primary/secondary windows and reset times are preserved; custom proxy origins are rejected before credentials are sent</td></tr>
+<tr><td>0.2.0</td><td>2026-08-28</td><td>OpenAI Codex (<code>openai-codex</code>) adapter: account primary/secondary windows + the <strong>active model's own</strong> feature window (e.g. <code>Spark 5H</code> shown only when the model is <code>gpt-5.3-codex-spark</code>; other models' feature windows live in details) + credits + plan; credits-only and limited responses remain displayable, with explicit red limited state; all feature primary/secondary windows and reset times are preserved; custom proxy origins are rejected before credentials are sent</td></tr>
 <tr><td>0.1.0</td><td>2026-07-31</td><td>Initial release: Kimi (weekly + rolling windows) and Grok (weekly credits) in the status bar; model-gated display; three-layer refresh (turn_end + 300s poll + 30s countdown ticker); <code>/usage</code> details command; optional monthly display via <code>USAGE_SHOW_XAI_MONTHLY</code></td></tr>
 </tbody></table></div>
       </div>
