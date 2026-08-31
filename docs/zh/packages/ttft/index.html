@@ -39,6 +39,7 @@
       <a href="/zh/packages/goal/">goal</a>
       <a href="/zh/packages/usage/">usage</a>
 <a href="/zh/packages/ttft/" class="is-active">ttft</a>
+      <a href="/zh/packages/gpt-fast-mode/">gpt-fast-mode</a>
       <p class="docs-nav-group">Prompts</p>
       <a href="/zh/packages/init/">init</a>
       <p class="docs-nav-group">Themes</p>
@@ -59,6 +60,7 @@
       <a href="/zh/packages/goal/">goal</a>
       <a href="/zh/packages/usage/">usage</a>
 <a href="/zh/packages/ttft/" class="is-active">ttft</a>
+      <a href="/zh/packages/gpt-fast-mode/">gpt-fast-mode</a>
       <p class="docs-nav-group">Prompts</p>
       <a href="/zh/packages/init/">init</a>
       <p class="docs-nav-group">Themes</p>
@@ -124,7 +126,7 @@ session_shutdown  清空活动引用，防止跨会话串扰</code></pre></div>
 <tr><td>0.1.0</td><td>2026-08-18</td><td>初始版本：每轮 TTFT + tokens/s 状态栏展示（<code>message_end</code> 即上屏 t/s，早于工具执行；decode 短于 200ms 或短于 TTFT 一半的缓冲回放不展示 t/s，<code>/ttft</code> 标注 <code>buffered</code>）；cache 统计（会话累计 + 每轮）归 <code>/ttft</code> 明细，不与内置 footer CH% 撞车；<code>appendEntry</code> 持久化与 <code>session_start</code> 重建；<code>/ttft</code> 详情命令；多会话隔离；21 项单测</td></tr>
 </tbody></table></div>
       </div>
-      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/usage/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">usage</span></a><a class="blog-nav-card is-next" href="/zh/packages/xai-oauth/"><span class="blog-nav-label">下一个 →</span><span class="blog-nav-title">xai-oauth</span></a></nav>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/usage/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">usage</span></a><a class="blog-nav-card is-next" href="/zh/packages/gpt-fast-mode/"><span class="blog-nav-label">下一个 →</span><span class="blog-nav-title">gpt-fast-mode</span></a></nav>
       <p class="blog-source-link">源稿 Markdown：<a href="https://github.com/piex-dev/piex/blob/main/docs/packages/ttft.md" target="_blank" rel="noopener">docs/packages/ttft.md</a></p>
     </article>
     <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">本页目录</p><nav><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></aside>

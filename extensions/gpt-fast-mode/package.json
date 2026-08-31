@@ -1,0 +1,42 @@
+{
+  "name": "@piex-dev/gpt-fast-mode",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Safe GPT Fast mode toggle for supported ChatGPT-auth OpenAI Codex models",
+  "license": "MIT",
+  "author": "debugtalk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piex-dev/piex.git",
+    "directory": "extensions/gpt-fast-mode"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "openai",
+    "codex",
+    "gpt",
+    "fast-mode",
+    "priority",
+    "service-tier"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/gpt-fast-mode.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/gpt-fast-mode.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

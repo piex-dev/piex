@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>gpt-fast-mode — Codex Fast Mode, Safely Scoped — PieX</title>
+  <meta name="description" content="Use /gpt-fast to enable priority service tier for supported ChatGPT Codex models, with strict provider, API, OAuth, model, and payload gates." />
+  <link rel="canonical" href="https://piex.dev/en/packages/gpt-fast-mode/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/gpt-fast-mode/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/gpt-fast-mode/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/gpt-fast-mode/" />
+  <meta property="og:title" content="gpt-fast-mode — Codex Fast Mode, Safely Scoped — PieX" />
+  <meta property="og:description" content="Safely enable ChatGPT Codex Fast mode with /gpt-fast, injecting priority service tier only for explicitly supported models." />
+  <meta property="og:url" content="https://piex.dev/en/packages/gpt-fast-mode/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="true" class="active" role="radio">EN</button><button data-lang="zh" aria-checked="false" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/en/packages/hashline/">hashline</a><a href="/en/packages/dap/">dap</a><a href="/en/packages/lsp/">lsp</a><a href="/en/packages/plan/">plan</a><a href="/en/packages/review/">review</a><a href="/en/packages/subagent/">subagent</a><a href="/en/packages/xai-oauth/">xai-oauth</a><a href="/en/packages/btw/">btw</a><a href="/en/packages/context/">context</a><a href="/en/packages/goal/">goal</a><a href="/en/packages/usage/">usage</a><a href="/en/packages/ttft/">ttft</a><a href="/en/packages/gpt-fast-mode/" class="is-active">gpt-fast-mode</a>
+      <p class="docs-nav-group">Prompts</p><a href="/en/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p><a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <p class="docs-nav-group">Extensions</p>
+        <a href="/en/packages/hashline/">hashline</a><a href="/en/packages/dap/">dap</a><a href="/en/packages/lsp/">lsp</a><a href="/en/packages/plan/">plan</a><a href="/en/packages/review/">review</a><a href="/en/packages/subagent/">subagent</a><a href="/en/packages/xai-oauth/">xai-oauth</a><a href="/en/packages/btw/">btw</a><a href="/en/packages/context/">context</a><a href="/en/packages/goal/">goal</a><a href="/en/packages/usage/">usage</a><a href="/en/packages/ttft/">ttft</a><a href="/en/packages/gpt-fast-mode/" class="is-active">gpt-fast-mode</a>
+        <p class="docs-nav-group">Prompts</p><a href="/en/packages/init/">init</a>
+        <p class="docs-nav-group">Themes</p><a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+      </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>On this page</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></div>
+      <header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">OpenAI</span><span class="blog-tag">Codex</span><span class="blog-tag">Fast Mode</span><span class="blog-tag">Extension</span><code class="pkg-tag">@piex-dev/gpt-fast-mode</code></div><h1>gpt-fast-mode — Codex Fast Mode, Safely Scoped</h1></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">⚡</div><div class="blog-callout-body"><p class="blog-callout-label">TL;DR</p><p>Use <code>/gpt-fast</code> to enable the <code>priority</code> service tier for supported ChatGPT Codex models while strictly rejecting the wrong provider, API, authentication, or model.</p></div></div>
+
+        <h2 id="intro">Overview</h2>
+        <p>OpenAI Codex Fast mode is not a reasoning level and does not select a different model. It sets <code>service_tier: "priority"</code> on the request. pi's <code>openai-codex-responses</code> transport can already send that field, but has no built-in Fast control. <code>@piex-dev/gpt-fast-mode</code> adds <code>/gpt-fast on|off|status</code> and <code>--fast</code>; the specific command name avoids occupying the overly broad <code>/fast</code> namespace.</p>
+        <div class="blog-callout warn"><div class="blog-callout-icon" aria-hidden="true">!</div><div class="blog-callout-body"><p class="blog-callout-label">Quota impact</p><p>Fast mode is generally faster, but can consume subscription quota faster. The extension changes only the service tier, never the model, reasoning level, tools, or prompts.</p></div></div>
+
+        <h2 id="theory">How it works</h2>
+        <p>The extension hooks <code>before_provider_request</code>, cloning the serialized payload and adding <code>service_tier: "priority"</code> immediately before transport. Injection must pass six fail-closed gates: provider is <code>openai-codex</code>; API is <code>openai-codex-responses</code>; model is on the explicit allowlist; authentication is ChatGPT OAuth; payload model matches the selected model; and no <code>service_tier</code> already exists.</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>Supported</th><th>Explicitly rejected</th></tr></thead><tbody><tr><td><code>gpt-5.4</code>, <code>gpt-5.5</code>, <code>gpt-5.6-sol</code>, <code>gpt-5.6-terra</code>, <code>gpt-5.6-luna</code></td><td><code>gpt-5.4-mini</code>, <code>gpt-5.3-codex-spark</code></td></tr></tbody></table></div>
+        <p>Unsupported models are never guessed into compatibility. The preference may stay on while requests remain unchanged; switching to a supported model activates it automatically.</p>
+
+        <h2 id="usage">Usage</h2>
+        <h3 id="install">Install</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/gpt-fast-mode</code></pre></div>
+        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/gpt-fast-mode" target="_blank" rel="noopener"><code>extensions/gpt-fast-mode</code></a></p>
+        <h3 id="commands">Commands</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>pi</span></div><pre><code>/gpt-fast             Toggle Fast mode
+/gpt-fast on          Enable for this session
+/gpt-fast off         Disable for this session
+/gpt-fast status      Show mode, eligibility, and last-request outcome
+
+pi --fast         Start enabled</code></pre></div>
+        <p>A <code>fast</code> status segment means the switch is enabled, the current model is eligible, and the payload observed by this extension's request hook has no tier conflict. A non-<code>priority</code> <code>service_tier</code> already set by another component is preserved and clears the status. Hooks from extensions loaded later can still change the final payload, so <code>/gpt-fast status</code> reports this extension's injection or observation rather than server confirmation. OAuth is rechecked before every turn and request.</p>
+        <h3 id="verify">Verify</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>bun test extensions/gpt-fast-mode/test/gpt-fast-mode.test.ts
+pi -e ./extensions/gpt-fast-mode/src/gpt-fast-mode.ts --fast -p "say hi" --no-session</code></pre></div>
+
+        <h2 id="impl">Implementation</h2>
+        <p>The single <code>src/gpt-fast-mode.ts</code> file keeps an in-session enabled state. <code>session_start</code> reads <code>--fast</code>, <code>model_select</code> recomputes the status segment, and <code>before_provider_request</code> runs eligibility gates and clones the payload.</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>/gpt-fast / --fast ──► enabled
+                      ├─► model_select ──► status: fast / clear
+                      └─► before_provider_request
+                              └─► six gates ──► service_tier: priority</code></pre></div>
+        <p>No parallel provider is registered: the extension reuses pi's built-in Codex OAuth refresh, model catalog, and transport. It reads no token, makes no network request, writes no file, and has no runtime dependency. Existing <code>service_tier</code> values from earlier payload hooks are preserved; a conflicting non-<code>priority</code> tier clears the status and is reported by <code>/gpt-fast status</code>. Final rewrites by later hooks are outside the public API's observable scope, so the status text does not claim that the final request definitely used <code>priority</code>.</p>
+        <div class="blog-callout warn"><div class="blog-callout-icon" aria-hidden="true">!</div><div class="blog-callout-body"><p class="blog-callout-label">Local cost estimates</p><p>The public <code>before_provider_request</code> hook can replace the serialized payload but cannot set the provider's separate <code>serviceTier</code> request option. Fast still reaches Codex, but if the response reports <code>default</code> or omits the tier, pi's local session cost and telemetry may retain standard-tier estimates. Backend subscription quota is authoritative. Overriding the whole provider only to repair estimates would break extension composition, so this package does not do that.</p></div></div>
+
+        <h2 id="design">Design notes</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>Reference</th><th>Adopted</th><th>Not adopted</th></tr></thead><tbody>
+          <tr><td><code>@diegopetrucci/pi-openai-fast</code></td><td>provider/API/OAuth gates; preserve existing tier</td><td>project/global configuration</td></tr>
+          <tr><td><code>@benvargas/pi-openai-fast</code></td><td>on/off/status semantics, <code>--fast</code>, allowlist</td><td><code>/fast</code> name, API-key OpenAI, and file persistence</td></tr>
+          <tr><td><code>@tunnckocore/pi-gpt-fast-mode</code></td><td>single file, dependency-free</td><td>incorrect Codex mini entry and shortcut</td></tr>
+          <tr><td><code>pi-openai-codex-fast</code></td><td><code>priority</code> service tier</td><td>parallel provider and version coupling</td></tr>
+        </tbody></table></div>
+        <p>The central tradeoff is a safely narrow feature over a general configuration layer. Fast is one request property and does not justify duplicating a provider; an explicit allowlist is more reliable than fuzzy <code>gpt-*</code> matching.</p>
+
+        <h2 id="changelog">Changelog</h2>
+        <h3 id="roadmap">Roadmap</h3>
+        <ul><li>Generate the allowlist from the model catalog once upstream exposes a stable capability field.</li><li>Add a default-state config under the PieX standard directory only after real demand, never by writing files implicitly.</li><li>Optionally surface quota impact from <code>@piex-dev/usage</code> while keeping the packages decoupled.</li></ul>
+        <h3 id="versions">Versions</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody><tr><td>0.1.0</td><td>2026-08-26</td><td><code>/gpt-fast on|off|status</code>, <code>--fast</code>, status and request-conflict indicators; priority injection only for supported ChatGPT OAuth Codex models; six fail-closed gates; 15 unit tests</td></tr></tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/en/packages/ttft/"><span class="blog-nav-label">← Previous</span><span class="blog-nav-title">ttft</span></a><a class="blog-nav-card is-next" href="/#packages"><span class="blog-nav-label">← All</span><span class="blog-nav-title">Back to Packages list</span></a></nav>
+      <p class="blog-source-link">Source Markdown: <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/gpt-fast-mode.md" target="_blank" rel="noopener">docs/packages/gpt-fast-mode.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">On this page</p><nav><a href="#intro">Overview</a><a href="#theory">How it works</a><a href="#usage">Usage</a><a href="#impl">Implementation</a><a href="#design">Design notes</a><a href="#changelog">Changelog</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script><script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>

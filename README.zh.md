@@ -38,29 +38,32 @@ pi -e ./extensions/hashline/src/hashline.ts
 
 ### 扩展
 
-| Package     | npm                  | 说明                                                                                       |
-| ----------- | -------------------- | ------------------------------------------------------------------------------------------ |
-| hashline    | `@piex-dev/hashline` | Hashline 补丁语言 — 紧凑、行锚定、标签验证的文件编辑                                         |
-| dap         | `@piex-dev/dap`      | 调试适配器协议 — 14 个 debug adapter，在 Pi 中直接调试程序                                   |
-| lsp         | `@piex-dev/lsp`      | 语言服务器协议 — 诊断、导航、重命名、代码操作、格式化（50+ 服务器）                            |
-| plan        | `@piex-dev/plan`     | Plan 模式 — 只读探索、方案创建和分步执行                                                     |
-| review      | `@piex-dev/review`   | 代码审查 — 交互式 `/review` 命令和 LLM 可调用的 review 工具                                  |
-| xai-oauth   | `@piex-dev/xai-oauth`| xAI Grok OAuth 登录 — 用 SuperGrok 或 X Premium+ 替代 API Key                               |
-| btw         | `@piex-dev/btw`      | 旁路提问 — 携带会话上下文的临时提问，带外回答不污染对话                                       |
-| context     | `@piex-dev/context`  | 上下文用量报告 — `/context` 命令展示 token 用量分布                                          |
-| goal        | `@piex-dev/goal`     | 自主目标完成 — `/goal` 命令，支持 token 预算收尾和阻塞上报                                    |
+| Package       | npm                       | 说明                                                                |
+| ------------- | ------------------------- | ------------------------------------------------------------------- |
+| hashline      | `@piex-dev/hashline`      | Hashline 补丁语言 — 紧凑、行锚定、标签验证的文件编辑                |
+| dap           | `@piex-dev/dap`           | 调试适配器协议 — 14 个 debug adapter，在 Pi 中直接调试程序          |
+| lsp           | `@piex-dev/lsp`           | 语言服务器协议 — 诊断、导航、重命名、代码操作、格式化（50+ 服务器） |
+| plan          | `@piex-dev/plan`          | Plan 模式 — 只读探索、方案创建和分步执行                            |
+| review        | `@piex-dev/review`        | 代码审查 — 交互式 `/review` 命令和 LLM 可调用的 review 工具         |
+| xai-oauth     | `@piex-dev/xai-oauth`     | xAI Grok OAuth 登录 — 用 SuperGrok 或 X Premium+ 替代 API Key       |
+| btw           | `@piex-dev/btw`           | 旁路提问 — 携带会话上下文的临时提问，带外回答不污染对话             |
+| context       | `@piex-dev/context`       | 上下文用量报告 — `/context` 命令展示 token 用量分布                 |
+| goal          | `@piex-dev/goal`          | 自主目标完成 — `/goal` 命令，支持 token 预算收尾和阻塞上报          |
+| usage         | `@piex-dev/usage`         | 状态栏实时展示订阅配额、余额与重置倒计时，随模型 provider 自动切换  |
+| ttft          | `@piex-dev/ttft`          | 状态栏展示每轮 TTFT 与解码吞吐，`/ttft` 查看会话缓存命中率          |
+| gpt-fast-mode | `@piex-dev/gpt-fast-mode` | 通过 `/gpt-fast` 为受支持的 ChatGPT Codex 模型安全开启 priority Fast 模式 |
 
 ### 提示词
 
-| Package | npm              | 说明                                                    |
-| ------- | ---------------- | ------------------------------------------------------- |
+| Package | npm              | 说明                                                        |
+| ------- | ---------------- | ----------------------------------------------------------- |
 | init    | `@piex-dev/init` | 引导式 AGENTS.md 设置 — 扫描仓库并创建或改进项目 agent 规则 |
 
 ### 主题
 
-| Package     | npm                          | 说明                                                     |
-| ----------- | ---------------------------- | -------------------------------------------------------- |
-| dark-terminal | `@piex-dev/theme-dark-terminal` | 高对比度终端风格暗色主题，绿色、蓝色、红色高亮            |
+| Package       | npm                             | 说明                                           |
+| ------------- | ------------------------------- | ---------------------------------------------- |
+| dark-terminal | `@piex-dev/theme-dark-terminal` | 高对比度终端风格暗色主题，绿色、蓝色、红色高亮 |
 
 > **ai-code-report**（`@piex-dev/ai-code-report`）为 private 包 — AI 代码编辑埋点上报，依赖内部 registry，不公开发布。
 

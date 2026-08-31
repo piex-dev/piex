@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>gpt-fast-mode — Codex Fast 模式，快而不越界 — PieX</title>
+  <meta name="description" content="用 /gpt-fast 为受支持的 ChatGPT Codex 模型开启 priority service tier，严格校验 provider、API、OAuth、模型与 payload。" />
+  <link rel="canonical" href="https://piex.dev/zh/packages/gpt-fast-mode/" />
+  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/gpt-fast-mode/" />
+  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/gpt-fast-mode/" />
+  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/gpt-fast-mode/" />
+  <meta property="og:title" content="gpt-fast-mode — Codex Fast 模式，快而不越界 — PieX" />
+  <meta property="og:description" content="用 /gpt-fast 安全开启 ChatGPT Codex Fast 模式，只对明确支持的模型注入 priority service tier。" />
+  <meta property="og:url" content="https://piex.dev/zh/packages/gpt-fast-mode/" />
+  <meta property="og:type" content="article" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-0BJ0ZVPSWN');</script>
+</head>
+<body>
+  <header class="site-header"><nav class="nav-inner"><a class="logo" href="/" aria-label="PieX home"><span class="logo-mark">π</span> PieX</a><button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button><div class="nav-links" id="nav-links"><a href="/#why" data-i18n="nav.why">Philosophy</a><a href="/#packages" data-i18n="nav.packages">Packages</a><a href="/#docs" data-i18n="nav.docs">Docs</a><a href="/#blog" data-i18n="nav.blog">Blog</a><a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a><div class="lang-switch" role="radiogroup" aria-label="Language"><button data-lang="en" aria-checked="false" role="radio">EN</button><button data-lang="zh" aria-checked="true" class="active" role="radio">中文</button></div></div></nav></header>
+  <div class="blog-layout docs-layout">
+    <aside class="docs-nav" aria-label="Packages"><p class="blog-toc-title">Packages</p><nav>
+      <p class="docs-nav-group">Extensions</p>
+      <a href="/zh/packages/hashline/">hashline</a><a href="/zh/packages/dap/">dap</a><a href="/zh/packages/lsp/">lsp</a><a href="/zh/packages/plan/">plan</a><a href="/zh/packages/review/">review</a><a href="/zh/packages/subagent/">subagent</a><a href="/zh/packages/xai-oauth/">xai-oauth</a><a href="/zh/packages/btw/">btw</a><a href="/zh/packages/context/">context</a><a href="/zh/packages/goal/">goal</a><a href="/zh/packages/usage/">usage</a><a href="/zh/packages/ttft/">ttft</a><a href="/zh/packages/gpt-fast-mode/" class="is-active">gpt-fast-mode</a>
+      <p class="docs-nav-group">Prompts</p><a href="/zh/packages/init/">init</a>
+      <p class="docs-nav-group">Themes</p><a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+    </nav></aside>
+    <article class="blog-article">
+      <div class="docs-mobile-nav"><button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false"><span>Packages</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav docs-nav-mobile">
+        <p class="docs-nav-group">Extensions</p>
+        <a href="/zh/packages/hashline/">hashline</a><a href="/zh/packages/dap/">dap</a><a href="/zh/packages/lsp/">lsp</a><a href="/zh/packages/plan/">plan</a><a href="/zh/packages/review/">review</a><a href="/zh/packages/subagent/">subagent</a><a href="/zh/packages/xai-oauth/">xai-oauth</a><a href="/zh/packages/btw/">btw</a><a href="/zh/packages/context/">context</a><a href="/zh/packages/goal/">goal</a><a href="/zh/packages/usage/">usage</a><a href="/zh/packages/ttft/">ttft</a><a href="/zh/packages/gpt-fast-mode/" class="is-active">gpt-fast-mode</a>
+        <p class="docs-nav-group">Prompts</p><a href="/zh/packages/init/">init</a>
+        <p class="docs-nav-group">Themes</p><a href="/zh/packages/theme-dark-terminal/">theme-dark-terminal</a>
+      </nav></div>
+      <div class="blog-toc-mobile"><button type="button" class="blog-toc-toggle" aria-expanded="false"><span>本页目录</span><span class="chev" aria-hidden="true">▾</span></button><nav class="blog-toc-mobile-nav"><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></div>
+      <header class="blog-header"><div class="blog-meta-row"><span class="blog-tag">OpenAI</span><span class="blog-tag">Codex</span><span class="blog-tag">Fast Mode</span><span class="blog-tag">Extension</span><code class="pkg-tag">@piex-dev/gpt-fast-mode</code></div><h1>gpt-fast-mode — Codex Fast 模式，快而不越界</h1></header>
+      <div class="blog-prose">
+        <div class="blog-callout insight"><div class="blog-callout-icon" aria-hidden="true">⚡</div><div class="blog-callout-body"><p class="blog-callout-label">导语</p><p>用 <code>/gpt-fast</code> 为受支持的 ChatGPT Codex 模型开启 <code>priority</code> service tier，同时严格拦住错误 provider、API、认证和模型。</p></div></div>
+
+        <h2 id="intro">简介</h2>
+        <p>OpenAI Codex 的 Fast 模式不是 reasoning level，也不是切换模型，而是在请求里设置 <code>service_tier: "priority"</code>。pi 的 <code>openai-codex-responses</code> 已能发送这个字段，但没有内置 Fast 控制面。<code>@piex-dev/gpt-fast-mode</code> 补上 <code>/gpt-fast on|off|status</code> 与 <code>--fast</code>，使用具体命令名避免占用过于宽泛的 <code>/fast</code>。</p>
+        <div class="blog-callout warn"><div class="blog-callout-icon" aria-hidden="true">!</div><div class="blog-callout-body"><p class="blog-callout-label">额度影响</p><p>Fast 模式通常响应更快，但会更快消耗订阅额度。扩展只改变 service tier，不改变模型、reasoning level、工具或提示词。</p></div></div>
+
+        <h2 id="theory">技术原理</h2>
+        <p>扩展监听 <code>before_provider_request</code>，在请求发送前复制 payload 并追加 <code>service_tier: "priority"</code>。注入必须依次通过六层门禁：provider 为 <code>openai-codex</code>、API 为 <code>openai-codex-responses</code>、模型位于显式 allowlist、使用 ChatGPT OAuth、payload 模型与当前模型一致、payload 尚未包含 <code>service_tier</code>。</p>
+        <div class="blog-table-wrap"><table><thead><tr><th>支持</th><th>明确拒绝</th></tr></thead><tbody><tr><td><code>gpt-5.4</code>、<code>gpt-5.5</code>、<code>gpt-5.6-sol</code>、<code>gpt-5.6-terra</code>、<code>gpt-5.6-luna</code></td><td><code>gpt-5.4-mini</code>、<code>gpt-5.3-codex-spark</code></td></tr></tbody></table></div>
+        <p>不支持的模型不会被猜测式兼容。开关可保持 on，但请求不修改；切换到支持模型后自动生效。</p>
+
+        <h2 id="usage">使用说明</h2>
+        <h3 id="install">安装</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>pi install npm:@piex-dev/gpt-fast-mode</code></pre></div>
+        <p>仓库源码：<a href="https://github.com/piex-dev/piex/tree/main/extensions/gpt-fast-mode" target="_blank" rel="noopener"><code>extensions/gpt-fast-mode</code></a></p>
+        <h3 id="commands">命令</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>pi</span></div><pre><code>/gpt-fast             切换 Fast 模式
+/gpt-fast on          当前会话开启
+/gpt-fast off         当前会话关闭
+/gpt-fast status      查看开关、当前模型可用性与最近请求结果
+
+pi --fast         启动时开启</code></pre></div>
+        <p>状态栏出现 <code>fast</code> 表示开关已开启、当前模型可用，且本扩展的请求 hook 观测到的 payload 没有 tier 冲突。若其他组件此前已经设置非 <code>priority</code> 的 <code>service_tier</code>，扩展会保留原值并清除状态。加载顺序更靠后的扩展仍可修改最终 payload，因此 <code>/gpt-fast status</code> 报告的是本扩展的注入或观测结果，不代表服务端确认。OAuth 会在每轮和每次请求前重新检查。</p>
+        <h3 id="verify">验证</h3>
+        <div class="blog-code"><div class="blog-code-bar"><span>bash</span></div><pre><code>bun test extensions/gpt-fast-mode/test/gpt-fast-mode.test.ts
+pi -e ./extensions/gpt-fast-mode/src/gpt-fast-mode.ts --fast -p "say hi" --no-session</code></pre></div>
+
+        <h2 id="impl">实现方案</h2>
+        <p>单文件 <code>src/gpt-fast-mode.ts</code> 维护会话内 enabled 状态；<code>session_start</code> 读取 <code>--fast</code>，<code>model_select</code> 重算状态栏，<code>before_provider_request</code> 执行门禁与 payload 复制。</p>
+        <div class="blog-code"><div class="blog-code-bar"><span>flow</span></div><pre><code>/gpt-fast / --fast ──► enabled
+                      ├─► model_select ──► status: fast / clear
+                      └─► before_provider_request
+                              └─► six gates ──► service_tier: priority</code></pre></div>
+        <p>扩展不注册平行 provider，复用 pi 内置 Codex 的 OAuth 刷新、模型目录和传输；不读取 token、不发网络请求、不写文件、无运行时依赖。更早执行的 payload hook 已有 <code>service_tier</code> 时不覆盖；非 <code>priority</code> 的 tier 会清除状态，并由 <code>/gpt-fast status</code> 报告。公开 API 无法观测后续 hook 的最终改写，因此状态文案不会声称最终请求一定使用 <code>priority</code>。</p>
+        <div class="blog-callout warn"><div class="blog-callout-icon" aria-hidden="true">!</div><div class="blog-callout-body"><p class="blog-callout-label">本地成本估算</p><p>公开的 <code>before_provider_request</code> 只能替换序列化后的 payload，不能设置 provider 内部独立的 <code>serviceTier</code> 请求选项。Fast 请求仍会发往 Codex，但当响应 tier 报告为 <code>default</code> 或不返回时，pi 本地 session cost/telemetry 可能仍按标准 tier 估算，订阅额度以后端结果为准。仅为修正估算而覆盖整个 provider 会破坏扩展组合，因此本包不采用该方案。</p></div></div>
+
+        <h2 id="design">设计参考</h2>
+        <div class="blog-table-wrap"><table><thead><tr><th>项目</th><th>采纳</th><th>未采纳</th></tr></thead><tbody>
+          <tr><td><code>@diegopetrucci/pi-openai-fast</code></td><td>provider/API/OAuth 门禁，已有 tier 不覆盖</td><td>项目和全局配置</td></tr>
+          <tr><td><code>@benvargas/pi-openai-fast</code></td><td>on/off/status 语义、<code>--fast</code>、allowlist</td><td><code>/fast</code> 命令名、API-key OpenAI 与文件持久化</td></tr>
+          <tr><td><code>@tunnckocore/pi-gpt-fast-mode</code></td><td>单文件、无依赖</td><td>错误的 Codex mini 支持项与快捷键</td></tr>
+          <tr><td><code>pi-openai-codex-fast</code></td><td><code>priority</code> service tier</td><td>平行 provider 与版本耦合</td></tr>
+        </tbody></table></div>
+        <p>核心取舍是安全的窄功能优于通用配置层。Fast 只是请求属性，不值得复制 provider；显式 allowlist 比 <code>gpt-*</code> 模糊匹配可靠。</p>
+
+        <h2 id="changelog">迭代记录</h2>
+        <h3 id="roadmap">路线图</h3>
+        <ul><li>上游提供稳定 capability 字段后，从模型 catalog 自动生成 allowlist。</li><li>有真实需求后再增加 PieX 标准目录下的默认开关配置，不默认写文件。</li><li>可与 <code>@piex-dev/usage</code> 展示额度影响，但保持两个包解耦。</li></ul>
+        <h3 id="versions">版本记录</h3>
+        <div class="blog-table-wrap"><table><thead><tr><th>版本</th><th>日期</th><th>变更</th></tr></thead><tbody><tr><td>0.1.0</td><td>2026-08-26</td><td><code>/gpt-fast on|off|status</code>、<code>--fast</code>、状态栏与请求冲突指示；仅对 ChatGPT OAuth 的受支持 Codex 模型注入 priority；六层 fail-closed 门禁；15 项单测</td></tr></tbody></table></div>
+      </div>
+      <nav class="blog-footer-nav" aria-label="Package navigation"><a class="blog-nav-card" href="/zh/packages/ttft/"><span class="blog-nav-label">← 上一个</span><span class="blog-nav-title">ttft</span></a><a class="blog-nav-card is-next" href="/#packages"><span class="blog-nav-label">← 全部</span><span class="blog-nav-title">回到 Packages 列表</span></a></nav>
+      <p class="blog-source-link">源稿 Markdown：<a href="https://github.com/piex-dev/piex/blob/main/docs/packages/gpt-fast-mode.md" target="_blank" rel="noopener">docs/packages/gpt-fast-mode.md</a></p>
+    </article>
+    <aside class="page-toc" aria-label="On this page"><p class="blog-toc-title">本页目录</p><nav><a href="#intro">简介</a><a href="#theory">技术原理</a><a href="#usage">使用说明</a><a href="#impl">实现方案</a><a href="#design">设计参考</a><a href="#changelog">迭代记录</a></nav></aside>
+  </div>
+  <footer class="site-footer"><div class="footer-bottom"><a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a></div></footer>
+  <script src="../../../assets/blog.js?v=20260721pkgs"></script><script src="../../../assets/main.js?v=20260721pkgs"></script>
+</body>
+</html>
