@@ -93,7 +93,7 @@ Review · 00:31 · reviewing
 
 面板会随 `preparing`、`reviewing`、`adjudicating`、`validating` 等阶段，以及读取源码、搜索、检查冻结 diff 和提交报告等活动更新。通过 `review` 工具调用时，同一份结构化快照会经 `onUpdate` 返回；最终报告会持久化实际 reviewer 模型和 thinking level。
 
-在交互式 TUI 中，`/review` 会在后台执行并立即交还输入框。review 运行期间可直接输入 `/review-log`，也可按 `Ctrl+Alt+R`，两种方式都会打开实时、可滚动的 transcript 浮层；完成后再次运行 `/review-log` 可回看最近一次记录。浮层支持用 `Tab` 切换 lead 与 specialist，方向键或 `j` / `k` 滚动，`G` 回到末尾并恢复自动跟随，`q` / `Esc` 关闭。
+在交互式 TUI 中，`/review` 会在后台执行并立即交还输入框。review 运行期间可直接输入 `/review-log`，也可按 `Ctrl+Alt+R`，两种方式都会打开铺满终端窗口、实时且可滚动的 transcript 浮层；完成后再次运行 `/review-log` 可回看最近一次记录。浮层支持用 `Tab` 切换 lead 与 specialist，方向键或 `j` / `k` 滚动，`G` 回到末尾并恢复自动跟随，`q` / `Esc` 关闭。
 
 transcript 记录任务 prompt、assistant 可见文本、工具调用与结果摘要、阶段/重试状态和最终 `submit_review`，但不采集原始 thinking/reasoning。记录进入内存前会递归脱敏 secret/token/password 等字段与常见凭据格式，并限制单条文本、序列化值、集合深度、条目数和 UI 渲染行数。它不写入作者主 session，也不落盘，`/reload` 或进程退出后清除。
 

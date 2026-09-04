@@ -12,7 +12,6 @@ import type {
 } from "./transcript.js";
 
 const MAX_RENDER_LINES = 20_000;
-const OVERLAY_HEIGHT_RATIO = 0.85;
 const OVERLAY_CHROME_LINES = 5;
 
 type TranscriptViewerContext = Pick<ExtensionContext, "hasUI" | "mode" | "ui">;
@@ -247,8 +246,7 @@ export async function openReviewTranscript(
           contentLineCount = content.length;
           viewportHeight = Math.max(
             1,
-            Math.floor(tui.terminal.rows * OVERLAY_HEIGHT_RATIO) -
-              OVERLAY_CHROME_LINES,
+            tui.terminal.rows - OVERLAY_CHROME_LINES,
           );
           if (followTail) scrollOffset = maxScrollOffset();
           else
@@ -280,13 +278,17 @@ export async function openReviewTranscript(
               ? "live"
               : "paused";
           const footer = `Tab switch · ↑↓/j/k scroll · PgUp/PgDn page · g/G start/end · q/Esc close · ${followState} · ${firstLine}-${lastLine}/${contentLineCount}`;
+          const visibleContent = content
+            .slice(scrollOffset, scrollOffset + viewportHeight)
+            .map((line) => theme.fg("text", line));
+          while (visibleContent.length < viewportHeight) {
+            visibleContent.push("");
+          }
           return [
             ...topBorder.render(width),
             theme.fg("accent", theme.bold(title)),
             theme.fg("dim", tab),
-            ...content
-              .slice(scrollOffset, scrollOffset + viewportHeight)
-              .map((line) => theme.fg("text", line)),
+            ...visibleContent,
             theme.fg("dim", footer),
             ...bottomBorder.render(width),
           ];
@@ -334,10 +336,10 @@ export async function openReviewTranscript(
     {
       overlay: true,
       overlayOptions: {
-        anchor: "center",
-        width: "92%",
-        maxHeight: "85%",
-        margin: 1,
+        anchor: "top-left",
+        width: "100%",
+        maxHeight: "100%",
+        margin: 0,
       },
     },
   );

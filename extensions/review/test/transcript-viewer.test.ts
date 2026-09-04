@@ -118,6 +118,7 @@ describe("review transcript viewer", () => {
     });
     let renderRequests = 0;
     let rendered = "";
+    let renderedLineCount = 0;
 
     await openReviewTranscript(
       {
@@ -152,7 +153,12 @@ describe("review transcript viewer", () => {
             };
             expect(options).toMatchObject({
               overlay: true,
-              overlayOptions: { width: "92%", maxHeight: "85%" },
+              overlayOptions: {
+                anchor: "top-left",
+                width: "100%",
+                maxHeight: "100%",
+                margin: 0,
+              },
             });
             component.render(100);
             store.record(runId, "lead", {
@@ -160,7 +166,9 @@ describe("review transcript viewer", () => {
               text: "live-visible-text",
               append: true,
             });
-            rendered = component.render(100).join("\n");
+            const lines = component.render(100);
+            rendered = lines.join("\n");
+            renderedLineCount = lines.length;
             component.handleInput?.("q");
             component.dispose?.();
             expect(closed).toBe(true);
@@ -172,6 +180,7 @@ describe("review transcript viewer", () => {
 
     expect(renderRequests).toBeGreaterThan(0);
     expect(rendered).toContain("live-visible-text");
+    expect(renderedLineCount).toBe(40);
   });
 
   test("records cached reviews without fabricating a reviewer session", async () => {
