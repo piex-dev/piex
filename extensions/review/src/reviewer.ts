@@ -7,6 +7,7 @@ import {
   DefaultResourceLoader,
   defineTool,
   getAgentDir,
+  ModelRuntime,
   SessionManager,
   SettingsManager,
   type AgentSessionEvent,
@@ -221,6 +222,41 @@ function resolveReviewerModel(ctx: ReviewerContext, configuredModel?: string) {
   return model;
 }
 
+/**
+ * Run provider dispatch for the isolated reviewer with the same provider
+ * registrations and credentials as the parent session. The SDK falls back to
+ * a disk-backed runtime when modelRuntime is omitted, which works for built-in
+ * providers but loses everything registered at runtime by extensions (e.g.
+ * this repository's xai-oauth) and runtime-only credentials (--api-key).
+ */
+async function createReviewerModelRuntime(
+  ctx: ReviewerContext,
+): Promise<ModelRuntime> {
+  const agentDir = getAgentDir();
+  const modelRuntime = await ModelRuntime.create({
+    authPath: path.join(agentDir, "auth.json"),
+    modelsPath: path.join(agentDir, "models.json"),
+  });
+  for (const providerId of ctx.modelRegistry.getRegisteredProviderIds()) {
+    const config = ctx.modelRegistry.getRegisteredProviderConfig(providerId);
+    if (config) {
+      // Config and native registrations are mutually exclusive per provider id:
+      // each register* removes the other's entry, so at most one survives.
+      modelRuntime.registerProvider(providerId, config);
+    } else {
+      const native = ctx.modelRegistry.getRegisteredNativeProvider(providerId);
+      if (native) modelRuntime.registerNativeProvider(native);
+    }
+    if (
+      ctx.modelRegistry.getProviderAuthStatus(providerId).source === "runtime"
+    ) {
+      const apiKey = await ctx.modelRegistry.getApiKeyForProvider(providerId);
+      if (apiKey) await modelRuntime.setRuntimeApiKey(providerId, apiKey);
+    }
+  }
+  return modelRuntime;
+}
+
 function modelName(model: { provider: string; id: string }): string {
   return `${model.provider}/${model.id}`;
 }
@@ -248,11 +284,15 @@ function pathOutsideReview(raw: string): never {
 }
 
 /**
- * Mirror the built-in tools' path normalization (tilde expansion and
- * file:// URLs) so the guard compares the same path the tool will read.
+ * Mirror the built-in tools' path normalization (leading '@' prefix strip,
+ * tilde expansion, file:// URLs) so the guard compares the same path the
+ * tool will read. The stock tools apply stripAtPrefix before expanding the
+ * rest, so '@~/.pi/agent/auth.json' must check the resolved host path, not a
+ * repository-relative artifact named '@~/.pi/agent/auth.json'.
  */
 function normalizeReviewerPath(raw: string): string {
   let value = raw;
+  if (value.startsWith("@")) value = value.slice(1);
   if (value === "~") return homedir();
   if (
     value.startsWith("~/") ||
@@ -402,12 +442,14 @@ function createReviewDiffTool(scope: ReviewScope) {
           isError: true,
         };
       }
-      if (!params.file && diff.length > MAX_DIFF_TOOL_CHARS) {
+      if (diff.length > MAX_DIFF_TOOL_CHARS) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `Diff is too large (${diff.length} characters). Request one file at a time. Files:\n${snapshot.summary.files.map(({ path: file }) => `- ${file}`).join("\n")}`,
+              text: params.file
+                ? `Diff for this file is too large (${diff.length} characters). Use read to inspect the source file directly.`
+                : `Diff is too large (${diff.length} characters). Request one file at a time. Files:\n${snapshot.summary.files.map(({ path: file }) => `- ${file}`).join("\n")}`,
             },
           ],
           details: { found: true, truncated: true, repo: snapshot.label },
@@ -459,6 +501,7 @@ async function createIndependentReviewer(
   specialty?: string,
 ): Promise<IndependentReviewer> {
   const model = resolveReviewerModel(ctx, configuredModel);
+  const reviewModelRuntime = await createReviewerModelRuntime(ctx);
   let submitted: SubmittedReview | undefined;
   let currentStage: "review" | "adjudication" = "review";
 
@@ -513,6 +556,7 @@ async function createIndependentReviewer(
     cwd: scope.repos[0].repo,
     agentDir: getAgentDir(),
     model,
+    modelRuntime: reviewModelRuntime,
     thinkingLevel,
     tools: ["read", "grep", "find", "ls", "review_diff", "submit_review"],
     customTools: [
@@ -925,7 +969,9 @@ export const __test__ = {
   buildAdjudicationTask,
   buildReviewerTask,
   createConstrainedFileTools,
+  createReviewDiffTool,
   createReviewerFileGuard,
+  createReviewerModelRuntime,
   getSettingsPath,
   modelName,
   parseModelSpec,

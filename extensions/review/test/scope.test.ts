@@ -8,6 +8,7 @@ import {
   emptyTreeOid,
   GitCommandError,
   recaptureReviewScope,
+  resolveRepos,
   runGit,
 } from "../src/scope.ts";
 
@@ -76,6 +77,74 @@ describe("captureReviewScope", () => {
     expect(scope.repos[0].mode).toBe("Current changes vs main");
     expect(scope.repos[0].summary.filteredDiff).toContain("value = 2");
     expect(scope.repos[0].summary.filteredDiff).toContain("dirty = true");
+  });
+
+  test("auto scope keeps staged index content when worktree reverts it", () => {
+    const repo = createRepo();
+    fs.writeFileSync(path.join(repo, "app.ts"), "export const value = 2;\n");
+    git(repo, ["add", "app.ts"]);
+    // Revert the staged edit in the working tree: the index still holds the
+    // pending commit content that `git diff <base>` no longer shows.
+    fs.writeFileSync(path.join(repo, "app.ts"), "export const value = 1;\n");
+
+    const scope = captureReviewScope(repo, [repo]);
+    expect(scope.repos[0].summary.filteredDiff).toContain("value = 2");
+  });
+
+  test("auto scope combines staged and unstaged changes on one file once", () => {
+    const repo = createRepo();
+    fs.writeFileSync(path.join(repo, "app.ts"), "export const value = 2;\n");
+    git(repo, ["add", "app.ts"]);
+    fs.appendFileSync(
+      path.join(repo, "app.ts"),
+      "export const unstaged = true;\n",
+    );
+
+    const scope = captureReviewScope(repo, [repo]);
+    const summary = scope.repos[0].summary;
+    expect(summary.files.map(({ path: file }) => file)).toEqual(["app.ts"]);
+    expect(summary.filteredDiff.match(/diff --git a\/app\.ts/g)?.length).toBe(
+      1,
+    );
+    expect(summary.filteredDiff).toContain("value = 2");
+    expect(summary.filteredDiff).toContain("unstaged = true");
+  });
+
+  test("never sends untracked credential files to the reviewer", () => {
+    const repo = createRepo();
+    fs.writeFileSync(
+      path.join(repo, ".env"),
+      "OPENAI_API_KEY=sk-live-secret\n",
+    );
+    fs.writeFileSync(
+      path.join(repo, "service-account.json"),
+      '{"token": "secret"}\n',
+    );
+    fs.writeFileSync(path.join(repo, "private.pem"), "-----BEGIN KEY-----\n");
+    fs.writeFileSync(path.join(repo, "id_rsa"), "ssh key material\n");
+    fs.writeFileSync(path.join(repo, "legit.ts"), "export const fresh = 1;\n");
+
+    const scope = captureReviewScope(repo, [repo]);
+    const summary = scope.repos[0].summary;
+    expect(summary.filteredDiff).not.toContain("sk-live-secret");
+    expect(summary.filteredDiff).not.toContain("BEGIN KEY");
+    expect(summary.filteredDiff).not.toContain("ssh key material");
+    expect(summary.filteredDiff).toContain("fresh = 1");
+    expect(summary.excluded.map(({ path }) => path).sort()).toEqual([
+      ".env",
+      "id_rsa",
+      "private.pem",
+      "service-account.json",
+    ]);
+  });
+
+  test("rejects blank repository entries instead of falling back to cwd", () => {
+    const repo = createRepo();
+    const result = resolveRepos(repo, [""]);
+    expect(result.ok).toBeFalse();
+    if (!result.ok) {
+      expect(result.errors.join("\n")).toContain("blank");
+    }
   });
 
   test("changes the diff hash when the worktree changes", () => {

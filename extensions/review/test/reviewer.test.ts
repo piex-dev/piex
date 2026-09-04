@@ -191,5 +191,56 @@ describe("reviewer file confinement", () => {
     expect(() => guard(path.join(repo, "forged-link.txt"))).toThrow(/outside/);
     expect(() => guard("~/.ssh/id_rsa")).toThrow(/outside/);
     expect(() => guard("file:///etc/passwd")).toThrow(/outside/);
+    expect(() => guard("@~/.ssh/id_rsa")).toThrow(/outside/);
+    expect(() => guard("@file:///etc/passwd")).toThrow(/outside/);
+    expect(() => guard("@/etc/passwd")).toThrow(/outside/);
+    expect(() => guard("@inside.ts")).not.toThrow();
+  });
+});
+
+describe("reviewer model runtime", () => {
+  test("propagates runtime-only credentials into the reviewer runtime", async () => {
+    const registry = {
+      getRegisteredProviderIds: () => ["runtime-keyed"],
+      getRegisteredProviderConfig: () => undefined,
+      getRegisteredNativeProvider: () => undefined,
+      getProviderAuthStatus: () => ({ configured: true, source: "runtime" }),
+      getApiKeyForProvider: async () => "sk-test-key",
+    };
+    const runtime = await __test__.createReviewerModelRuntime({
+      modelRegistry: registry,
+    } as never);
+    expect(runtime.getProviderAuthStatus("runtime-keyed").source).toBe(
+      "runtime",
+    );
+  });
+});
+
+describe("review diff tool", () => {
+  test("caps oversized per-file diffs instead of echoing them", async () => {
+    const hugeLine = "x".repeat(200_000);
+    const hugeScope = {
+      repos: [
+        {
+          label: "repo",
+          repo: "/work/repo",
+          summary: parseDiff(
+            `diff --git a/src/huge.ts b/src/huge.ts\nindex 1111111..2222222 100644\n--- a/src/huge.ts\n+++ b/src/huge.ts\n@@ -1 +1,2 @@\n export const small = true;\n+${hugeLine}\n`,
+          ),
+        },
+      ],
+    } as never;
+    const tool = __test__.createReviewDiffTool(hugeScope);
+    const result = await tool.execute(
+      "call-1",
+      { file: "src/huge.ts" },
+      undefined,
+      undefined,
+      {} as never,
+    );
+    expect(result.details).toMatchObject({ found: true, truncated: true });
+    expect(String((result.content as { text: string }[])[0].text)).toContain(
+      "too large",
+    );
   });
 });

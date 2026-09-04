@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { hashText, parseDiff } from "./diff.js";
 import type {
   CaptureScopeRequest,
+  ExcludedFileDiff,
   RepoReviewSnapshot,
   ReviewScope,
   ReviewScopeKind,
@@ -179,7 +180,12 @@ export function resolveRepos(
   const errors: string[] = [];
   const seen = new Set<string>();
   for (const raw of rawArgs) {
-    const resolved = resolveRepo(cwd, raw);
+    const input = normalizeRepoArg(raw);
+    if (!input) {
+      errors.push("Repository entry must not be blank.");
+      continue;
+    }
+    const resolved = resolveRepo(cwd, input);
     if (!resolved.ok) {
       errors.push(resolved.error);
       continue;
@@ -256,17 +262,62 @@ function listUntracked(repo: string): string[] {
   return output.split("\0").filter(Boolean);
 }
 
+/**
+ * Untracked files that look like credentials. Their content must never reach
+ * a reviewer provider, even though they are unignored (and therefore part of
+ * "all current work"). Excluding them beats redacting: no secret bytes are
+ * ever read into the diff sent to the model.
+ */
+const CREDENTIAL_FILE_PATTERNS: { pattern: RegExp; reason: string }[] = [
+  { pattern: /(?:^|\/)\.env(?:\..+)?$/, reason: "credentials" },
+  {
+    pattern: /(?:^|\/)\.(?:npmrc|pypirc|netrc|gemrc|yarnrc\.yml)$/,
+    reason: "credentials",
+  },
+  { pattern: /(?:^|\/)\.docker\/config\.json$/, reason: "credentials" },
+  {
+    pattern: /(?:^|\/)\.(?:token|secret|password)$/,
+    reason: "credentials",
+  },
+  {
+    pattern:
+      /(?:^|\/)[^/]*(?:credential|secret|token|password|passwd|service[-_]?account|api[-_]?key)[^/]*\.(?:json|ya?ml|toml|env|txt|csv)$/i,
+    reason: "credentials",
+  },
+  { pattern: /\.(?:pem|p12|pfx|ppk|key)$/i, reason: "private key" },
+  {
+    pattern: /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)(?:\.pub)?$/,
+    reason: "private key",
+  },
+];
+
+function untrackedCredentialReason(file: string): string | undefined {
+  return CREDENTIAL_FILE_PATTERNS.find(({ pattern }) => pattern.test(file))
+    ?.reason;
+}
+
+interface UntrackedDiffResult {
+  chunks: string;
+  excluded: ExcludedFileDiff[];
+}
+
 function appendUntrackedDiff(
   repo: string,
   trackedDiff: string,
   onlyFile?: string,
-): string {
+): UntrackedDiffResult {
   const normalizedOnly = onlyFile
     ? path.relative(repo, path.resolve(repo, onlyFile))
     : undefined;
   const chunks = [trackedDiff.trimEnd()].filter(Boolean);
+  const excluded: ExcludedFileDiff[] = [];
   for (const file of listUntracked(repo)) {
     if (normalizedOnly && file !== normalizedOnly) continue;
+    const reason = untrackedCredentialReason(file);
+    if (reason) {
+      excluded.push({ path: file, reason, linesAdded: 0, linesRemoved: 0 });
+      continue;
+    }
     const chunk = runGit(
       repo,
       ["diff", "--no-index", "--unified=3", "--", devNull, file],
@@ -274,7 +325,15 @@ function appendUntrackedDiff(
     );
     if (chunk.trim()) chunks.push(chunk.trimEnd());
   }
-  return chunks.join("\n");
+  return { chunks: chunks.join("\n"), excluded };
+}
+
+function applyUntrackedExclusions(
+  snapshot: RepoReviewSnapshot,
+  untracked: UntrackedDiffResult,
+): RepoReviewSnapshot {
+  snapshot.summary.excluded.push(...untracked.excluded);
+  return snapshot;
 }
 
 function makeSnapshot(
@@ -299,23 +358,75 @@ function makeSnapshot(
   };
 }
 
-function captureWorkingTree(cwd: string, repo: string): RepoReviewSnapshot {
-  const headOid = getHeadOid(repo) ?? emptyTreeOid(repo);
-  const tracked = runGit(repo, [
+function diffFileNames(
+  repo: string,
+  baseOid: string,
+  cached: boolean,
+): Set<string> {
+  const output = runGit(repo, [
     "diff",
-    "--find-renames",
-    "--unified=3",
-    headOid,
+    ...(cached ? ["--cached"] : []),
+    "--name-only",
+    "-z",
+    baseOid,
     "--",
   ]);
-  return makeSnapshot(
-    cwd,
+  return new Set(output.split("\0").filter(Boolean));
+}
+
+/**
+ * Combine the base-to-worktree diff with index content the worktree endpoint
+ * hides. `git diff <base>` compares base to the working tree, so a staged
+ * edit later reverted in the worktree (partial staging, unstaged fix/revert)
+ * disappears from it even though `git commit` would commit the index version.
+ * Append the `--cached` chunks for every file absent from the worktree diff;
+ * files already present carry the complete final content with worktree-relative
+ * line numbers, so their staged hunks need no separate appearance.
+ */
+function captureWithIndexSnapshot(
+  repo: string,
+  baseOid: string,
+  tracked: string,
+): string {
+  const trackedFiles = diffFileNames(repo, baseOid, false);
+  const stagedFiles = diffFileNames(repo, baseOid, true);
+  const missing = [...stagedFiles].filter((file) => !trackedFiles.has(file));
+  if (missing.length === 0) return tracked;
+  const chunks = [tracked.trimEnd()];
+  for (const file of missing) {
+    const chunk = runGit(repo, [
+      "diff",
+      "--cached",
+      "--find-renames",
+      "--unified=3",
+      baseOid,
+      "--",
+      file,
+    ]).trimEnd();
+    if (chunk) chunks.push(chunk);
+  }
+  return chunks.join("\n");
+}
+
+function captureWorkingTree(cwd: string, repo: string): RepoReviewSnapshot {
+  const headOid = getHeadOid(repo) ?? emptyTreeOid(repo);
+  const tracked = captureWithIndexSnapshot(
     repo,
-    "working-tree",
-    "Current working tree",
     headOid,
-    headOid,
-    appendUntrackedDiff(repo, tracked),
+    runGit(repo, ["diff", "--find-renames", "--unified=3", headOid, "--"]),
+  );
+  const untracked = appendUntrackedDiff(repo, tracked);
+  return applyUntrackedExclusions(
+    makeSnapshot(
+      cwd,
+      repo,
+      "working-tree",
+      "Current working tree",
+      headOid,
+      headOid,
+      untracked.chunks,
+    ),
+    untracked,
   );
 }
 
@@ -328,22 +439,24 @@ function captureAuto(cwd: string, repo: string): RepoReviewSnapshot {
   if (!mergeBase) {
     throw new Error(`No common history between HEAD and ${base.name}`);
   }
-  const tracked = runGit(repo, [
-    "diff",
-    "--find-renames",
-    "--unified=3",
-    mergeBase,
-    "--",
-  ]);
-  return makeSnapshot(
-    cwd,
+  const tracked = captureWithIndexSnapshot(
     repo,
-    "auto",
-    `Current changes vs ${base.name}`,
     mergeBase,
-    headOid,
-    appendUntrackedDiff(repo, tracked),
-    base.ref,
+    runGit(repo, ["diff", "--find-renames", "--unified=3", mergeBase, "--"]),
+  );
+  const untracked = appendUntrackedDiff(repo, tracked);
+  return applyUntrackedExclusions(
+    makeSnapshot(
+      cwd,
+      repo,
+      "auto",
+      `Current changes vs ${base.name}`,
+      mergeBase,
+      headOid,
+      untracked.chunks,
+      base.ref,
+    ),
+    untracked,
   );
 }
 
@@ -422,22 +535,24 @@ function captureBranch(
   const resolved = resolveRequestedBase(repo, base);
   const mergeBase = runGit(repo, ["merge-base", resolved.oid, headOid]).trim();
   if (!mergeBase) throw new Error(`No common history between HEAD and ${base}`);
-  const tracked = runGit(repo, [
-    "diff",
-    "--find-renames",
-    "--unified=3",
-    mergeBase,
-    "--",
-  ]);
-  return makeSnapshot(
-    cwd,
+  const tracked = captureWithIndexSnapshot(
     repo,
-    "branch",
-    `Current changes vs ${base}`,
     mergeBase,
-    headOid,
-    appendUntrackedDiff(repo, tracked),
-    resolved.ref,
+    runGit(repo, ["diff", "--find-renames", "--unified=3", mergeBase, "--"]),
+  );
+  const untracked = appendUntrackedDiff(repo, tracked);
+  return applyUntrackedExclusions(
+    makeSnapshot(
+      cwd,
+      repo,
+      "branch",
+      `Current changes vs ${base}`,
+      mergeBase,
+      headOid,
+      untracked.chunks,
+      resolved.ref,
+    ),
+    untracked,
   );
 }
 
@@ -447,22 +562,30 @@ function captureFile(
   file: string,
 ): RepoReviewSnapshot {
   const headOid = getHeadOid(repo) ?? emptyTreeOid(repo);
-  const tracked = runGit(repo, [
-    "diff",
-    "--find-renames",
-    "--unified=3",
-    headOid,
-    "--",
-    file,
-  ]);
-  return makeSnapshot(
-    cwd,
+  const tracked = captureWithIndexSnapshot(
     repo,
-    "file",
-    `File ${file}`,
     headOid,
-    headOid,
-    appendUntrackedDiff(repo, tracked, file),
+    runGit(repo, [
+      "diff",
+      "--find-renames",
+      "--unified=3",
+      headOid,
+      "--",
+      file,
+    ]),
+  );
+  const untracked = appendUntrackedDiff(repo, tracked, file);
+  return applyUntrackedExclusions(
+    makeSnapshot(
+      cwd,
+      repo,
+      "file",
+      `File ${file}`,
+      headOid,
+      headOid,
+      untracked.chunks,
+    ),
+    untracked,
   );
 }
 

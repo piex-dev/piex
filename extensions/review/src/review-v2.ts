@@ -348,9 +348,10 @@ function resolveRequestedRepos(
   repos: unknown,
 ): { ok: true; repos: string[] } | { ok: false; error: string } {
   if (Array.isArray(repos) && repos.length > 0) {
+    // All-or-nothing: blank entries are rejected without falling back to the
+    // cwd, so an invalid target never silently narrows the review.
     const values = repos.filter(
-      (value): value is string =>
-        typeof value === "string" && value.trim().length > 0,
+      (value): value is string => typeof value === "string",
     );
     const resolved = resolveRepos(cwd, values);
     return resolved.ok
@@ -465,7 +466,7 @@ async function runInteractiveReview(
       const excluded = excludedFileCount(scope);
       ctx.ui.notify(
         excluded > 0
-          ? `No reviewable changes (${excluded} generated or vendor file${excluded === 1 ? "" : "s"} excluded).`
+          ? `No reviewable changes (${excluded} generated, vendor, or credential file${excluded === 1 ? "" : "s"} excluded).`
           : "No changes to review.",
         "info",
       );
@@ -592,7 +593,7 @@ export default function reviewExtension(pi: ExtensionAPI) {
     executionMode: "sequential",
     description: `Run an independent, read-only code review and return a validated report.
 
-The default action is 'auto': review all current work against the repository's default branch, including committed branch changes, staged changes, unstaged changes, and untracked files. Use repo or repos to target other repositories. Advanced actions remain available for staged, branch, commit, and file-specific reviews.`,
+The default action is 'auto': review all current work against the repository's default branch, including committed branch changes, staged changes, unstaged changes, and untracked files (credential-like untracked files such as .env, .npmrc, or private keys are excluded and never sent to reviewers). Use repo or repos to target other repositories. Advanced actions remain available for staged, branch, commit, and file-specific reviews.`,
     parameters: Type.Object({
       action: Type.Optional(
         Type.String({

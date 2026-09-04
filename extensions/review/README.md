@@ -71,7 +71,7 @@ transcript 只记录发给 reviewer 的任务、assistant 可见文本、工具�
 
 Agent 通常只需调用 `{ action: "auto" }`。为脚本或高级工作流保留：
 
-- `diff`：`HEAD` 到工作区（含 staged / unstaged / untracked）
+- `diff`：`HEAD` 到工作区（含 staged / unstaged / untracked；unignored 的凭据类 untracked 文件如 `.env`、`.npmrc`、私钥等会自动排除，内容不会发往 reviewer）
 - `staged`：仅暂存区
 - `branch`：相对指定 `base` 的当前工作
 - `commit`：指定 `commit`（单仓；merge commit 相对第一父提交评审）
