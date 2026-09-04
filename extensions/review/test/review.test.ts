@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { __test__ } from "../src/review.ts";
+import { __test__ } from "../src/review-v2.ts";
 
 const {
   takeFirstPathArg,
@@ -49,6 +49,94 @@ describe("takeFirstPathArg", () => {
   test("curly-quoted forms", () => {
     expect(takeFirstPathArg("\u201cpiex\u201d")).toBe("\u201cpiex\u201d");
     expect(takeFirstPathArg("@\u201cpiex\u201d")).toBe("@\u201cpiex\u201d");
+  });
+});
+
+describe("review progress presenter", () => {
+  test("uses the detailed widget without duplicating status in TUI", () => {
+    const statuses: Array<[string, string | undefined]> = [];
+    const widgets: Array<[string, string[] | undefined]> = [];
+    const updates: Array<{
+      content?: Array<{ text?: string }>;
+      details?: { running?: boolean };
+    }> = [];
+    const presenter = __test__.createProgressPresenter(
+      {
+        hasUI: true,
+        mode: "tui",
+        ui: {
+          setStatus: (key: string, text: string | undefined) =>
+            statuses.push([key, text]),
+          setWidget: (key: string, lines: string[] | undefined) =>
+            widgets.push([key, lines]),
+        },
+      } as never,
+      (update) => updates.push(update),
+    );
+
+    presenter.report({ type: "phase", phase: "reviewing" });
+    presenter.report({
+      type: "reviewer_started",
+      reviewer: {
+        role: "lead",
+        model: "openai-codex/gpt-5.6-sol",
+        thinkingLevel: "xhigh",
+      },
+    });
+    presenter.report({
+      type: "reviewer_activity",
+      role: "lead",
+      state: "using_tool",
+      activity: "reading src/reviewer.ts",
+      toolStarted: true,
+    });
+
+    expect(statuses).toHaveLength(0);
+    expect(widgets.at(-1)?.[1]?.join("\n")).toContain(
+      "lead · openai-codex/gpt-5.6-sol · thinking xhigh",
+    );
+    expect(widgets.at(-1)?.[1]?.join("\n")).toContain("/review-log");
+    expect(updates.at(-1)?.content?.[0]?.text).toContain(
+      "openai-codex/gpt-5.6-sol",
+    );
+    presenter.report({ type: "phase", phase: "complete" });
+    expect(updates.at(-1)?.details?.running).toBeFalse();
+
+    presenter.dispose();
+    expect(statuses).toHaveLength(0);
+    expect(widgets.at(-1)?.[1]).toBeUndefined();
+  });
+
+  test("uses compact status as the non-TUI fallback", () => {
+    const statuses: Array<[string, string | undefined]> = [];
+    const widgets: Array<[string, string[] | undefined]> = [];
+    const presenter = __test__.createProgressPresenter({
+      hasUI: true,
+      mode: "rpc",
+      ui: {
+        setStatus: (key: string, text: string | undefined) =>
+          statuses.push([key, text]),
+        setWidget: (key: string, lines: string[] | undefined) =>
+          widgets.push([key, lines]),
+      },
+    } as never);
+
+    presenter.report({ type: "phase", phase: "reviewing" });
+    presenter.report({
+      type: "reviewer_started",
+      reviewer: {
+        role: "lead",
+        model: "openai-codex/gpt-5.6-sol",
+        thinkingLevel: "xhigh",
+      },
+    });
+
+    expect(statuses.at(-1)?.[1]).toContain(
+      "lead openai-codex/gpt-5.6-sol · thinking xhigh",
+    );
+    expect(widgets).toHaveLength(0);
+    presenter.dispose();
+    expect(statuses.at(-1)?.[1]).toBeUndefined();
   });
 });
 
@@ -292,5 +380,36 @@ describe("canCompareToBase", () => {
     expect(single.ok).toBe(true);
     if (!single.ok) return;
     expect(canCompareToBase(single.path, "HEAD")).toBe(true);
+  });
+});
+
+describe("review result persistence", () => {
+  test("keeps a completed report when persistence fails", () => {
+    const pi = {
+      appendEntry: () => {
+        throw new Error("disk full");
+      },
+    } as never;
+    const execution = {
+      scope: {},
+      report: { verdict: "pass", summary: "clean" },
+      run: {
+        version: 1,
+        createdAt: "now",
+        scopeKey: "scope",
+        diffHash: "diff",
+        reviewerModel: "provider/reviewer",
+        report: { verdict: "pass", summary: "clean" },
+      },
+    };
+    const warning = __test__.persistReview(pi, execution as never);
+    expect(warning).toMatch(/could not be stored/);
+    expect(warning).toMatch(/disk full/);
+    expect(
+      __test__.persistReview(pi, {
+        ...execution,
+        run: undefined,
+      } as never),
+    ).toBe(undefined);
   });
 });

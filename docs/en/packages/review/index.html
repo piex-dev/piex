@@ -1,278 +1,720 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en-US">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>review — First-Class Code Review for Agents — PieX</title>
-  <meta name="description" content="/review turns 'paste a diff for AI to look at' into a repeatable capability: clear scope, noise-controlled, shared engine for human and model." />
-  <link rel="canonical" href="https://piex.dev/en/packages/review/" />
-  <link rel="alternate" hreflang="en" href="https://piex.dev/en/packages/review/" />
-  <link rel="alternate" hreflang="zh" href="https://piex.dev/zh/packages/review/" />
-  <link rel="alternate" hreflang="x-default" href="https://piex.dev/en/packages/review/" />
-  <meta property="og:title" content="review — First-Class Code Review for Agents — PieX" />
-  <meta property="og:description" content="/review turns 'paste a diff for AI to look at' into a repeatable capability: clear scope, noise-controlled, shared engine for human and model." />
-  <meta property="og:url" content="https://piex.dev/en/packages/review/" />
-  <meta property="og:type" content="article" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
-  <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E" />
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-0BJ0ZVPSWN');
-  </script>
-</head>
-<body>
-  <header class="site-header">
-    <nav class="nav-inner">
-      <a class="logo" href="/" aria-label="PieX home">
-        <span class="logo-mark">π</span>
-        PieX
-      </a>
-      <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
-      <div class="nav-links" id="nav-links">
-        <a href="/#why" data-i18n="nav.why">Philosophy</a>
-        <a href="/#packages" data-i18n="nav.packages">Packages</a>
-        <a href="/#docs" data-i18n="nav.docs">Docs</a>
-        <a href="/#blog" data-i18n="nav.blog">Blog</a>
-        <a href="https://github.com/piex-dev/piex" target="_blank" rel="noopener">GitHub</a>
-        <div class="lang-switch" role="radiogroup" aria-label="Language">
-          <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
-          <button data-lang="zh" aria-checked="false" role="radio">中文</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>review — First-Class Code Review for Agents — PieX</title>
+    <meta
+      name="description"
+      content="One /review command automatically scopes changes and returns convergent findings from isolated, read-only reviewers."
+    />
+    <link rel="canonical" href="https://piex.dev/en/packages/review/" />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://piex.dev/en/packages/review/"
+    />
+    <link
+      rel="alternate"
+      hreflang="zh"
+      href="https://piex.dev/zh/packages/review/"
+    />
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://piex.dev/en/packages/review/"
+    />
+    <meta
+      property="og:title"
+      content="review — First-Class Code Review for Agents — PieX"
+    />
+    <meta
+      property="og:description"
+      content="One /review command automatically scopes changes and returns convergent findings from isolated, read-only reviewers."
+    />
+    <meta property="og:url" content="https://piex.dev/en/packages/review/" />
+    <meta property="og:type" content="article" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../../assets/style.css?v=20260721pkgs" />
+    <link rel="stylesheet" href="../../../assets/blog.css?v=20260721pkgs2" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%233ecf5e' rx='6' width='32' height='32'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-weight='800' font-size='14' fill='%230a0e14'%3Eπ%3C/text%3E%3C/svg%3E"
+    />
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-0BJ0ZVPSWN"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-0BJ0ZVPSWN");
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav-inner">
+        <a class="logo" href="/" aria-label="PieX home">
+          <span class="logo-mark">π</span>
+          PieX
+        </a>
+        <button
+          id="nav-toggle"
+          class="nav-toggle"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <div class="nav-links" id="nav-links">
+          <a href="/#why" data-i18n="nav.why">Philosophy</a>
+          <a href="/#packages" data-i18n="nav.packages">Packages</a>
+          <a href="/#docs" data-i18n="nav.docs">Docs</a>
+          <a href="/#blog" data-i18n="nav.blog">Blog</a>
+          <a
+            href="https://github.com/piex-dev/piex"
+            target="_blank"
+            rel="noopener"
+            >GitHub</a
+          >
+          <div class="lang-switch" role="radiogroup" aria-label="Language">
+            <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
+            <button data-lang="zh" aria-checked="false" role="radio">
+              中文
+            </button>
+          </div>
         </div>
-      </div>
-    </nav>
-  </header>
+      </nav>
+    </header>
 
-  <div class="blog-layout docs-layout">
-    <aside class="docs-nav" aria-label="Packages">
-      <p class="blog-toc-title">Packages</p>
-      <nav>
-      <p class="docs-nav-group">Extensions</p>
-      <a href="/en/packages/hashline/">hashline</a>
-      <a href="/en/packages/dap/">dap</a>
-      <a href="/en/packages/lsp/">lsp</a>
-      <a href="/en/packages/plan/">plan</a>
-      <a href="/en/packages/review/" class="is-active">review</a>
-      <a href="/en/packages/subagent/">subagent</a>
-      <a href="/en/packages/xai-oauth/">xai-oauth</a>
-      <a href="/en/packages/btw/">btw</a>
-      <a href="/en/packages/context/">context</a>
-      <a href="/en/packages/goal/">goal</a>
-<a href="/en/packages/usage/">usage</a>
-<a href="/en/packages/ttft/">ttft</a>
-      <a href="/en/packages/gpt-fast-mode/">gpt-fast-mode</a>
-      <p class="docs-nav-group">Prompts</p>
-      <a href="/en/packages/init/">init</a>
-      <p class="docs-nav-group">Themes</p>
-      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
-    </nav>
-    </aside>
-
-    <article class="blog-article">
-      <div class="docs-mobile-nav">
-        <button type="button" class="blog-toc-toggle docs-nav-toggle" aria-expanded="false">
-          <span>Packages</span>
-          <span class="chev" aria-hidden="true">▾</span>
-        </button>
-        <nav class="blog-toc-mobile-nav docs-nav-mobile">
-      <p class="docs-nav-group">Extensions</p>
-      <a href="/en/packages/hashline/">hashline</a>
-      <a href="/en/packages/dap/">dap</a>
-      <a href="/en/packages/lsp/">lsp</a>
-      <a href="/en/packages/plan/">plan</a>
-      <a href="/en/packages/review/" class="is-active">review</a>
-      <a href="/en/packages/subagent/">subagent</a>
-      <a href="/en/packages/xai-oauth/">xai-oauth</a>
-      <a href="/en/packages/btw/">btw</a>
-      <a href="/en/packages/context/">context</a>
-      <a href="/en/packages/goal/">goal</a>
-<a href="/en/packages/usage/">usage</a>
-<a href="/en/packages/ttft/">ttft</a>
-      <a href="/en/packages/gpt-fast-mode/">gpt-fast-mode</a>
-      <p class="docs-nav-group">Prompts</p>
-      <a href="/en/packages/init/">init</a>
-      <p class="docs-nav-group">Themes</p>
-      <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
-    </nav>
-      </div>
-
-      <div class="blog-toc-mobile">
-        <button type="button" class="blog-toc-toggle" aria-expanded="false">
-          <span>On this page</span>
-          <span class="chev" aria-hidden="true">▾</span>
-        </button>
-        <nav class="blog-toc-mobile-nav">
-        <a href="#intro">Overview</a>
-        <a href="#theory">How it works</a>
-        <a href="#usage">Usage</a>
-        <a href="#impl">Implementation</a>
-        <a href="#design">Design notes</a>
-        <a href="#changelog">Changelog</a>
+    <div class="blog-layout docs-layout">
+      <aside class="docs-nav" aria-label="Packages">
+        <p class="blog-toc-title">Packages</p>
+        <nav>
+          <p class="docs-nav-group">Extensions</p>
+          <a href="/en/packages/hashline/">hashline</a>
+          <a href="/en/packages/dap/">dap</a>
+          <a href="/en/packages/lsp/">lsp</a>
+          <a href="/en/packages/plan/">plan</a>
+          <a href="/en/packages/review/" class="is-active">review</a>
+          <a href="/en/packages/subagent/">subagent</a>
+          <a href="/en/packages/xai-oauth/">xai-oauth</a>
+          <a href="/en/packages/btw/">btw</a>
+          <a href="/en/packages/context/">context</a>
+          <a href="/en/packages/goal/">goal</a>
+          <a href="/en/packages/usage/">usage</a>
+          <a href="/en/packages/ttft/">ttft</a>
+          <a href="/en/packages/gpt-fast-mode/">gpt-fast-mode</a>
+          <p class="docs-nav-group">Prompts</p>
+          <a href="/en/packages/init/">init</a>
+          <p class="docs-nav-group">Themes</p>
+          <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
         </nav>
-      </div>
-<header class="blog-header">
-        <div class="blog-meta-row">
-          <span class="blog-tag">Extension</span>
-          <span class="blog-tag">Git</span>
-          <code class="pkg-tag">@piex-dev/review</code>
-        </div>
-        <h1>review — First-Class Code Review for Agents</h1>
-      </header>
+      </aside>
 
-      <div class="blog-prose">
-        <div class="blog-callout insight">
-          <div class="blog-callout-icon" aria-hidden="true">💡</div>
-          <div class="blog-callout-body">
-            <p class="blog-callout-label">TL;DR</p>
-            <p><code>/review</code> turns "paste a diff for AI to look at" into a repeatable capability: clear scope, noise-controlled, one shared engine for human and model.</p>
+      <article class="blog-article">
+        <div class="docs-mobile-nav">
+          <button
+            type="button"
+            class="blog-toc-toggle docs-nav-toggle"
+            aria-expanded="false"
+          >
+            <span>Packages</span>
+            <span class="chev" aria-hidden="true">▾</span>
+          </button>
+          <nav class="blog-toc-mobile-nav docs-nav-mobile">
+            <p class="docs-nav-group">Extensions</p>
+            <a href="/en/packages/hashline/">hashline</a>
+            <a href="/en/packages/dap/">dap</a>
+            <a href="/en/packages/lsp/">lsp</a>
+            <a href="/en/packages/plan/">plan</a>
+            <a href="/en/packages/review/" class="is-active">review</a>
+            <a href="/en/packages/subagent/">subagent</a>
+            <a href="/en/packages/xai-oauth/">xai-oauth</a>
+            <a href="/en/packages/btw/">btw</a>
+            <a href="/en/packages/context/">context</a>
+            <a href="/en/packages/goal/">goal</a>
+            <a href="/en/packages/usage/">usage</a>
+            <a href="/en/packages/ttft/">ttft</a>
+            <a href="/en/packages/gpt-fast-mode/">gpt-fast-mode</a>
+            <p class="docs-nav-group">Prompts</p>
+            <a href="/en/packages/init/">init</a>
+            <p class="docs-nav-group">Themes</p>
+            <a href="/en/packages/theme-dark-terminal/">theme-dark-terminal</a>
+          </nav>
+        </div>
+
+        <div class="blog-toc-mobile">
+          <button type="button" class="blog-toc-toggle" aria-expanded="false">
+            <span>On this page</span>
+            <span class="chev" aria-hidden="true">▾</span>
+          </button>
+          <nav class="blog-toc-mobile-nav">
+            <a href="#intro">Overview</a>
+            <a href="#theory">How it works</a>
+            <a href="#usage">Usage</a>
+            <a href="#impl">Implementation</a>
+            <a href="#design">Design notes</a>
+            <a href="#changelog">Changelog</a>
+          </nav>
+        </div>
+        <header class="blog-header">
+          <div class="blog-meta-row">
+            <span class="blog-tag">Extension</span>
+            <span class="blog-tag">Git</span>
+            <code class="pkg-tag">@piex-dev/review</code>
+          </div>
+          <h1>review — First-Class Code Review for Agents</h1>
+        </header>
+
+        <div class="blog-prose">
+          <div class="blog-callout insight">
+            <div class="blog-callout-icon" aria-hidden="true">💡</div>
+            <div class="blog-callout-body">
+              <p class="blog-callout-label">TL;DR</p>
+              <p>
+                Run <code>/review</code>. The extension scopes the work, starts
+                an isolated read-only reviewer, and returns evidence-backed
+                <code>PASS</code> or <code>NEEDS FIX</code>.
+              </p>
+            </div>
+          </div>
+
+          <h2 id="intro">Overview</h2>
+          <p>
+            The hard part of AI review is not adding another mode. It is
+            covering the full change, keeping the reviewer independent,
+            requiring evidence, and knowing when fixes are done.
+            <code>@piex-dev/review</code> reduces the human API to one
+            <code>/review</code>: it includes committed, staged, unstaged, and
+            untracked work against the default branch, reviews in an isolated Pi
+            SDK session, and chooses one reviewer or lead + specialist according
+            to risk.
+          </p>
+
+          <h2 id="theory">How it works</h2>
+          <p>
+            Review = freeze scope + independent judgment + evidence
+            adjudication. Core insight:
+            <strong
+              >more reviewers do not automatically mean more reliable
+              review</strong
+            >. Ordinary patches use one reviewer; security, data, concurrency,
+            cross-repo contracts, or large diffs add one specialist, with the
+            lead still responsible for one final report.
+          </p>
+          <div class="blog-code">
+            <div class="blog-code-bar"><span>flow</span></div>
+            <pre><code>/review → freeze base/head/diff → physically remove noise
+→ create read-only reviewer session → risk route 1→2
+→ stream phase, model, thinking level, and tool activity
+→ open a safe reviewer transcript on demand
+→ submit_review → evidence gate → PASS / NEEDS FIX
+→ persist finding state for re-review</code></pre>
+          </div>
+          <p>
+            <code>/review</code> always uses automatic scope and never opens a
+            mode menu. The <code>review</code> tool retains <code>diff</code>,
+            <code>staged</code>, <code>branch</code>, <code>commit</code>, and
+            <code>file</code> for agents and scripts. An unchanged diff is
+            cached; a changed diff revalidates previous findings first.
+          </p>
+          <p>
+            Re-review persists a canonical set of open findings. A previous
+            finding closes only when it has a non-empty reason and is classified
+            as <code>resolved</code>, <code>invalid</code>, or
+            <code>superseded</code>; otherwise it remains
+            <code>still_open</code> across later rounds. Duplicate IDs and
+            legacy records are canonicalized to one candidate. The
+            higher-priority candidate wins; confidence breaks ties at the same
+            priority. A previous P0/P1 cannot bypass the blocking gate merely by
+            being resubmitted as P2.
+          </p>
+
+          <h2 id="usage">Usage</h2>
+          <h3 id="install">Install</h3>
+          <div class="blog-code">
+            <div class="blog-code-bar"><span>bash</span></div>
+            <pre><code>pi install npm:@piex-dev/review</code></pre>
+          </div>
+          <p>
+            Source:
+            <a
+              href="https://github.com/piex-dev/piex/tree/main/extensions/review"
+              target="_blank"
+              rel="noopener"
+              ><code>extensions/review</code></a
+            >
+          </p>
+          <h3 id="prereq">Prerequisites</h3>
+          <p>
+            The current directory is a git repo (or pass any git repo path via a
+            param); <code>git</code> is on the machine.
+          </p>
+          <h3 id="example">Usage</h3>
+          <div class="blog-code">
+            <div class="blog-code-bar"><span>text</span></div>
+            <pre><code>/review
+/review ../piex
+/review "../piex" "../oh-my-pi"</code></pre>
+          </div>
+          <p>
+            Pi <code>@path</code> mentions, autocomplete quotes, and relative or
+            absolute paths are accepted. Multi-repo paths are validated and
+            deduplicated by git root; any invalid path aborts with all errors.
+            The default branch is resolved from <code>origin/HEAD</code>,
+            <code>init.defaultBranch</code>, then
+            <code>main</code>/<code>master</code>/<code>trunk</code>. Merge-base
+            calculation is local and never implicitly fetches.
+          </p>
+          <p>
+            The advanced <code>commit</code> scope compares the target commit
+            with its first parent, so a merge commit shows only what that merge
+            introduced relative to that first parent. A root commit is reviewed
+            against Git's empty tree.
+          </p>
+          <ul>
+            <li>
+              <code>NEEDS FIX</code>: at least one evidence-backed P0/P1; fix
+              it, then run <code>/review</code> again
+            </li>
+            <li>
+              <code>PASS</code>: no blocking findings; P2 is advisory and does
+              not require another loop
+            </li>
+            <li>
+              <code>cached</code>: scope and diff are unchanged, so no reviewer
+              call is repeated
+            </li>
+          </ul>
+          <h3 id="live-progress">Live progress and reviewer transcript</h3>
+          <p>
+            Interactive TUI <code>/review</code> runs show only the live panel
+            above the editor, avoiding duplicate status-bar output. Other UI
+            modes fall back to a compact status summary:
+          </p>
+          <div class="blog-code">
+            <div class="blog-code-bar"><span>text</span></div>
+            <pre><code>Review · 00:31 · reviewing
+● lead · openai-codex/gpt-5.6-sol · thinking xhigh · reading src/reviewer.ts · 3 tools
+● specialist/security · openai-codex/gpt-5.6-sol · thinking max · reasoning about changes · 2 tools</code></pre>
+          </div>
+          <p>
+            The panel updates across <code>preparing</code>,
+            <code>reviewing</code>, <code>adjudicating</code>, and
+            <code>validating</code>, as well as source reads, searches, frozen
+            diff inspection, and report submission. Tool callers receive the
+            same structured snapshot through <code>onUpdate</code>, and the
+            final report retains the actual reviewer model and thinking level.
+          </p>
+          <p>
+            In the interactive TUI, <code>/review</code> runs in the background
+            and immediately returns the input editor. During a running review, enter
+            <code>/review-log</code> or press <code>Ctrl+Alt+R</code>; either
+            opens the live, scrollable transcript overlay. After completion,
+            run <code>/review-log</code> again to reopen the latest record. Use
+            <code>Tab</code> to switch between lead and specialist, arrow keys
+            or <code>j</code>/<code>k</code> to scroll, <code>G</code> to return
+            to the end and resume live follow, and <code>q</code>/<code
+              >Esc</code
+            >
+            to close.
+          </p>
+          <p>
+            The transcript records task prompts, visible assistant text, tool
+            calls and bounded result summaries, phase/retry status, and the
+            final
+            <code>submit_review</code>. Raw thinking/reasoning is not collected.
+            Secret/token/password fields and common credential formats are
+            redacted before entering memory, and text, serialized values,
+            collection depth, entry count, and rendered lines are bounded. The
+            record is neither added to the author's main session nor written to
+            disk; <code>/reload</code> or process exit clears it.
+          </p>
+          <h3 id="config">Optional configuration</h3>
+          <p>
+            The current model is used by default. To pin a reviewer, create
+            <code>~/.pi/piex-dev/review/settings.json</code> with
+            <code>model</code>, <code>specialistModel</code>,
+            <code>thinkingLevel</code>, <code>specialistThinkingLevel</code>,
+            and <code>maxReviewers</code> (1 or 2). The two thinking-level
+            fields independently control the lead and specialist and accept Pi
+            levels from <code>off</code> through <code>max</code>; the
+            specialist inherits the lead level when omitted. Explicit
+            <code>model</code> / <code>specialistModel</code> settings always
+            take precedence; a re-review retains the original reviewer model
+            only when the corresponding setting is absent.
+          </p>
+          <p>
+            Note: <code>ultra</code> is not a Pi thinking level. The
+            <a
+              href="https://developers.openai.com/api/docs/models/gpt-5.6-sol"
+              target="_blank"
+              rel="noopener"
+              >GPT-5.6 Sol model page</a
+            >
+            lists <code>max</code> as the highest API
+            <code>reasoning.effort</code>; Codex Ultra uses maximum reasoning
+            and may also run additional agents, as described in the
+            <a
+              href="https://developers.openai.com/api/docs/guides/latest-model"
+              target="_blank"
+              rel="noopener"
+              >OpenAI model guidance</a
+            >. Therefore, <code>max</code> is the highest setting this extension
+            can pass to an individual reviewer, not the complete Codex Ultra
+            mode. An <code>ultra</code> value is ignored.
+          </p>
+          <h3 id="verify">Verify</h3>
+          <div class="blog-code">
+            <div class="blog-code-bar"><span>bash</span></div>
+            <pre><code>pi -e ./extensions/review/src/review-v2.ts -p "what is 1+1" --no-session</code></pre>
+          </div>
+
+          <h2 id="impl">Implementation</h2>
+          <p>
+            Scope, diff parsing, reviewer orchestration, finding gates, session
+            state, and rendering are separate modules. Noise is physically
+            removed at the diff-chunk layer; scope freezes base/head OIDs and
+            changed ranges. Every reviewer is a fresh in-memory session with
+            extensions, skills, templates, themes, and automatic system/context
+            injection disabled. Repository guidance is read explicitly through
+            read-only tools, so it cannot replace the reviewer system role. It
+            only receives
+            <code>read</code
+            >/<code>grep</code>/<code>find</code>/<code>ls</code>, the exact
+            frozen-patch <code>review_diff</code> tool, and typed
+            <code>submit_review</code>; it cannot write files or execute
+            commands.
+          </p>
+          <p>
+            The main workflow subscribes to lifecycle, message-type, and tool
+            execution events from every isolated session and reduces them into
+            reviewer-scoped progress snapshots. Parallel lead and specialist
+            activity cannot overwrite each other, and a one-second heartbeat
+            keeps elapsed time moving during long reasoning periods. Paths are
+            stripped of control characters and truncated before display; grep
+            patterns, thinking deltas, and text deltas never enter compact
+            progress output.
+          </p>
+          <p>
+            The same event stream also feeds a separate bounded in-memory
+            transcript store. Only visible <code>text_delta</code> content is
+            merged by reviewer and stage; <code>thinking_delta</code> is
+            explicitly discarded, while tool arguments and results are redacted
+            and truncated first. Every run has an ID, so late events from an old
+            run cannot contaminate a newer review. The TUI overlay subscribes to
+            store changes, pauses live follow when scrolled away from the end,
+            and resumes it on return.
+          </p>
+          <p>
+            Interactive <code>/review</code> runs the long review as a managed
+            background task so Pi's main input loop becomes available
+            immediately and can dispatch <code>/review-log</code> while the
+            review is active. The task uses its own AbortSignal;
+            <code>session_shutdown</code> cancels it and waits for reviewer
+            cleanup on exit, <code>/reload</code>, or session replacement. The
+            command and tool entrypoints still share one execution gate, so
+            they cannot write to the same transcript concurrently.
+          </p>
+          <p>
+            Diff file paths are matched against repository-relative paths first.
+            A leading <code>a/</code> or <code>b/</code> is interpreted as Git's
+            display prefix only after an exact match fails, so real top-level
+            <code>a</code> and <code>b</code> directories cannot be mapped to
+            the wrong file.
+          </p>
+          <p>
+            The <strong>evidence gate</strong> requires a finding to belong to
+            the frozen repo/file, overlap a changed hunk, be patch-introduced,
+            and include trigger/impact/evidence. Confidence must be at least 0.8
+            for P0/P1 and 0.75 for P2; previous blocking findings are checked
+            against their effective retained priority. Candidates are
+            canonicalized by stable ID and semantic key. The verdict and summary
+            are generated from gated current and open findings rather than
+            copied from the reviewer's raw summary. Only security, data,
+            concurrency, cross-repo, or large diffs route to a second
+            specialist. Lead and specialist run in parallel; the lead
+            adjudicates one final report.
+          </p>
+          <div class="blog-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Approach</th>
+                  <th>Behavior</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Fixed N reviewers every time</td>
+                  <td>
+                    Broad coverage, but also duplicate findings, cost, and drift
+                  </td>
+                </tr>
+                <tr>
+                  <td>PieX adaptive 1→2</td>
+                  <td>
+                    One for ordinary patches; specialist for risk; lead
+                    adjudicates
+                  </td>
+                </tr>
+                <tr>
+                  <td>Author model self-review</td>
+                  <td>
+                    Cheap, but shared context encourages confirmation bias
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2 id="design">Design notes</h2>
+          <div class="blog-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th>Mechanism</th>
+                  <th>piex choice</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Pi SDK</strong></td>
+                  <td>
+                    <code>createAgentSession</code>, resource/tool isolation
+                  </td>
+                  <td>
+                    Create an independent read-only reviewer instead of reusing
+                    the author session
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>oh-my-pi review</strong></td>
+                  <td>
+                    multiple reviewers, diff partitioning, structured results
+                  </td>
+                  <td>
+                    No mode matrix; at most two reviewers selected by risk
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Mainstream PR review</strong></td>
+                  <td>changed-line locations, severity, confidence</td>
+                  <td>
+                    Enforce them in a runtime evidence gate, not only in a
+                    prompt
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Core trade-off:
+            <strong
+              >simplicity is the external API; orchestration complexity stays
+              inside</strong
+            >. <code>/review</code> always has one main path.
+          </p>
+
+          <h2 id="changelog">Changelog</h2>
+          <h3 id="roadmap">Roadmap</h3>
+          <div class="blog-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Direction</th>
+                  <th>Plan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Diff boundaries</td>
+                  <td>Add rename, submodule, and very-large-file samples</td>
+                </tr>
+                <tr>
+                  <td>Project policy</td>
+                  <td>
+                    Add <code>.reviewignore</code> and explicit default branch
+                    without adding command modes
+                  </td>
+                </tr>
+                <tr>
+                  <td>Gate output</td>
+                  <td>
+                    Export a stable machine-readable report alongside Markdown
+                    UX
+                  </td>
+                </tr>
+                <tr>
+                  <td>New-finding stability</td>
+                  <td>
+                    Use re-review data to decide whether new P1s on old hunks
+                    need extra verification
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3 id="versions">Version history</h3>
+          <div class="blog-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Version</th>
+                  <th>Date</th>
+                  <th>Changes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>0.4.0</td>
+                  <td>2026-09-03</td>
+                  <td>
+                    One automatic <code>/review</code>; isolated read-only
+                    reviewer; adaptive risk routing from one to two reviewers;
+                    independent lead and specialist thinking levels;
+                    reviewer-scoped live progress, heartbeat, actual
+                    model/thinking-level display, and final report metadata; a
+                    single detailed TUI panel without duplicate status output;
+                    live reviewer transcripts via <code>Ctrl+Alt+R</code> and
+                    post-run recall via <code>/review-log</code>, with reviewer
+                    switching, scrolling/live follow, thinking filtering,
+                    sensitive-field redaction, and bounded in-memory storage;
+                    explicit model settings override re-review history; typed
+                    submission and evidence gate; stable finding IDs, re-review
+                    state, and unchanged-diff cache; open findings retained
+                    across rounds, duplicate-ID canonicalization, and
+                    blocking-priority protection; deterministic verdicts and
+                    summaries from canonical results; exact-first
+                    <code>a/</code>/<code>b/</code> path resolution;
+                    first-parent merge-commit review; complete work scope and
+                    physical noise removal
+                  </td>
+                </tr>
+                <tr>
+                  <td>0.3.0</td>
+                  <td>2026-07-30</td>
+                  <td>
+                    Linked multi-repo review:
+                    <code>/review "piex" "oh-my-pi"</code> specifies multiple
+                    repos at once (<code>parseRepoArgs</code> parses multiple
+                    tokens; quotes / <code>@</code> / curly quotes may mix),
+                    applies one mode to all repos and composes a single combined
+                    prompt (<code>buildMultiRepoPrompt</code>) that asks the
+                    model to check cross-repo consistency (shared
+                    interfaces/contracts/import paths/duplicated logic);
+                    <code>resolveRepos</code> validates and dedupes each path,
+                    aborting with all errors if any is invalid; the
+                    <code>review</code> tool gains a <code>repos</code> array
+                    param (takes precedence over <code>repo</code>; multi-repo
+                    supports only
+                    <code>diff</code>/<code>staged</code>/<code>branch</code>);
+                    oversized diff is skipped per repo; for "vs default branch",
+                    <code>canCompareToBase</code> distinguishes "comparison
+                    failed" (no remote / unfetched branch / wrong default-branch
+                    name) from "genuinely no changes" — failed repos are flagged
+                    ⚠️, not silently reported clean; single-repo / zero-repo
+                    behavior is unchanged
+                  </td>
+                </tr>
+                <tr>
+                  <td>0.2.1</td>
+                  <td>2026-07-23</td>
+                  <td>
+                    Fix <code>/review @"piex"</code>: strip pi autocomplete
+                    quotes (<code>@"…"</code> / <code>"…"</code> / curly quotes)
+                    in <code>resolveRepo</code> so quoted path mentions no
+                    longer resolve as literal quote-wrapped paths
+                  </td>
+                </tr>
+                <tr>
+                  <td>0.2.0</td>
+                  <td>2026-07-22</td>
+                  <td>
+                    Cross-repo review: <code>/review [path]</code> command,
+                    <code>repo</code> param on the <code>review</code> tool,
+                    "Switch repository path…" menu entry;
+                    <code>resolveRepo</code> validates path and git repo (<code
+                      >rev-parse --show-toplevel</code
+                    >, supports worktree/submodule) and strips pi's path-mention
+                    prefix <code>@</code> (<code>/review @piex/</code> works
+                    like <code>/review piex</code>); hardened
+                    <code>git()</code> to use <code>execFileSync</code> (argv
+                    passed literally — no shell injection from
+                    <code>base</code>/<code>commit</code>/<code>file</code>);
+                    fixed <code>parseDiff</code> double-counting (excluded files
+                    no longer added to totals)
+                  </td>
+                </tr>
+                <tr>
+                  <td>0.1.1</td>
+                  <td>2026-07-19</td>
+                  <td>
+                    Initial release: diff engine (<code>parseDiff</code>) +
+                    noise filter (<code>EXCLUDED_PATTERNS</code>); 5 modes;
+                    <code>buildReviewPrompt</code> structured prompt (oversized
+                    diff not inlined); shared engine for human/model; omp
+                    lightweight (no multi-agent parallel or TUI overlay)
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <h2 id="intro">Overview</h2>
-        <p>
-          "Have AI look at this code" stumbles on: where the diff comes from, too much noise, unstable prompts, split human/model entry points. <code>@piex-dev/review</code> consolidates it: humans use <code>/review</code>, the model uses the <code>review</code> tool, the core is one git-diff collection + noise filter + structured prompt. A <strong>lightweight</strong> omp review: keeps the diff engine and modes, drops multi-agent parallel review and TUI overlay.
+        <nav class="blog-footer-nav" aria-label="Package navigation">
+          <a class="blog-nav-card" href="/en/packages/plan/">
+            <span class="blog-nav-label">← Previous</span>
+            <span class="blog-nav-title">plan</span>
+          </a>
+          <a class="blog-nav-card is-next" href="/en/packages/init/">
+            <span class="blog-nav-label">Next →</span>
+            <span class="blog-nav-title">init</span>
+          </a>
+        </nav>
+
+        <p class="blog-source-link">
+          Source Markdown:
+          <a
+            href="https://github.com/piex-dev/piex/blob/main/docs/packages/review.md"
+            target="_blank"
+            rel="noopener"
+            >docs/packages/review.md</a
+          >
         </p>
+      </article>
 
-        <h2 id="theory">How it works</h2>
-        <p>
-          Review = pick scope + clean noise + feed structured context. Core insight: <strong>review quality depends on whether the diff fed to the model is clean</strong> — half the tokens being <code>package-lock.json</code> is waste. 5 modes map to real dev actions: uncommitted / staged / vs base branch (with fetch) / commit / custom.
-        </p>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>flow</span></div>
-          <pre><code>pick mode → git diff/show → parse unified diff
-→ drop noise (lock/min/build/vendor) → build Markdown prompt
-→ hand to current session model for findings</code></pre>
-        </div>
-        <p>Human and model share the engine: <code>/review</code> uses a UI menu, the <code>review</code> tool uses params; both end up in <code>parseDiff</code> + <code>buildReviewPrompt</code>.</p>
-
-        <h2 id="usage">Usage</h2>
-        <h3 id="install">Install</h3>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>bash</span></div>
-          <pre><code>pi install npm:@piex-dev/review</code></pre>
-        </div>
-        <p>Source: <a href="https://github.com/piex-dev/piex/tree/main/extensions/review" target="_blank" rel="noopener"><code>extensions/review</code></a></p>
-        <h3 id="prereq">Prerequisites</h3>
-        <p>The current directory is a git repo (or pass any git repo path via a param); <code>git</code> is on the machine.</p>
-        <h3 id="example">Usage</h3>
-        <ul>
-          <li>Human: <code>/review</code> lists the mode menu (Uncommitted / Staged / vs base branch / Custom)</li>
-          <li>Model: call the <code>review</code> tool with <code>action</code> (<code>diff</code>/<code>staged</code>/<code>commit</code>/<code>branch</code>)</li>
-        </ul>
-        <p><strong>Cross-repo</strong>: reviews the cwd repo by default; any git repo path can be specified —</p>
-        <ul>
-          <li><code>/review piex</code>, <code>/review @piex/</code>, <code>/review @"piex"</code> — review the <code>piex</code> subdirectory repo (<code>@</code> and autocomplete quotes are auto-stripped)</li>
-          <li><code>/review ./path/to/repo</code> — review any relative-path repo</li>
-          <li>Pick "Switch repository path…" in the menu to switch at runtime</li>
-          <li>Pass <code>repo</code> to the <code>review</code> tool (resolved against cwd), e.g. <code>{ action: "diff", repo: "piex" }</code></li>
-        </ul>
-        <p><strong>Linked multi-repo review</strong>: review several repos you changed at once, producing a single combined prompt that asks the model to check cross-repo consistency —</p>
-        <ul>
-          <li><code>/review "piex" "oh-my-pi"</code>, <code>/review piex oh-my-pi</code>, <code>/review @piex @oh-my-pi</code> — specify multiple repos (quotes / <code>@</code> / curly quotes may mix)</li>
-          <li>Pick one mode (Uncommitted / Staged / vs default branch / Custom) <strong>applied to all repos</strong>; for "vs default branch" each repo uses its own default branch, and the menu offers "Edit repository list…" to re-edit</li>
-          <li>Pass a <code>repos</code> array to the <code>review</code> tool: <code>{ action: "diff", repos: ["piex", "oh-my-pi"] }</code> returns the combined prompt; <code>repos</code> takes precedence over <code>repo</code>, multi-repo supports only <code>diff</code>/<code>staged</code>/<code>branch</code> (<code>base</code> applies to every repo; <code>commit</code>/<code>file</code> are repo-specific and need a single <code>repo</code>)</li>
-          <li>If any repo path is invalid, all errors are listed and the review aborts; multiple subpaths of the same repo are deduped</li>
-        </ul>
-        <p>After selection a prompt is generated and sent back via <code>pi.sendUserMessage(..., { deliverAs: "followUp" })</code> for the current model to act as reviewer.</p>
-        <h3 id="verify">Verify</h3>
-        <div class="blog-code">
-          <div class="blog-code-bar"><span>bash</span></div>
-          <pre><code>pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session</code></pre>
-        </div>
-
-        <h2 id="impl">Implementation</h2>
-        <p>
-          ~350 lines, single file. <strong>Noise filter (EXCLUDED_PATTERNS)</strong> auto-excludes lock/build/vendor/generated/media-binary; excluded files still appear in an "Excluded" section (path + reason + line count) so the model knows things were filtered without ingesting them. <strong>Diff parsing</strong> chunks by <code>diff --git</code> counting +/-. <strong>Prompt generation</strong>: skips embedding full diff when too large (&gt;50k chars or &gt;20 files, suggests <code>read</code>); unified instructions grade findings critical/warning/info with file+line.
-        </p>
-        <p><strong>Linked multi-repo prompt (buildMultiRepoPrompt)</strong>: triggered by <code>/review "a" "b"</code> or the tool's <code>repos</code> array — <code>resolveRepos</code> validates and dedupes each path, the chosen mode is applied to every repo, then <code>buildMultiRepoPrompt</code> composes one prompt: an overall header (repo list + cross-repo totals), a per-repo section (Changed Files / Excluded / Diff, with the oversized-diff skip <strong>applied per repo</strong>), and review instructions that additionally demand <strong>cross-repo linkage</strong> (shared interfaces/type contracts, import paths, API-surface changes, duplicated or divergent logic) with findings tagged by repo + file + line. The value is "linkage", not concatenation: the model is explicitly guided to check contract consistency across repos. Any invalid repo path aborts with all errors listed. <strong>For "vs default branch", <code>canCompareToBase</code> distinguishes "comparison failed" from "genuinely no changes"</strong>: a repo with no remote, an unfetched branch, or a wrong default-branch name is flagged ⚠️ "comparison failed" and the model is told not to treat it as clean — instead of silently showing no changes.</p>
-        <div class="blog-table-wrap"><table><thead><tr><th>omp</th><th>piex review</th></tr></thead>
-<tbody>
-<tr><td>multi-agent parallel review</td><td>current agent reviews directly</td></tr>
-<tr><td>TUI overlay</td><td>text output</td></tr>
-<tr><td>Diff + noise filter</td><td>✅</td></tr>
-<tr><td>Multiple modes</td><td>✅ (light set)</td></tr>
-<tr><td>Structured prompt</td><td>✅ streamlined</td></tr>
-</tbody></table></div>
-
-        <h2 id="design">Design notes</h2>
-        <div class="blog-table-wrap"><table><thead><tr><th>Project</th><th>Mechanism</th><th>piex choice</th></tr></thead>
-<tbody>
-<tr><td><strong>oh-my-pi review</strong></td><td>command + tool; multi-agent parallel + TUI overlay; diff engine + noise filter + structured prompt</td><td><strong>Adopted</strong>: diff engine, noise filter, multi-mode, shared prompt. <strong>Not adopted</strong>: multi-agent parallel (needs subagent), TUI overlay</td></tr>
-<tr><td><strong>OpenCode /review</strong></td><td>built-in command, review uncommitted or specified commit/branch</td><td><strong>Borrowed</strong>: interactive menu, unified prompt template, multi-source review</td></tr>
-</tbody></table></div>
-<p>Core trade-off: keep the diff engine and noise filter intact (feed the model clean context), drop parallelism and visual overlay.</p>
-
-        <h2 id="changelog">Changelog</h2>
-        <h3 id="roadmap">Roadmap</h3>
-        <div class="blog-table-wrap">
-          <table>
-            <thead><tr><th>Direction</th><th>Plan</th></tr></thead>
-            <tbody>
-              <tr><td>Single model, single thread</td><td>near-term optional multi-pass (critical then style); long-term migrate to omp multi-agent when subagent is ready</td></tr>
-              <tr><td>Weak findings↔code binding</td><td>output findings JSON; link diagnostics, route runtime suspects to dap</td></tr>
-              <tr><td>Naive base-branch &amp; noise rules</td><td>project-level <code>.reviewignore</code>/pathspec; configurable remote &amp; default branch</td></tr>
-              <tr><td>Result is chat text</td><td>attach a machine-readable block beyond Markdown; serve local workflow first, then gating</td></tr>
-              <tr><td>Extreme diffs</td><td>parser covers real PR edge cases (rename/binary/submodule)</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <h3 id="versions">Version history</h3>
-        <div class="blog-table-wrap">
-          <table>
-            <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
-            <tbody>
-              <tr><td>0.3.0</td><td>2026-07-30</td><td>Linked multi-repo review: <code>/review "piex" "oh-my-pi"</code> specifies multiple repos at once (<code>parseRepoArgs</code> parses multiple tokens; quotes / <code>@</code> / curly quotes may mix), applies one mode to all repos and composes a single combined prompt (<code>buildMultiRepoPrompt</code>) that asks the model to check cross-repo consistency (shared interfaces/contracts/import paths/duplicated logic); <code>resolveRepos</code> validates and dedupes each path, aborting with all errors if any is invalid; the <code>review</code> tool gains a <code>repos</code> array param (takes precedence over <code>repo</code>; multi-repo supports only <code>diff</code>/<code>staged</code>/<code>branch</code>); oversized diff is skipped per repo; for "vs default branch", <code>canCompareToBase</code> distinguishes "comparison failed" (no remote / unfetched branch / wrong default-branch name) from "genuinely no changes" — failed repos are flagged ⚠️, not silently reported clean; single-repo / zero-repo behavior is unchanged</td></tr>
-              <tr><td>0.2.1</td><td>2026-07-23</td><td>Fix <code>/review @"piex"</code>: strip pi autocomplete quotes (<code>@"…"</code> / <code>"…"</code> / curly quotes) in <code>resolveRepo</code> so quoted path mentions no longer resolve as literal quote-wrapped paths</td></tr>
-              <tr><td>0.2.0</td><td>2026-07-22</td><td>Cross-repo review: <code>/review [path]</code> command, <code>repo</code> param on the <code>review</code> tool, "Switch repository path…" menu entry; <code>resolveRepo</code> validates path and git repo (<code>rev-parse --show-toplevel</code>, supports worktree/submodule) and strips pi's path-mention prefix <code>@</code> (<code>/review @piex/</code> works like <code>/review piex</code>); hardened <code>git()</code> to use <code>execFileSync</code> (argv passed literally — no shell injection from <code>base</code>/<code>commit</code>/<code>file</code>); fixed <code>parseDiff</code> double-counting (excluded files no longer added to totals)</td></tr>
-              <tr><td>0.1.1</td><td>2026-07-19</td><td>Initial release: diff engine (<code>parseDiff</code>) + noise filter (<code>EXCLUDED_PATTERNS</code>); 5 modes; <code>buildReviewPrompt</code> structured prompt (oversized diff not inlined); shared engine for human/model; omp lightweight (no multi-agent parallel or TUI overlay)</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <nav class="blog-footer-nav" aria-label="Package navigation">
-        <a class="blog-nav-card" href="/en/packages/plan/">
-          <span class="blog-nav-label">← Previous</span>
-          <span class="blog-nav-title">plan</span>
-        </a>
-        <a class="blog-nav-card is-next" href="/en/packages/init/">
-          <span class="blog-nav-label">Next →</span>
-          <span class="blog-nav-title">init</span>
-        </a>
-      </nav>
-
-      <p class="blog-source-link">
-        Source Markdown:
-        <a href="https://github.com/piex-dev/piex/blob/main/docs/packages/review.md" target="_blank" rel="noopener">docs/packages/review.md</a>
-      </p>
-    </article>
-
-    <aside class="page-toc" aria-label="On this page">
-      <p class="blog-toc-title">On this page</p>
-      <nav>
-        <a href="#intro">Overview</a>
-        <a href="#theory">How it works</a>
-        <a href="#usage">Usage</a>
-        <a href="#impl">Implementation</a>
-        <a href="#design">Design notes</a>
-        <a href="#changelog">Changelog</a>
-      </nav>
-    </aside>
-  </div>
-
-  <footer class="site-footer">
-    <div class="footer-bottom">
-      <a href="https://piex.dev">piex.dev</a> · <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+      <aside class="page-toc" aria-label="On this page">
+        <p class="blog-toc-title">On this page</p>
+        <nav>
+          <a href="#intro">Overview</a>
+          <a href="#theory">How it works</a>
+          <a href="#usage">Usage</a>
+          <a href="#impl">Implementation</a>
+          <a href="#design">Design notes</a>
+          <a href="#changelog">Changelog</a>
+        </nav>
+      </aside>
     </div>
-  </footer>
 
-  <script src="../../../assets/blog.js?v=20260721pkgs"></script>
-  <script src="../../../assets/main.js?v=20260721pkgs"></script>
-</body>
+    <footer class="site-footer">
+      <div class="footer-bottom">
+        <a href="https://piex.dev">piex.dev</a> ·
+        <a href="https://github.com/piex-dev/piex">piex-dev/piex</a>
+      </div>
+    </footer>
+
+    <script src="../../../assets/blog.js?v=20260721pkgs"></script>
+    <script src="../../../assets/main.js?v=20260721pkgs"></script>
+  </body>
 </html>

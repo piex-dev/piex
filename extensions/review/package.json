@@ -1,8 +1,8 @@
 {
   "name": "@piex-dev/review",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
-  "description": "Code Review extension for pi — interactive /review command and LLM-callable review tool",
+  "description": "Independent, evidence-gated code review for Pi with one simple /review command",
   "license": "MIT",
   "author": "debugtalk",
   "publishConfig": {
@@ -23,14 +23,24 @@
   ],
   "pi": {
     "extensions": [
-      "./src/review.ts"
+      "./src/review-v2.ts"
     ]
   },
   "exports": {
-    ".": "./src/review.ts"
+    ".": "./src/review-v2.ts"
   },
   "files": [
-    "src",
+    "src/diff.ts",
+    "src/findings.ts",
+    "src/progress.ts",
+    "src/render.ts",
+    "src/review-v2.ts",
+    "src/reviewer.ts",
+    "src/scope.ts",
+    "src/state.ts",
+    "src/transcript.ts",
+    "src/transcript-viewer.ts",
+    "src/types.ts",
     "README.md"
   ],
   "peerDependencies": {
