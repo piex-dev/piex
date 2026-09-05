@@ -34,7 +34,7 @@ Fast mode is deliberately fail-closed:
 
 | Provider       | Models                                                               | Authentication |
 | -------------- | -------------------------------------------------------------------- | -------------- |
-| `openai-codex` | `gpt-5.4`, `gpt-5.5`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | ChatGPT OAuth  |
+| `openai-codex` | `gpt-5.4`, `gpt-5.5`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-6-astra` | ChatGPT OAuth  |
 
 `gpt-5.4-mini` and `gpt-5.3-codex-spark` are not included because the ChatGPT Codex catalog does not advertise priority tier support for them.
 

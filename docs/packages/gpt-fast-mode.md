@@ -34,7 +34,7 @@ Fast 模式通常响应更快，但会更快消耗订阅额度。扩展只改变
 5. payload 的 `model` 必须与当前模型一致；
 6. payload 已有 `service_tier` 时不覆盖。
 
-当前 allowlist：`gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna`。`gpt-5.4-mini` 与 `gpt-5.3-codex-spark` 不在 ChatGPT Codex priority tier 支持范围，因此明确拒绝，不做猜测式兼容。
+当前 allowlist：`gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna`、`gpt-6-astra`。`gpt-5.4-mini` 与 `gpt-5.3-codex-spark` 不在 ChatGPT Codex priority tier 支持范围，因此明确拒绝，不做猜测式兼容。
 
 `session_start` 根据 `--fast` 初始化状态，`model_select` 只重算状态栏，不改变用户开关。用户在不支持的模型上开启后，开关保持 on 但请求不修改；切换到支持模型后自动生效。
 

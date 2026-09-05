@@ -124,7 +124,7 @@ Agent 通常使用 `{ action: "auto" }`。高级工具参数还包括 `repo` / `
 
 `thinkingLevel` 控制主 reviewer，`specialistThinkingLevel` 只控制风险路由启动的专项 reviewer。两者接受 `off`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`；专项等级未配置时继承主 reviewer。默认 `maxReviewers: 2` 只是允许风险路由启动第二个 reviewer；普通变更仍然只启动一个。显式配置的 `model` / `specialistModel` 始终优先；只有未配置对应模型时，同一 scope 的 re-review 才沿用首次记录的 reviewer 模型。
 
-`fastMode` 控制 lead，`specialistFastMode` 控制专项 reviewer；专项值缺省时继承 `fastMode`。设为 `true` 时，扩展会向该独立 reviewer 的请求注入 `service_tier: "priority"`。该能力仅支持 `openai-codex` provider、`openai-codex-responses` API、ChatGPT OAuth，以及 `gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna` 模型；其他组合会在 reviewer 启动前报配置错误，而不是静默降级。reviewer 是独立 session，不会继承外层 `/gpt-fast` 状态，需要通过这两个字段显式配置。`fast` 标记表示扩展已启用请求注入，并非服务端确认；Pi 的本地成本遥测仍可能按标准 tier 估算，后端额度记录才是最终依据。
+`fastMode` 控制 lead，`specialistFastMode` 控制专项 reviewer；专项值缺省时继承 `fastMode`。设为 `true` 时，扩展会向该独立 reviewer 的请求注入 `service_tier: "priority"`。该能力仅支持 `openai-codex` provider、`openai-codex-responses` API、ChatGPT OAuth，以及 `gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna`、`gpt-6-astra` 模型；其他组合会在 reviewer 启动前报配置错误，而不是静默降级。reviewer 是独立 session，不会继承外层 `/gpt-fast` 状态，需要通过这两个字段显式配置。`fast` 标记表示扩展已启用请求注入，并非服务端确认；Pi 的本地成本遥测仍可能按标准 tier 估算，后端额度记录才是最终依据。
 
 注意：`ultra` 不是 Pi thinking level。[GPT-5.6 Sol 模型说明](https://developers.openai.com/api/docs/models/gpt-5.6-sol)列出的最高 API `reasoning.effort` 是 `max`；Codex Ultra 使用 maximum reasoning，并可能额外运行 agent，见 [OpenAI Model guidance](https://developers.openai.com/api/docs/guides/latest-model)。因此，`max` 是本扩展可传给单个 reviewer 的最高档，不等于完整的 Codex Ultra 模式；配置中的 `ultra` 会被忽略。
 

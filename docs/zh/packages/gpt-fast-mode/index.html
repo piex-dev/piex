@@ -49,7 +49,7 @@
 
         <h2 id="theory">技术原理</h2>
         <p>扩展监听 <code>before_provider_request</code>，在请求发送前复制 payload 并追加 <code>service_tier: "priority"</code>。注入必须依次通过六层门禁：provider 为 <code>openai-codex</code>、API 为 <code>openai-codex-responses</code>、模型位于显式 allowlist、使用 ChatGPT OAuth、payload 模型与当前模型一致、payload 尚未包含 <code>service_tier</code>。</p>
-        <div class="blog-table-wrap"><table><thead><tr><th>支持</th><th>明确拒绝</th></tr></thead><tbody><tr><td><code>gpt-5.4</code>、<code>gpt-5.5</code>、<code>gpt-5.6-sol</code>、<code>gpt-5.6-terra</code>、<code>gpt-5.6-luna</code></td><td><code>gpt-5.4-mini</code>、<code>gpt-5.3-codex-spark</code></td></tr></tbody></table></div>
+        <div class="blog-table-wrap"><table><thead><tr><th>支持</th><th>明确拒绝</th></tr></thead><tbody><tr><td><code>gpt-5.4</code>、<code>gpt-5.5</code>、<code>gpt-5.6-sol</code>、<code>gpt-5.6-terra</code>、<code>gpt-5.6-luna</code>、<code>gpt-6-astra</code></td><td><code>gpt-5.4-mini</code>、<code>gpt-5.3-codex-spark</code></td></tr></tbody></table></div>
         <p>不支持的模型不会被猜测式兼容。开关可保持 on，但请求不修改；切换到支持模型后自动生效。</p>
 
         <h2 id="usage">使用说明</h2>

@@ -8,7 +8,7 @@ import gptFastModeExtension, {
 
 const supportedModel = {
   provider: "openai-codex",
-  id: "gpt-5.6-sol",
+  id: "gpt-6-astra",
   api: "openai-codex-responses",
 };
 
@@ -107,6 +107,7 @@ describe("gpt-fast-mode: eligibility", () => {
       "gpt-5.6-sol",
       "gpt-5.6-terra",
       "gpt-5.6-luna",
+      "gpt-6-astra",
     ]);
     expect(Object.isFrozen(SUPPORTED_MODELS)).toBe(true);
     for (const id of SUPPORTED_MODELS) {

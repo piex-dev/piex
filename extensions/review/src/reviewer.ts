@@ -56,6 +56,7 @@ const FAST_MODE_MODELS = new Set([
   "gpt-5.6-sol",
   "gpt-5.6-terra",
   "gpt-5.6-luna",
+  "gpt-6-astra",
 ]);
 
 const FindingSchema = Type.Object({

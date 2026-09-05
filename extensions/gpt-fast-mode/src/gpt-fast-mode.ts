@@ -21,6 +21,7 @@ export const SUPPORTED_MODELS = Object.freeze([
   "gpt-5.6-sol",
   "gpt-5.6-terra",
   "gpt-5.6-luna",
+  "gpt-6-astra",
 ] as const);
 
 const SUPPORTED_MODEL_SET: ReadonlySet<string> = new Set(SUPPORTED_MODELS);

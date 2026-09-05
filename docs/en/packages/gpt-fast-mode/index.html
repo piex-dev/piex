@@ -49,7 +49,7 @@
 
         <h2 id="theory">How it works</h2>
         <p>The extension hooks <code>before_provider_request</code>, cloning the serialized payload and adding <code>service_tier: "priority"</code> immediately before transport. Injection must pass six fail-closed gates: provider is <code>openai-codex</code>; API is <code>openai-codex-responses</code>; model is on the explicit allowlist; authentication is ChatGPT OAuth; payload model matches the selected model; and no <code>service_tier</code> already exists.</p>
-        <div class="blog-table-wrap"><table><thead><tr><th>Supported</th><th>Explicitly rejected</th></tr></thead><tbody><tr><td><code>gpt-5.4</code>, <code>gpt-5.5</code>, <code>gpt-5.6-sol</code>, <code>gpt-5.6-terra</code>, <code>gpt-5.6-luna</code></td><td><code>gpt-5.4-mini</code>, <code>gpt-5.3-codex-spark</code></td></tr></tbody></table></div>
+        <div class="blog-table-wrap"><table><thead><tr><th>Supported</th><th>Explicitly rejected</th></tr></thead><tbody><tr><td><code>gpt-5.4</code>, <code>gpt-5.5</code>, <code>gpt-5.6-sol</code>, <code>gpt-5.6-terra</code>, <code>gpt-5.6-luna</code>, <code>gpt-6-astra</code></td><td><code>gpt-5.4-mini</code>, <code>gpt-5.3-codex-spark</code></td></tr></tbody></table></div>
         <p>Unsupported models are never guessed into compatibility. The preference may stay on while requests remain unchanged; switching to a supported model activates it automatically.</p>
 
         <h2 id="usage">Usage</h2>
