@@ -4,6 +4,7 @@ import {
   redactTranscriptText,
   sanitizeTranscriptValue,
   serializeTranscriptValue,
+  summarizeToolResult,
   TRANSCRIPT_REASONING_OMITTED,
   TRANSCRIPT_REDACTED,
   TRANSCRIPT_TRUNCATED,
@@ -16,6 +17,7 @@ const reviewer = {
   stage: "review" as const,
   model: "openai-codex/gpt-5.6-sol",
   thinkingLevel: "xhigh",
+  fastMode: true,
 };
 
 function start(store: ReviewerTranscriptStore, runId = "run-1"): string {
@@ -120,7 +122,49 @@ describe("review transcript safety", () => {
     expect(plain).toHaveLength(32);
     expect(plain.endsWith(TRANSCRIPT_TRUNCATED)).toBe(true);
     expect(serialized.length).toBeLessThanOrEqual(48);
-    expect(serialized.endsWith(TRANSCRIPT_TRUNCATED)).toBe(true);
+    expect(JSON.parse(serialized).content.endsWith(TRANSCRIPT_TRUNCATED)).toBe(
+      true,
+    );
+  });
+
+  test("keeps bounded source results parseable after escaping and redaction", () => {
+    const text = 'const label = "中文\\path😀";\n'.repeat(1_000);
+    const summary = summarizeToolResult({
+      content: [{ type: "text", text: `apiKey: "hidden-value"\n${text}` }],
+      details: { token: "also-hidden", totalLines: 1_001 },
+    });
+    expect(summary.length).toBeLessThanOrEqual(12_000);
+    const parsed = JSON.parse(summary);
+    expect(parsed.content[0]).toContain('const label = "中文\\path😀";\n');
+    expect(parsed.content[0]).toContain(TRANSCRIPT_REDACTED);
+    expect(parsed.content[0]).toContain(TRANSCRIPT_TRUNCATED);
+    expect(summary).not.toContain("hidden-value");
+    expect(summary).not.toContain("also-hidden");
+  });
+
+  test("bounds nested collections and small budgets without cutting JSON syntax", () => {
+    const values = [
+      '😀\n\\"'.repeat(500),
+      Array.from({ length: 100 }, (_, index) => ({
+        index,
+        text: "x".repeat(40),
+      })),
+      {
+        content: ["x".repeat(20_000), "tail"],
+        details: { nested: [true, null, 42] },
+      },
+      { ["long-key".repeat(50)]: { value: true } },
+    ];
+    for (const budget of [11, 12, 13, 32, 96, 12_000]) {
+      for (const value of values) {
+        const serialized = serializeTranscriptValue(value, budget);
+        expect(serialized.length).toBeLessThanOrEqual(budget);
+        expect(() => JSON.parse(serialized)).not.toThrow();
+        if (JSON.stringify(value, null, 2).length > budget) {
+          expect(serialized).toContain("TRUNCATED");
+        }
+      }
+    }
   });
 
   test("handles cycles without retaining raw secret values", () => {
@@ -165,6 +209,62 @@ describe("ReviewerTranscriptStore", () => {
       "run-1:running",
     ]);
     unsubscribe();
+  });
+
+  test("increments a monotonic revision on every mutation", () => {
+    const store = new ReviewerTranscriptStore();
+    const runId = start(store);
+    const first = store.getLatestSnapshot()!.revision;
+    store.record(runId, "lead", { kind: "note", text: "one" }, 1_020);
+    const second = store.getLatestSnapshot()!.revision;
+    store.recordRunItem(runId, { kind: "status", status: "reviewing" }, 1_020);
+    const third = store.getLatestSnapshot()!.revision;
+    expect(second).toBeGreaterThan(first);
+    expect(third).toBeGreaterThan(second);
+    // Same-millisecond updates carry distinct revisions even though
+    // updatedAt repeats.
+    expect(store.getLatestSnapshot()!.updatedAt).toBe(1_020);
+  });
+
+  test("preserves an explicitly disabled fast mode in reviewer metadata", () => {
+    const store = new ReviewerTranscriptStore();
+    const runId = store.startReview({
+      runId: "standard",
+      scopeLabel: "working tree",
+      scopeSummary: "1 file",
+    });
+    store.startReviewer(runId, { ...reviewer, fastMode: false });
+
+    expect(store.getLatestSnapshot()!.reviewers[0].descriptor.fastMode).toBe(
+      false,
+    );
+  });
+
+  test("updates scope metadata when a review restarts on a fresh diff", () => {
+    const store = new ReviewerTranscriptStore();
+    const runId = store.startReview(
+      {
+        runId: "refresh",
+        scopeLabel: "old scope",
+        scopeSummary: "1 file",
+      },
+      1_000,
+    );
+
+    store.startReviewer(runId, reviewer, 1_005);
+    store.restartReview(
+      runId,
+      { scopeLabel: "new scope", scopeSummary: "2 files" },
+      1_010,
+    );
+
+    expect(store.getLatestSnapshot()).toMatchObject({
+      scopeLabel: "new scope",
+      scopeSummary: "2 files",
+      status: "running",
+      updatedAt: 1_010,
+      reviewers: [],
+    });
   });
 
   test("merges assistant deltas only within the same reviewer stage", () => {

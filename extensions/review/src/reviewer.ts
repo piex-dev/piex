@@ -12,6 +12,7 @@ import {
   SettingsManager,
   type AgentSessionEvent,
   type ExtensionContext,
+  type InlineExtension,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { Type, type Static, type TSchema } from "typebox";
@@ -46,6 +47,15 @@ const VALID_THINKING_LEVELS = new Set([
   "high",
   "xhigh",
   "max",
+]);
+const FAST_MODE_PROVIDER = "openai-codex";
+const FAST_MODE_API = "openai-codex-responses";
+const FAST_MODE_MODELS = new Set([
+  "gpt-5.4",
+  "gpt-5.5",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "gpt-5.6-luna",
 ]);
 
 const FindingSchema = Type.Object({
@@ -104,7 +114,7 @@ Ignore style, formatting, documentation nits, and subjective improvements. P0 is
 
 Trace values that cross function, module, process, or repository boundaries to their consuming dispatch point. Read full file context when needed. The diff is authoritative for patch attribution.
 
-Finish every task by calling submit_review exactly once. Do not print JSON or repeat the report afterward.`;
+Finish every task by calling submit_review exactly once, as the only tool call in the final tool batch. Never call submit_review in parallel with another tool. Do not print JSON or repeat the report afterward.`;
 
 export interface ReviewerWorkflowResult {
   submissions: SubmittedReview[];
@@ -167,6 +177,12 @@ function parseReviewSettings(raw: unknown): ReviewSettings {
       VALID_THINKING_LEVELS.has(settings.specialistThinkingLevel)
         ? settings.specialistThinkingLevel
         : undefined,
+    fastMode:
+      typeof settings.fastMode === "boolean" ? settings.fastMode : undefined,
+    specialistFastMode:
+      typeof settings.specialistFastMode === "boolean"
+        ? settings.specialistFastMode
+        : undefined,
     maxReviewers: settings.maxReviewers === 1 ? 1 : 2,
   };
 }
@@ -195,6 +211,17 @@ function resolveReviewerModelSpecs(
   };
 }
 
+function resolveFastModes(settings: ReviewSettings): {
+  lead: boolean;
+  specialist: boolean;
+} {
+  const lead = settings.fastMode ?? false;
+  return {
+    lead,
+    specialist: settings.specialistFastMode ?? lead,
+  };
+}
+
 function parseModelSpec(spec: string): { provider: string; id: string } {
   const separator = spec.indexOf("/");
   if (separator <= 0 || separator === spec.length - 1) {
@@ -220,6 +247,57 @@ function resolveReviewerModel(ctx: ReviewerContext, configuredModel?: string) {
     );
   }
   return model;
+}
+
+function assertFastModeSupported(
+  ctx: ReviewerContext,
+  model: ReturnType<typeof resolveReviewerModel>,
+  fastMode: boolean,
+): void {
+  if (!fastMode) return;
+  if (
+    model.provider === FAST_MODE_PROVIDER &&
+    model.api === FAST_MODE_API &&
+    FAST_MODE_MODELS.has(model.id) &&
+    ctx.modelRegistry.isUsingOAuth(model)
+  ) {
+    return;
+  }
+  throw new Error(
+    `Fast mode is not supported for reviewer model '${modelName(model)}'. Fast mode requires an openai-codex model using the openai-codex-responses API, ChatGPT OAuth, and one of these model IDs: ${Array.from(FAST_MODE_MODELS).join(", ")}.`,
+  );
+}
+
+function injectFastModeServiceTier(payload: unknown): unknown {
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    return payload;
+  }
+  return { ...payload, service_tier: "priority" };
+}
+
+function createFastModeExtension(): InlineExtension {
+  return {
+    name: "review-fast-mode",
+    hidden: true,
+    factory(pi) {
+      pi.on("before_provider_request", ({ payload }) =>
+        injectFastModeServiceTier(payload),
+      );
+    },
+  };
+}
+
+function createAcceptedReviewToolResult() {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: "Review accepted. No further response is needed.",
+      },
+    ],
+    details: { accepted: true },
+    terminate: true,
+  };
 }
 
 /**
@@ -495,12 +573,14 @@ async function createIndependentReviewer(
   ctx: ReviewerContext,
   configuredModel: string | undefined,
   thinkingLevel: ReviewerThinkingLevel | undefined,
+  fastMode: boolean,
   role: ReviewerRole,
   progress?: ReviewProgressObserver,
   transcript?: ReviewTranscriptTarget,
   specialty?: string,
 ): Promise<IndependentReviewer> {
   const model = resolveReviewerModel(ctx, configuredModel);
+  assertFastModeSupported(ctx, model, fastMode);
   const reviewModelRuntime = await createReviewerModelRuntime(ctx);
   let submitted: SubmittedReview | undefined;
   let currentStage: "review" | "adjudication" = "review";
@@ -508,7 +588,8 @@ async function createIndependentReviewer(
   const submitReviewTool = defineTool({
     name: "submit_review",
     label: "Submit Review",
-    description: "Submit the final, complete, evidence-backed review report.",
+    description:
+      "Submit the final, complete, evidence-backed review report as a standalone final tool call. Never call this in parallel with another tool.",
     parameters: Type.Object({
       summary: Type.String(),
       findings: Type.Array(FindingSchema),
@@ -523,15 +604,7 @@ async function createIndependentReviewer(
           review: submitted,
         });
       });
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: "Review accepted. Stop now without repeating the report.",
-          },
-        ],
-        details: { accepted: true },
-      };
+      return createAcceptedReviewToolResult();
     },
   });
 
@@ -550,6 +623,7 @@ async function createIndependentReviewer(
     noContextFiles: true,
     systemPrompt: REVIEWER_SYSTEM_PROMPT,
     appendSystemPrompt: [],
+    extensionFactories: fastMode ? [createFastModeExtension()] : [],
   });
   await resourceLoader.reload();
   const { session } = await createAgentSession({
@@ -578,6 +652,7 @@ async function createIndependentReviewer(
     role,
     model: modelName(model),
     thinkingLevel: String(session.thinkingLevel),
+    fastMode,
     specialty,
   };
   let active = false;
@@ -594,6 +669,7 @@ async function createIndependentReviewer(
       stage: currentStage,
       model: descriptor.model,
       thinkingLevel: descriptor.thinkingLevel,
+      fastMode: descriptor.fastMode,
       specialty: descriptor.specialty,
     });
   });
@@ -677,16 +753,22 @@ async function createIndependentReviewer(
         break;
       }
       case "tool_execution_end":
-        if (event.toolName !== "submit_review") {
-          recordTranscript({
-            kind: "tool_result",
-            stage: currentStage,
-            toolName: event.toolName,
-            toolCallId: event.toolCallId,
-            isError: event.isError,
-            result: event.result,
-          });
+        if (event.toolName === "submit_review") {
+          if (!event.isError && submitted) break;
+          publishActivity(
+            "reasoning",
+            event.isError ? "tool failed; reassessing" : reasoningActivity(),
+          );
+          break;
         }
+        recordTranscript({
+          kind: "tool_result",
+          stage: currentStage,
+          toolName: event.toolName,
+          toolCallId: event.toolCallId,
+          isError: event.isError,
+          result: event.result,
+        });
         publishActivity(
           "reasoning",
           event.isError ? "tool failed; reassessing" : reasoningActivity(),
@@ -704,7 +786,7 @@ async function createIndependentReviewer(
         );
         break;
       case "agent_end":
-        publishActivity("reasoning", "finalizing report");
+        if (!submitted) publishActivity("reasoning", "finalizing report");
         break;
     }
   });
@@ -742,7 +824,13 @@ async function createIndependentReviewer(
         store.setReviewerStage(runId, role, stage);
       });
       recordTranscript({ kind: "prompt", stage, text: task });
-      publishActivity("reasoning", reasoningActivity(), false, true);
+      const activity = reasoningActivity();
+      lastProgressKey = `reasoning\0${activity}`;
+      emitReviewProgress(progress, {
+        type: "reviewer_run_started",
+        role,
+        activity,
+      });
       try {
         await session.prompt(task);
         if (ctx.signal?.aborted) throw new ReviewCancelledError();
@@ -867,7 +955,7 @@ ${previousReviewContext(previous)}
 
 ${includeDiff ? inlineDiff : "The combined diff is too large to inline. Use review_diff for every changed file before concluding."}
 
-Read the repository instructions (AGENTS.md or equivalent) under every listed repository root, and read full source context when necessary. For each candidate, prove the trigger and impact and anchor the reported location to a changed line. Then call submit_review exactly once. Use an empty findings array for a clean patch and an empty previousFindings array for a first review.`;
+Read the repository instructions (AGENTS.md or equivalent) under every listed repository root, and read full source context when necessary. For each candidate, prove the trigger and impact and anchor the reported location to a changed line. Then call submit_review exactly once as the only tool in the final tool batch. Use an empty findings array for a clean patch and an empty previousFindings array for a first review.`;
 }
 
 function buildAdjudicationTask(
@@ -892,6 +980,7 @@ export async function runReviewerWorkflow(
   const settings = readReviewSettings();
   const thinking = resolveThinkingLevels(settings, ctx.thinkingLevel);
   const models = resolveReviewerModelSpecs(settings, preferredModel);
+  const fastModes = resolveFastModes(settings);
   emitReviewProgress(progress, { type: "phase", phase: "reviewing" });
   updateTranscript(transcript, (store, runId) => {
     store.recordRunItem(runId, {
@@ -904,6 +993,7 @@ export async function runReviewerWorkflow(
     ctx,
     models.lead,
     thinking.lead,
+    fastModes.lead,
     "lead",
     progress,
     transcript,
@@ -926,6 +1016,7 @@ export async function runReviewerWorkflow(
       ctx,
       models.specialist,
       thinking.specialist,
+      fastModes.specialist,
       "specialist",
       progress,
       transcript,
@@ -966,18 +1057,23 @@ export async function runReviewerWorkflow(
 }
 
 export const __test__ = {
+  assertFastModeSupported,
   buildAdjudicationTask,
   buildReviewerTask,
   createConstrainedFileTools,
+  createAcceptedReviewToolResult,
+  createFastModeExtension,
   createReviewDiffTool,
   createReviewerFileGuard,
   createReviewerModelRuntime,
   getSettingsPath,
+  injectFastModeServiceTier,
   modelName,
   parseModelSpec,
   parseReviewSettings,
   previousReviewContext,
   resolveReviewerModelSpecs,
+  resolveFastModes,
   resolveThinkingLevels,
   scopeSummary,
 };

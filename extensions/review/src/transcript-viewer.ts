@@ -1,7 +1,10 @@
 import {
   DynamicBorder,
+  getLanguageFromPath,
+  highlightCode,
   truncateToVisualLines,
   type ExtensionContext,
+  type Theme,
 } from "@earendil-works/pi-coding-agent";
 import type {
   ReviewerTranscript,
@@ -22,6 +25,21 @@ interface TimelineEntry {
   item: ReviewerTranscriptItem | ReviewTranscriptRunItem;
 }
 
+type TranscriptHighlighter = (code: string, language?: string) => string[];
+
+interface TranscriptPalette {
+  text(text: string): string;
+  muted(text: string): string;
+  accent(text: string): string;
+  success(text: string): string;
+  error(text: string): string;
+  heading(text: string): string;
+  toolTitle(text: string): string;
+  json(code: string): string[];
+  diff(code: string): string[];
+  source(code: string, language?: string): string[];
+}
+
 function formatElapsed(startedAt: number, at: number): string {
   const seconds = Math.max(0, Math.floor((at - startedAt) / 1000));
   const minutes = Math.floor(seconds / 60);
@@ -33,6 +51,11 @@ function formatElapsed(startedAt: number, at: number): string {
 function reviewerLabel(reviewer: ReviewerTranscript): string {
   const { role, specialty } = reviewer.descriptor;
   return specialty ? `${role}/${specialty}` : role;
+}
+
+function reviewerMetadata(reviewer: ReviewerTranscript): string {
+  const { model, thinkingLevel, fastMode } = reviewer.descriptor;
+  return `${reviewerLabel(reviewer)} · ${model} · thinking ${thinkingLevel}${fastMode ? " · fast" : ""}`;
 }
 
 export function renderTranscriptTitle(
@@ -111,18 +134,15 @@ function timeline(
   ].sort((left, right) => left.at - right.at || left.order - right.order);
 }
 
-export function renderTranscriptDocument(
+function transcriptHeader(
   snapshot: ReviewTranscriptSnapshot,
-  reviewerId?: string,
-): string {
-  const reviewer =
-    snapshot.reviewers.find(({ descriptor }) => descriptor.id === reviewerId) ??
-    snapshot.reviewers[0];
+  reviewer: ReviewerTranscript | undefined,
+): string[] {
   const header = [
     `Scope: ${snapshot.scopeLabel}`,
     snapshot.scopeSummary,
     reviewer
-      ? `Reviewer: ${reviewerLabel(reviewer)} · ${reviewer.descriptor.model} · thinking ${reviewer.descriptor.thinkingLevel} · ${reviewer.status}`
+      ? `Reviewer: ${reviewerMetadata(reviewer)} · ${reviewer.status}`
       : "Reviewer: waiting to start",
   ];
   if (reviewer?.droppedItems) {
@@ -131,6 +151,295 @@ export function renderTranscriptDocument(
   if (snapshot.droppedItems) {
     header.push(`[${snapshot.droppedItems} earlier run entries omitted]`);
   }
+  return header;
+}
+
+function highlightJsonValue(theme: Theme, value: string): string {
+  const match = value.match(
+    /^(\s*)("(?:\\.|[^"\\])*"|-?(?:\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|true|false|null)(.*)$/,
+  );
+  if (!match) return theme.fg("syntaxPunctuation", value);
+  const [, padding, token, suffix] = match;
+  const color = token.startsWith('"') ? "toolOutput" : "syntaxNumber";
+  return (
+    padding + theme.fg(color, token) + theme.fg("syntaxPunctuation", suffix)
+  );
+}
+
+function highlightJson(theme: Theme, code: string): string[] {
+  return code.split("\n").map((line) => {
+    const key = line.match(/^(\s*)("(?:\\.|[^"\\])*")(\s*:\s*)(.*)$/);
+    if (!key) return highlightJsonValue(theme, line);
+    return (
+      key[1] +
+      theme.fg("syntaxVariable", key[2]) +
+      theme.fg("syntaxPunctuation", key[3]) +
+      highlightJsonValue(theme, key[4])
+    );
+  });
+}
+
+function highlightDiff(theme: Theme, code: string): string[] {
+  return code.split("\n").map((line) => {
+    if (line.startsWith("+")) return theme.fg("toolDiffAdded", line);
+    if (line.startsWith("-")) return theme.fg("toolDiffRemoved", line);
+    if (line.startsWith("@@")) return theme.fg("accent", line);
+    return theme.fg("toolDiffContext", line);
+  });
+}
+
+function createDefaultTranscriptPalette(
+  highlighter: TranscriptHighlighter,
+): TranscriptPalette {
+  return {
+    text: (text) => text,
+    muted: (text) => text,
+    accent: (text) => text,
+    success: (text) => text,
+    error: (text) => text,
+    heading: (text) => text,
+    toolTitle: (text) => text,
+    json: (code) => highlighter(code, "json"),
+    diff: (code) => highlighter(code, "diff"),
+    source: highlighter,
+  };
+}
+
+function createTranscriptPalette(theme: Theme): TranscriptPalette {
+  return {
+    text: (text) => theme.fg("text", text),
+    muted: (text) => theme.fg("muted", text),
+    accent: (text) => theme.fg("accent", text),
+    success: (text) => theme.fg("success", text),
+    error: (text) => theme.fg("error", text),
+    heading: (text) => theme.fg("mdHeading", theme.bold(text)),
+    toolTitle: (text) => theme.fg("toolTitle", theme.bold(text)),
+    json: (code) => highlightJson(theme, code),
+    diff: (code) => highlightDiff(theme, code),
+    source: highlightCode,
+  };
+}
+
+function highlightLabeledLine(
+  line: string,
+  palette: TranscriptPalette,
+): string {
+  const label = line.match(/^([^:]{1,40}:)(.*)$/);
+  if (!label) return palette.text(line);
+  return palette.toolTitle(label[1]) + palette.text(label[2]);
+}
+
+function highlightPromptLine(line: string, palette: TranscriptPalette): string {
+  if (/^#{1,6}\s/.test(line)) return palette.heading(line);
+  if (/^\s*[-*]\s/.test(line)) {
+    const bullet = line.match(/^(\s*[-*]\s)(.*)$/);
+    if (bullet) return palette.muted(bullet[1]) + palette.text(bullet[2]);
+  }
+  if (
+    /^(?:Repository label|Repository root|Scope|Base OID|Head OID|Files|Additional user focus):/.test(
+      line,
+    )
+  ) {
+    return highlightLabeledLine(line, palette);
+  }
+  if (line.startsWith("No previous review")) return palette.muted(line);
+  return palette.text(line);
+}
+
+function highlightPrompt(text: string, palette: TranscriptPalette): string {
+  const output: string[] = [];
+  let diffLines: string[] = [];
+  let inDiff = false;
+  const flushDiff = () => {
+    if (diffLines.length === 0) return;
+    output.push(...palette.diff(diffLines.join("\n")));
+    diffLines = [];
+  };
+
+  for (const line of text.split("\n")) {
+    if (line === "<diff>") {
+      flushDiff();
+      inDiff = true;
+      output.push(palette.muted(line));
+    } else if (line === "</diff>") {
+      flushDiff();
+      inDiff = false;
+      output.push(palette.muted(line));
+    } else if (inDiff) {
+      diffLines.push(line);
+    } else {
+      output.push(highlightPromptLine(line, palette));
+    }
+  }
+  flushDiff();
+  return output.join("\n");
+}
+
+function highlightItemHeading(
+  snapshot: ReviewTranscriptSnapshot,
+  item: ReviewerTranscriptItem | ReviewTranscriptRunItem,
+  palette: TranscriptPalette,
+): string {
+  const heading = itemHeading(snapshot, item);
+  const parts = heading.match(/^(\[[^\]]+\])\s(.*)$/);
+  if (!parts) return palette.muted(heading);
+
+  let detail: string;
+  if (
+    item.kind === "error" ||
+    (item.kind === "tool_result" && item.isError) ||
+    (item.kind === "status" && item.status === "failed")
+  ) {
+    detail = palette.error(parts[2]);
+  } else if (
+    item.kind === "final_review" ||
+    (item.kind === "status" &&
+      ["complete", "completed", "done"].includes(item.status ?? ""))
+  ) {
+    detail = palette.success(parts[2]);
+  } else if (item.kind === "tool_call" || item.kind === "tool_result") {
+    detail = palette.toolTitle(parts[2]);
+  } else if (item.kind === "note") {
+    detail = palette.muted(parts[2]);
+  } else {
+    detail = palette.accent(parts[2]);
+  }
+  return `${palette.muted(parts[1])} ${detail}`;
+}
+
+function parseSerializedObject(
+  value: string,
+): Record<string, unknown> | undefined {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function toolCallPath(
+  reviewer: ReviewerTranscript | undefined,
+  item: ReviewerTranscriptItem | ReviewTranscriptRunItem,
+): string | undefined {
+  if (item.kind !== "tool_result") return undefined;
+  let call: ReviewerTranscriptItem | undefined;
+  for (let index = (reviewer?.items.length ?? 0) - 1; index >= 0; index -= 1) {
+    const candidate = reviewer?.items[index];
+    if (
+      candidate?.kind === "tool_call" &&
+      candidate.toolName === item.toolName &&
+      (item.toolCallId
+        ? candidate.toolCallId === item.toolCallId
+        : candidate.id < item.id)
+    ) {
+      call = candidate;
+      break;
+    }
+  }
+  if (!call || call.kind !== "tool_call") return undefined;
+  const args = parseSerializedObject(call.arguments);
+  return typeof args?.path === "string" ? args.path : undefined;
+}
+
+function serializedToolResult(value: string):
+  | {
+      content: string[];
+      metadata?: string;
+    }
+  | undefined {
+  const parsed = parseSerializedObject(value);
+  if (!parsed || !Array.isArray(parsed.content)) return undefined;
+  const content = parsed.content.filter(
+    (entry): entry is string => typeof entry === "string",
+  );
+  if (content.length === 0) return undefined;
+  const metadata = { ...parsed };
+  delete metadata.content;
+  return {
+    content,
+    ...(Object.keys(metadata).length > 0
+      ? { metadata: JSON.stringify(metadata, null, 2) }
+      : {}),
+  };
+}
+
+function highlightToolResult(
+  result: { content: string[]; metadata?: string },
+  language: string | undefined,
+  palette: TranscriptPalette,
+): string {
+  const lines = result.content.flatMap((value) =>
+    language === "diff" ? palette.diff(value) : palette.source(value, language),
+  );
+  if (result.metadata) {
+    lines.push("", ...palette.json(result.metadata));
+  }
+  return lines.join("\n");
+}
+
+function highlightedItemBody(
+  item: ReviewerTranscriptItem | ReviewTranscriptRunItem,
+  reviewer: ReviewerTranscript | undefined,
+  palette: TranscriptPalette,
+): string {
+  if (!("stage" in item)) return palette.text(item.text);
+  if (item.kind === "prompt") return highlightPrompt(item.text, palette);
+  if (item.kind === "tool_call" || item.kind === "final_review") {
+    return palette.json(itemBody(item)).join("\n");
+  }
+  if (item.kind !== "tool_result") return palette.text(itemBody(item));
+
+  const result = serializedToolResult(item.summary);
+  if (item.toolName === "review_diff" && result) {
+    return highlightToolResult(result, "diff", palette);
+  }
+  if (item.toolName === "read" && result) {
+    const language = getLanguageFromPath(toolCallPath(reviewer, item) ?? "");
+    return highlightToolResult(result, language, palette);
+  }
+  return palette.json(item.summary).join("\n");
+}
+
+export function renderHighlightedTranscriptDocument(
+  snapshot: ReviewTranscriptSnapshot,
+  reviewerId?: string,
+  highlighter: TranscriptHighlighter = highlightCode,
+  palette: TranscriptPalette = createDefaultTranscriptPalette(highlighter),
+): string {
+  const reviewer =
+    snapshot.reviewers.find(({ descriptor }) => descriptor.id === reviewerId) ??
+    snapshot.reviewers[0];
+  const header = transcriptHeader(snapshot, reviewer).map((line, index) =>
+    index === 1 || line.startsWith("[")
+      ? palette.muted(line)
+      : highlightLabeledLine(line, palette),
+  );
+  const entries = timeline(snapshot, reviewer);
+  if (entries.length === 0) {
+    return [...header, "", "Waiting for reviewer activity…"].join("\n");
+  }
+  return [
+    ...header,
+    "",
+    ...entries.flatMap(({ item }) => [
+      highlightItemHeading(snapshot, item, palette),
+      highlightedItemBody(item, reviewer, palette),
+      "",
+    ]),
+  ].join("\n");
+}
+
+export function renderTranscriptDocument(
+  snapshot: ReviewTranscriptSnapshot,
+  reviewerId?: string,
+): string {
+  const reviewer =
+    snapshot.reviewers.find(({ descriptor }) => descriptor.id === reviewerId) ??
+    snapshot.reviewers[0];
+  const header = transcriptHeader(snapshot, reviewer);
 
   const entries = timeline(snapshot, reviewer);
   if (entries.length === 0) {
@@ -145,6 +454,120 @@ export function renderTranscriptDocument(
       "",
     ]),
   ].join("\n");
+}
+
+interface CachedTranscriptBlock {
+  source: string[];
+  text: string;
+  width?: number;
+  wrapped?: ReturnType<typeof truncateToVisualLines>;
+}
+
+/** Cache only the selected reviewer's bounded entries, never raw tool data. */
+export class TranscriptRenderCache {
+  private runId?: string;
+  private reviewerId?: string;
+  private readonly blocks = new Map<string, CachedTranscriptBlock>();
+
+  constructor(
+    highlighter: TranscriptHighlighter = highlightCode,
+    private readonly palette: TranscriptPalette = createDefaultTranscriptPalette(
+      highlighter,
+    ),
+    private readonly wrap = truncateToVisualLines,
+  ) {}
+
+  clear(): void {
+    this.blocks.clear();
+  }
+
+  render(
+    snapshot: ReviewTranscriptSnapshot,
+    reviewerId: string | undefined,
+    width: number,
+  ): string[] {
+    const reviewer =
+      snapshot.reviewers.find(
+        ({ descriptor }) => descriptor.id === reviewerId,
+      ) ?? snapshot.reviewers[0];
+    if (
+      this.runId !== snapshot.runId ||
+      this.reviewerId !== reviewer?.descriptor.id
+    ) {
+      this.clear();
+      this.runId = snapshot.runId;
+      this.reviewerId = reviewer?.descriptor.id;
+    }
+    const used = new Set<string>();
+    const block = (key: string, source: string[], render: () => string) => {
+      used.add(key);
+      let cached = this.blocks.get(key);
+      if (
+        !cached ||
+        cached.source.length !== source.length ||
+        source.some((value, index) => value !== cached!.source[index])
+      ) {
+        cached = { source, text: render() };
+        this.blocks.set(key, cached);
+      }
+      if (!cached.wrapped || cached.width !== width) {
+        cached.wrapped = this.wrap(cached.text, MAX_RENDER_LINES, width);
+        cached.width = width;
+      }
+      return cached.wrapped;
+    };
+    const entries = timeline(snapshot, reviewer);
+    const header = transcriptHeader(snapshot, reviewer);
+    if (entries.length === 0) header.push("", "Waiting for reviewer activity…");
+    else header.push("");
+    const wrapped = [
+      block("header", header, () =>
+        header
+          .map((line, index) =>
+            index === 1 || line.startsWith("[")
+              ? this.palette.muted(line)
+              : highlightLabeledLine(line, this.palette),
+          )
+          .join("\n"),
+      ),
+      ...entries.map(({ item }) => {
+        const heading = itemHeading(snapshot, item);
+        // The matching call may have been evicted since the last render.
+        const file = toolCallPath(reviewer, item) ?? "";
+        return block(
+          `${"stage" in item ? "reviewer" : "run"}:${item.id}`,
+          [item.kind, heading, itemBody(item), file],
+          () =>
+            [
+              highlightItemHeading(snapshot, item, this.palette),
+              highlightedItemBody(item, reviewer, this.palette),
+              "",
+            ].join("\n"),
+        );
+      }),
+    ];
+    // Drop evicted entries (and entries removed by an automatic retry).
+    for (const key of this.blocks.keys()) {
+      if (!used.has(key)) this.blocks.delete(key);
+    }
+    const totalLines = wrapped.reduce(
+      (count, result) =>
+        count + result.visualLines.length + result.skippedCount,
+      0,
+    );
+    let remaining = MAX_RENDER_LINES;
+    const tail: string[][] = [];
+    for (let index = wrapped.length - 1; index >= 0 && remaining > 0; index--) {
+      const lines = wrapped[index].visualLines.slice(-remaining);
+      tail.push(lines);
+      remaining -= lines.length;
+    }
+    const lines = tail.reverse().flat();
+    const skipped = totalLines - lines.length;
+    return skipped > 0
+      ? [`[${skipped} earlier visual lines omitted]`, ...lines]
+      : lines;
+  }
 }
 
 export async function openReviewTranscript(
@@ -171,6 +594,18 @@ export async function openReviewTranscript(
       let viewportHeight = 1;
       let followTail = true;
       let closed = false;
+      let cachedContent:
+        | {
+            runId: string;
+            reviewerId: string | undefined;
+            width: number;
+            lines: string[];
+          }
+        | undefined;
+      const renderer = new TranscriptRenderCache(
+        highlightCode,
+        createTranscriptPalette(theme),
+      );
       const topBorder = new DynamicBorder((text) =>
         theme.fg("borderAccent", text),
       );
@@ -192,7 +627,16 @@ export async function openReviewTranscript(
       const requestRender = () => {
         if (!closed) tui.requestRender();
       };
-      const unsubscribe = store.subscribe(() => requestRender());
+      const unsubscribe = store.subscribe(({ runId, reviewerId }) => {
+        if (
+          cachedContent?.runId !== runId ||
+          reviewerId === undefined ||
+          reviewerId === selectedReviewerId
+        ) {
+          cachedContent = undefined;
+        }
+        requestRender();
+      });
       const heartbeat = setInterval(requestRender, 1000);
 
       const cycleReviewer = () => {
@@ -219,6 +663,7 @@ export async function openReviewTranscript(
         closed = true;
         clearInterval(heartbeat);
         unsubscribe();
+        renderer.clear();
         done(undefined);
       };
 
@@ -227,22 +672,21 @@ export async function openReviewTranscript(
           const snapshot = latest();
           if (!snapshot) return ["No review transcript available."];
           normalizeSelection(snapshot);
-          const document = renderTranscriptDocument(
-            snapshot,
-            selectedReviewerId,
-          );
-          const wrapped = truncateToVisualLines(
-            document,
-            MAX_RENDER_LINES,
-            Math.max(1, width),
-          );
-          const content =
-            wrapped.skippedCount > 0
-              ? [
-                  `[${wrapped.skippedCount} earlier visual lines omitted]`,
-                  ...wrapped.visualLines,
-                ]
-              : wrapped.visualLines;
+          const renderWidth = Math.max(1, width);
+          if (
+            !cachedContent ||
+            cachedContent.runId !== snapshot.runId ||
+            cachedContent.reviewerId !== selectedReviewerId ||
+            cachedContent.width !== renderWidth
+          ) {
+            cachedContent = {
+              runId: snapshot.runId,
+              reviewerId: selectedReviewerId,
+              width: renderWidth,
+              lines: renderer.render(snapshot, selectedReviewerId, renderWidth),
+            };
+          }
+          const content = cachedContent.lines;
           contentLineCount = content.length;
           viewportHeight = Math.max(
             1,
@@ -260,7 +704,7 @@ export async function openReviewTranscript(
             ({ descriptor }) => descriptor.id === selectedReviewerId,
           );
           const tab = selected
-            ? `${reviewerLabel(selected)} · ${selected.descriptor.model} · thinking ${selected.descriptor.thinkingLevel}`
+            ? reviewerMetadata(selected)
             : "waiting for reviewer";
           const firstLine =
             contentLineCount === 0
@@ -278,9 +722,10 @@ export async function openReviewTranscript(
               ? "live"
               : "paused";
           const footer = `Tab switch · ↑↓/j/k scroll · PgUp/PgDn page · g/G start/end · q/Esc close · ${followState} · ${firstLine}-${lastLine}/${contentLineCount}`;
-          const visibleContent = content
-            .slice(scrollOffset, scrollOffset + viewportHeight)
-            .map((line) => theme.fg("text", line));
+          const visibleContent = content.slice(
+            scrollOffset,
+            scrollOffset + viewportHeight,
+          );
           while (visibleContent.length < viewportHeight) {
             visibleContent.push("");
           }
@@ -323,6 +768,8 @@ export async function openReviewTranscript(
           }
         },
         invalidate(): void {
+          cachedContent = undefined;
+          renderer.clear();
           topBorder.invalidate();
           bottomBorder.invalidate();
         },
@@ -330,6 +777,7 @@ export async function openReviewTranscript(
           closed = true;
           clearInterval(heartbeat);
           unsubscribe();
+          renderer.clear();
         },
       };
     },

@@ -45,6 +45,7 @@ export interface ReviewerTranscriptDescriptor {
   stage: ReviewerTranscriptStage;
   model: string;
   thinkingLevel: string;
+  fastMode?: boolean;
   specialty?: string;
 }
 
@@ -133,6 +134,8 @@ export interface ReviewTranscriptSnapshot {
   status: ReviewTranscriptStatus;
   startedAt: number;
   updatedAt: number;
+  /** Monotonic mutation counter; changes every time the snapshot mutates. */
+  revision: number;
   completedAt?: number;
   droppedItems: number;
   items: ReviewTranscriptRunItem[];
@@ -172,6 +175,7 @@ interface MutableReviewTranscript {
   status: ReviewTranscriptStatus;
   startedAt: number;
   updatedAt: number;
+  revision: number;
   completedAt?: number;
   droppedItems: number;
   items: ReviewTranscriptRunItem[];
@@ -407,20 +411,80 @@ export function serializeTranscriptValue(
   options: Omit<SanitizeTranscriptOptions, "maxTextChars"> = {},
 ): string {
   assertTextLimit(maxChars);
-  let serialized: string;
+  let safe: SafeTranscriptValue;
   try {
-    serialized = JSON.stringify(
-      sanitizeTranscriptValue(value, {
-        ...options,
-        maxTextChars: maxChars,
-      }),
-      null,
-      2,
-    );
+    safe = sanitizeTranscriptValue(value, {
+      ...options,
+      maxTextChars: maxChars,
+    });
   } catch {
-    serialized = JSON.stringify(TRANSCRIPT_UNSERIALIZABLE);
+    safe = TRANSCRIPT_UNSERIALIZABLE;
   }
-  return truncateTranscriptText(serialized, maxChars);
+  const serialized = JSON.stringify(safe, null, 2);
+  if (serialized.length <= maxChars) return serialized;
+  // Truncate values, not JSON syntax: viewers must still be able to decode
+  // escaped newlines and extract source/diff content from bounded results.
+  return fitTranscriptJson(safe, maxChars) ?? JSON.stringify("TRUNCATED");
+}
+
+function fitTranscriptJson(
+  value: SafeTranscriptValue,
+  budget: number,
+  depth = 0,
+): string | undefined {
+  const indent = "  ".repeat(depth);
+  const serialized = JSON.stringify(value, null, 2).replace(
+    /\n/g,
+    `\n${indent}`,
+  );
+  if (serialized.length <= budget) return serialized;
+  const marker = JSON.stringify(TRANSCRIPT_TRUNCATED);
+  if (budget < marker.length) return undefined;
+
+  if (typeof value === "string") {
+    let result = marker;
+    let low = 0;
+    let high = value.length;
+    while (low <= high) {
+      const length = Math.floor((low + high) / 2);
+      const candidate = JSON.stringify(
+        value.slice(0, length) + TRANSCRIPT_TRUNCATED,
+      );
+      if (candidate.length <= budget) {
+        result = candidate;
+        low = length + 1;
+      } else {
+        high = length - 1;
+      }
+    }
+    return result;
+  }
+  if (!value || typeof value !== "object") return marker;
+
+  const array = Array.isArray(value);
+  const entries = Object.entries(value);
+  const omitted = array ? marker : `"__truncated__": ${marker}`;
+  const close = `\n${indent}${array ? "]" : "}"}`;
+  let result = array ? "[" : "{";
+  for (let index = 0; index < entries.length; index += 1) {
+    const [key, entry] = entries[index];
+    const separator = `${index > 0 ? "," : ""}\n${indent}  `;
+    const prefix = separator + (array ? "" : `${JSON.stringify(key)}: `);
+    // Reserve room to explicitly mark omitted siblings and close the value.
+    const reserve =
+      index < entries.length - 1 ? omitted.length + indent.length + 4 : 0;
+    const child = fitTranscriptJson(
+      entry,
+      budget - result.length - prefix.length - close.length - reserve,
+      depth + 1,
+    );
+    if (child === undefined) {
+      const truncated = result + separator + omitted + close;
+      return truncated.length <= budget ? truncated : marker;
+    }
+    result += prefix + child;
+  }
+  return result + close;
 }
 
 export function summarizeToolResult(
@@ -499,6 +563,9 @@ function sanitizeDescriptor(
     stage: validateStage(descriptor.stage),
     model: sanitizeText(descriptor.model, maxTextChars),
     thinkingLevel: sanitizeText(descriptor.thinkingLevel, maxTextChars),
+    ...(typeof descriptor.fastMode === "boolean"
+      ? { fastMode: descriptor.fastMode }
+      : {}),
     ...(descriptor.specialty
       ? { specialty: sanitizeText(descriptor.specialty, maxTextChars) }
       : {}),
@@ -515,6 +582,7 @@ function cloneReview(
     status: review.status,
     startedAt: review.startedAt,
     updatedAt: review.updatedAt,
+    revision: review.revision,
     ...(review.completedAt === undefined
       ? {}
       : { completedAt: review.completedAt }),
@@ -576,6 +644,7 @@ export class ReviewerTranscriptStore {
       status: "started",
       startedAt: at,
       updatedAt: at,
+      revision: 0,
       droppedItems: 0,
       items: [],
       nextItemId: 1,
@@ -583,6 +652,30 @@ export class ReviewerTranscriptStore {
     };
     this.notify(this.current);
     return runId;
+  }
+
+  restartReview(
+    runId: string,
+    input: Pick<StartReviewInput, "scopeLabel" | "scopeSummary">,
+    at = Date.now(),
+  ): ReviewTranscriptSnapshot | undefined {
+    validateTimestamp(at);
+    const review = this.activeReview(runId);
+    if (!review) return undefined;
+    review.scopeLabel = sanitizeText(
+      input.scopeLabel,
+      this.limits.maxTextChars,
+    );
+    review.scopeSummary = sanitizeText(
+      input.scopeSummary,
+      this.limits.maxValueChars,
+    );
+    review.reviewers.clear();
+    review.status = "running";
+    review.updatedAt = at;
+    review.completedAt = undefined;
+    this.notify(review);
+    return cloneReview(review);
   }
 
   startReviewer(
@@ -922,6 +1015,10 @@ export class ReviewerTranscriptStore {
   }
 
   private notify(review: MutableReviewTranscript, reviewerId?: string): void {
+    // updatedAt is a wall-clock timestamp and can repeat within one
+    // millisecond; consumers must be able to detect every mutation, so
+    // publish a monotonic revision alongside it.
+    review.revision += 1;
     for (const listener of this.listeners) {
       try {
         listener({

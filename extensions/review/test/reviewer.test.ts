@@ -44,6 +44,7 @@ describe("reviewer task", () => {
     expect(task).toContain("Repository root: /work/repo");
     expect(task).toContain("Pay special attention to cancellation.");
     expect(task).toContain("AGENTS.md or equivalent");
+    expect(task).toContain("only tool in the final tool batch");
     expect(task).toContain("+export const changed = true;");
   });
 
@@ -68,11 +69,46 @@ describe("reviewer task", () => {
       specialistModel: "openai-codex/gpt-5.6-sol",
       thinkingLevel: "xhigh",
       specialistThinkingLevel: "max",
+      fastMode: undefined,
+      specialistFastMode: undefined,
       maxReviewers: 2,
     });
     expect(__test__.resolveThinkingLevels(settings, "low")).toEqual({
       lead: "xhigh",
       specialist: "max",
+    });
+  });
+
+  test("parses fast mode flags and inherits the lead setting", () => {
+    const inherited = __test__.parseReviewSettings({
+      fastMode: true,
+      maxReviewers: 2,
+    });
+    expect(inherited.fastMode).toBe(true);
+    expect(inherited.specialistFastMode).toBeUndefined();
+    expect(__test__.resolveFastModes(inherited)).toEqual({
+      lead: true,
+      specialist: true,
+    });
+
+    const overridden = __test__.parseReviewSettings({
+      fastMode: true,
+      specialistFastMode: false,
+      maxReviewers: 2,
+    });
+    expect(__test__.resolveFastModes(overridden)).toEqual({
+      lead: true,
+      specialist: false,
+    });
+
+    const invalid = __test__.parseReviewSettings({
+      fastMode: "yes",
+      specialistFastMode: 1,
+      maxReviewers: 1,
+    });
+    expect(__test__.resolveFastModes(invalid)).toEqual({
+      lead: false,
+      specialist: false,
     });
   });
 
@@ -157,9 +193,130 @@ describe("reviewer task", () => {
         specialistModel: undefined,
         thinkingLevel: undefined,
         specialistThinkingLevel: undefined,
+        fastMode: undefined,
+        specialistFastMode: undefined,
         maxReviewers: 2,
       });
     }
+  });
+});
+
+describe("reviewer fast mode", () => {
+  const compatibleModel = {
+    provider: "openai-codex",
+    api: "openai-codex-responses",
+    id: "gpt-5.6-sol",
+  };
+
+  test("accepts only supported ChatGPT OAuth Codex models", () => {
+    const oauthContext = {
+      modelRegistry: { isUsingOAuth: () => true },
+    } as never;
+    for (const id of [
+      "gpt-5.4",
+      "gpt-5.5",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna",
+    ]) {
+      expect(() =>
+        __test__.assertFastModeSupported(
+          oauthContext,
+          { ...compatibleModel, id } as never,
+          true,
+        ),
+      ).not.toThrow();
+    }
+
+    for (const model of [
+      { ...compatibleModel, provider: "openai" },
+      { ...compatibleModel, api: "openai-responses" },
+      { ...compatibleModel, id: "gpt-5.3-codex" },
+    ]) {
+      expect(() =>
+        __test__.assertFastModeSupported(
+          oauthContext,
+          model as never,
+          true,
+        ),
+      ).toThrow(/Fast mode.*ChatGPT OAuth/);
+    }
+
+    expect(() =>
+      __test__.assertFastModeSupported(
+        {
+          modelRegistry: { isUsingOAuth: () => false },
+        } as never,
+        compatibleModel as never,
+        true,
+      ),
+    ).toThrow(/Fast mode.*ChatGPT OAuth/);
+  });
+
+  test("does not apply compatibility restrictions when fast mode is off", () => {
+    expect(() =>
+      __test__.assertFastModeSupported(
+        { modelRegistry: {} } as never,
+        {
+          provider: "deepseek",
+          api: "openai-completions",
+          id: "deepseek-v4",
+        } as never,
+        false,
+      ),
+    ).not.toThrow();
+  });
+
+  test("injects priority service tier without mutating the provider payload", () => {
+    const payload = {
+      model: "gpt-5.6-sol",
+      service_tier: "default",
+      input: [{ role: "user", content: "review" }],
+    };
+    const injected = __test__.injectFastModeServiceTier(payload);
+
+    expect(injected).toEqual({ ...payload, service_tier: "priority" });
+    expect(injected).not.toBe(payload);
+    expect(payload.service_tier).toBe("default");
+    expect(__test__.injectFastModeServiceTier("raw-payload")).toBe(
+      "raw-payload",
+    );
+  });
+
+  test("registers the injector as a hidden inline extension", async () => {
+    let handler:
+      | ((event: { payload: unknown }, context: unknown) => unknown)
+      | undefined;
+    const extension = __test__.createFastModeExtension();
+    expect(typeof extension).toBe("object");
+    if (typeof extension === "function") throw new Error("Expected metadata");
+    expect(extension.hidden).toBe(true);
+    await extension.factory({
+      on(event: string, candidate: typeof handler) {
+        if (event === "before_provider_request") handler = candidate;
+      },
+    } as never);
+
+    expect(handler).toBeDefined();
+    expect(
+      await handler?.(
+        { payload: { model: "gpt-5.6-sol", store: false } },
+        {},
+      ),
+    ).toEqual({
+      model: "gpt-5.6-sol",
+      store: false,
+      service_tier: "priority",
+    });
+  });
+});
+
+describe("reviewer completion", () => {
+  test("terminates the agent loop when submit_review is accepted", () => {
+    expect(__test__.createAcceptedReviewToolResult()).toMatchObject({
+      details: { accepted: true },
+      terminate: true,
+    });
   });
 });
 

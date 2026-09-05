@@ -28,6 +28,8 @@ import {
   recaptureReviewScope,
   resolveRepo,
   resolveRepos,
+  sanitizeLabel,
+  shortRepo,
   takeFirstPathArg,
   type CaptureScopeRequest,
 } from "./scope.js";
@@ -49,6 +51,14 @@ import type {
 
 const REVIEW_MESSAGE_TYPE = "piex-review-result";
 const STATUS_KEY_PREFIX = "piex-review";
+const MAX_REVIEW_ATTEMPTS = 2;
+const AUTO_SCOPE_CHOICE = "All current work vs default branch (PR-style)";
+const WORKING_TREE_SCOPE_CHOICE = "Uncommitted changes (working tree vs HEAD)";
+const STAGED_SCOPE_CHOICE = "Staged changes only";
+const BRANCH_SCOPE_CHOICE = "Changes vs a base branch or commit…";
+const COMMIT_SCOPE_CHOICE = "Specific commit…";
+const FILE_SCOPE_CHOICE = "Specific file…";
+const CUSTOM_SCOPE_CHOICE = "All current work with custom review focus…";
 let progressRunSequence = 0;
 
 type RuntimeContext = Pick<
@@ -178,6 +188,88 @@ interface ReviewExecution {
   run?: ReviewRun;
 }
 
+interface StableScopeOptions {
+  recapture?: (scope: ReviewScope) => ReviewScope;
+  onRefresh?: (
+    refreshed: ReviewScope,
+    nextAttempt: number,
+    maxAttempts: number,
+  ) => void;
+}
+
+async function runWithStableReviewScope<T>(
+  initialScope: ReviewScope,
+  runAttempt: (scope: ReviewScope) => Promise<T>,
+  options: StableScopeOptions = {},
+): Promise<{ scope: ReviewScope; value: T }> {
+  const recapture = options.recapture ?? recaptureReviewScope;
+  let scope = initialScope;
+  for (let attempt = 1; attempt <= MAX_REVIEW_ATTEMPTS; attempt++) {
+    const value = await runAttempt(scope);
+    const refreshed = recapture(scope);
+    if (refreshed.diffHash === scope.diffHash) return { scope, value };
+    if (attempt === MAX_REVIEW_ATTEMPTS) {
+      throw new Error(
+        "The reviewed changes kept changing during review. An automatic retry was already used; wait for edits to settle, then run /review again.",
+      );
+    }
+    scope = refreshed;
+    options.onRefresh?.(scope, attempt + 1, MAX_REVIEW_ATTEMPTS);
+  }
+  throw new Error("Review ended without a stable change snapshot");
+}
+
+async function selectInteractiveReviewScope(
+  ctx: Pick<ExtensionContext, "cwd" | "ui">,
+  repos: readonly string[],
+): Promise<CaptureScopeRequest | undefined> {
+  const repoList = repos
+    .map((repo) => sanitizeLabel(shortRepo(repo, ctx.cwd)))
+    .join(", ");
+  const choices = [
+    AUTO_SCOPE_CHOICE,
+    WORKING_TREE_SCOPE_CHOICE,
+    STAGED_SCOPE_CHOICE,
+    BRANCH_SCOPE_CHOICE,
+    ...(repos.length === 1 ? [COMMIT_SCOPE_CHOICE, FILE_SCOPE_CHOICE] : []),
+    CUSTOM_SCOPE_CHOICE,
+  ];
+  const choice = await ctx.ui.select(
+    `Review what? (${repos.length === 1 ? "repo" : "repos"}: ${repoList})`,
+    choices,
+  );
+  switch (choice) {
+    case AUTO_SCOPE_CHOICE:
+      return { kind: "auto" };
+    case WORKING_TREE_SCOPE_CHOICE:
+      return { kind: "working-tree" };
+    case STAGED_SCOPE_CHOICE:
+      return { kind: "staged" };
+    case BRANCH_SCOPE_CHOICE: {
+      const base = await ctx.ui.input("Base branch or commit:");
+      return base?.trim() ? { kind: "branch", base: base.trim() } : undefined;
+    }
+    case COMMIT_SCOPE_CHOICE: {
+      const commit = await ctx.ui.input("Commit SHA or ref:");
+      return commit?.trim()
+        ? { kind: "commit", commit: commit.trim() }
+        : undefined;
+    }
+    case FILE_SCOPE_CHOICE: {
+      const file = await ctx.ui.input("File path (relative to repository):");
+      return file?.trim() ? { kind: "file", file: file.trim() } : undefined;
+    }
+    case CUSTOM_SCOPE_CHOICE: {
+      const instructions = await ctx.ui.input("Review focus or instructions:");
+      return instructions?.trim()
+        ? { kind: "auto", instructions: instructions.trim() }
+        : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
 function transcriptScopeSummary(scope: ReviewScope): {
   scopeLabel: string;
   scopeSummary: string;
@@ -277,34 +369,64 @@ async function executeReview(
       return { scope, report };
     }
 
-    const workflow = await runReviewerWorkflow(
+    const stable = await runWithStableReviewScope(
       scope,
-      ctx,
-      previous?.report,
-      previous?.reviewerModel,
-      reportProgress,
-      transcript,
+      async (attemptScope) => {
+        const attemptPrevious = findPreviousRun(
+          ctx.sessionManager,
+          attemptScope.scopeKey,
+        );
+        const workflow = await runReviewerWorkflow(
+          attemptScope,
+          ctx,
+          attemptPrevious?.report,
+          attemptPrevious?.reviewerModel,
+          reportProgress,
+          transcript,
+        );
+        emitReviewProgress(reportProgress, {
+          type: "phase",
+          phase: "validating",
+        });
+        if (transcript) {
+          tryTranscript(() =>
+            transcript.store.recordRunItem(transcript.runId, {
+              kind: "status",
+              status: "validating",
+            }),
+          );
+        }
+        return { workflow, previous: attemptPrevious };
+      },
+      {
+        onRefresh(refreshed, nextAttempt, maxAttempts) {
+          emitReviewProgress(reportProgress, {
+            type: "phase",
+            phase: "refreshing",
+          });
+          if (transcript) {
+            tryTranscript(() => {
+              transcript.store.restartReview(
+                transcript.runId,
+                transcriptScopeSummary(refreshed),
+              );
+              transcript.store.recordRunItem(transcript.runId, {
+                kind: "status",
+                status: "refreshing",
+                text: `Changes detected; restarting automatically with the latest diff (attempt ${nextAttempt}/${maxAttempts}).`,
+              });
+            });
+          }
+        },
+      },
     );
-    emitReviewProgress(reportProgress, { type: "phase", phase: "validating" });
-    if (transcript) {
-      tryTranscript(() =>
-        transcript.store.recordRunItem(transcript.runId, {
-          kind: "status",
-          status: "validating",
-        }),
-      );
-    }
-    const refreshed = recaptureReviewScope(scope);
-    if (refreshed.diffHash !== scope.diffHash) {
-      throw new Error(
-        "The reviewed changes were modified while review was running. Run /review again for a fresh result.",
-      );
-    }
+    const reviewedScope = stable.scope;
+    const { workflow, previous: stablePrevious } = stable.value;
     const report = buildReviewReport(
-      scope,
+      reviewedScope,
       workflow.submissions,
       workflow.reviewerModel,
-      previous?.report,
+      stablePrevious?.report,
     );
     report.reviewerCount = workflow.reviewerCount;
     report.reviewers = workflow.reviewers;
@@ -318,8 +440,8 @@ async function executeReview(
         transcript.store.setReviewStatus(transcript.runId, "complete");
       });
     }
-    const run = createReviewRun(scope, report);
-    return { scope, report, run };
+    const run = createReviewRun(reviewedScope, report);
+    return { scope: reviewedScope, report, run };
   } catch (error) {
     if (transcript) {
       const cancelled =
@@ -420,6 +542,23 @@ function persistReview(
   }
 }
 
+function buildReviewToolDetails(
+  request: CaptureScopeRequest,
+  execution: ReviewExecution,
+) {
+  // Always describe the scope that was actually reviewed: executeReview may
+  // have recaptured a refreshed patch, and automation must not cache or
+  // attest a report against stale (pre-refresh) identifiers.
+  return {
+    found: true,
+    action: request.kind,
+    scopeKey: execution.scope.scopeKey,
+    diffHash: execution.scope.diffHash,
+    report: execution.report,
+    reviewers: execution.report.reviewers,
+  };
+}
+
 function displayReview(pi: ExtensionAPI, execution: ReviewExecution): void {
   pi.sendMessage({
     customType: REVIEW_MESSAGE_TYPE,
@@ -437,31 +576,14 @@ async function runInteractiveReview(
   pi: ExtensionAPI,
   ctx: RuntimeContext & ProgressContext & Pick<ExtensionContext, "cwd">,
   transcriptStore: ReviewerTranscriptStore,
-  args: string,
+  repos: readonly string[],
+  request: CaptureScopeRequest,
   releaseReview: () => void,
 ): Promise<void> {
   let progress: ReviewProgressPresenter | undefined;
   try {
     progress = createProgressPresenter(ctx);
-    const tokens = parseRepoArgs(args);
-    const resolved =
-      tokens.length > 0
-        ? resolveRepos(ctx.cwd, tokens)
-        : (() => {
-            const one = resolveRepo(ctx.cwd);
-            return one.ok
-              ? ({ ok: true, repos: [one.path] } as const)
-              : ({ ok: false, errors: [one.error] } as const);
-          })();
-    if (!resolved.ok) {
-      ctx.ui.notify(
-        `Cannot resolve review repositories:\n${resolved.errors.join("\n")}`,
-        "error",
-      );
-      return;
-    }
-
-    const scope = captureReviewScope(ctx.cwd, resolved.repos);
+    const scope = captureReviewScope(ctx.cwd, repos, request);
     if (reviewableFileCount(scope) === 0) {
       const excluded = excludedFileCount(scope);
       ctx.ui.notify(
@@ -544,7 +666,7 @@ export default function reviewExtension(pi: ExtensionAPI) {
 
   pi.registerCommand("review", {
     description:
-      "Review current work with an isolated reviewer. Optional repository path(s): /review [repo ...]",
+      "Select a scope and review it with an isolated reviewer. Optional repository path(s): /review [repo ...]",
     handler: async (args, ctx) => {
       const releaseReview = reviewGate.tryAcquire();
       if (!releaseReview) {
@@ -552,6 +674,47 @@ export default function reviewExtension(pi: ExtensionAPI) {
           "A review is already running. Open it with /review-log or Ctrl+Alt+R.",
           "info",
         );
+        return;
+      }
+
+      let repos: readonly string[];
+      let request: CaptureScopeRequest | undefined;
+      try {
+        if (!ctx.hasUI) {
+          ctx.ui.notify("/review requires interactive mode", "error");
+          releaseReview();
+          return;
+        }
+        const tokens = parseRepoArgs(args);
+        const resolved =
+          tokens.length > 0
+            ? resolveRepos(ctx.cwd, tokens)
+            : (() => {
+                const one = resolveRepo(ctx.cwd);
+                return one.ok
+                  ? ({ ok: true, repos: [one.path] } as const)
+                  : ({ ok: false, errors: [one.error] } as const);
+              })();
+        if (!resolved.ok) {
+          ctx.ui.notify(
+            `Cannot resolve review repositories:\n${resolved.errors.join("\n")}`,
+            "error",
+          );
+          releaseReview();
+          return;
+        }
+        repos = resolved.repos;
+        request = await selectInteractiveReviewScope(ctx, repos);
+      } catch (error) {
+        releaseReview();
+        ctx.ui.notify(
+          `Cannot prepare review: ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
+        return;
+      }
+      if (!request) {
+        releaseReview();
         return;
       }
 
@@ -570,7 +733,8 @@ export default function reviewExtension(pi: ExtensionAPI) {
             ui: ctx.ui,
           },
           transcriptStore,
-          args,
+          repos,
+          request,
           releaseReview,
         );
       if (ctx.mode !== "tui") {
@@ -664,14 +828,7 @@ The default action is 'auto': review all current work against the repository's d
                 (persistWarning ? `\n\n${persistWarning}` : ""),
             },
           ],
-          details: {
-            found: true,
-            action: request.kind,
-            scopeKey: scope.scopeKey,
-            diffHash: scope.diffHash,
-            report: execution.report,
-            reviewers: execution.report.reviewers,
-          },
+          details: buildReviewToolDetails(request, execution),
         };
       } catch (error) {
         const cancelled =
@@ -705,6 +862,7 @@ The default action is 'auto': review all current work against the repository's d
 export const __test__ = {
   actionToScopeKind,
   buildCaptureRequest,
+  buildReviewToolDetails,
   canCompareToBase,
   createReviewExecutionGate,
   createProgressPresenter,
@@ -717,6 +875,8 @@ export const __test__ = {
   resolveRepos,
   resolveRequestedRepos,
   reviewableFileCount,
+  runWithStableReviewScope,
+  selectInteractiveReviewScope,
   startDetachedReview,
   takeFirstPathArg,
   transcriptScopeSummary,

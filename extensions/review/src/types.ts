@@ -108,6 +108,7 @@ export interface ReviewerDescriptor {
   role: ReviewerRole;
   model: string;
   thinkingLevel: string;
+  fastMode?: boolean;
   specialty?: string;
 }
 
@@ -116,6 +117,7 @@ export type ReviewProgressPhase =
   | "reviewing"
   | "adjudicating"
   | "validating"
+  | "refreshing"
   | "cached"
   | "complete"
   | "failed"
@@ -148,6 +150,11 @@ export interface ReviewProgressSnapshot {
 export type ReviewProgressEvent =
   | { type: "phase"; phase: ReviewProgressPhase }
   | { type: "reviewer_started"; reviewer: ReviewerDescriptor }
+  | {
+      type: "reviewer_run_started";
+      role: ReviewerRole;
+      activity: string;
+    }
   | {
       type: "reviewer_activity";
       role: ReviewerRole;
@@ -188,5 +195,7 @@ export interface ReviewSettings {
   specialistModel?: string;
   thinkingLevel?: string;
   specialistThinkingLevel?: string;
+  fastMode?: boolean;
+  specialistFastMode?: boolean;
   maxReviewers: 1 | 2;
 }

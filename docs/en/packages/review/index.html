@@ -6,7 +6,7 @@
     <title>review — First-Class Code Review for Agents — PieX</title>
     <meta
       name="description"
-      content="One /review command automatically scopes changes and returns convergent findings from isolated, read-only reviewers."
+      content="One /review command lets you choose scope and returns convergent findings from isolated, read-only reviewers."
     />
     <link rel="canonical" href="https://piex.dev/en/packages/review/" />
     <link
@@ -30,7 +30,7 @@
     />
     <meta
       property="og:description"
-      content="One /review command automatically scopes changes and returns convergent findings from isolated, read-only reviewers."
+      content="One /review command lets you choose scope and returns convergent findings from isolated, read-only reviewers."
     />
     <meta property="og:url" content="https://piex.dev/en/packages/review/" />
     <meta property="og:type" content="article" />
@@ -87,9 +87,7 @@
           >
           <div class="lang-switch" role="radiogroup" aria-label="Language">
             <button data-lang="en" aria-checked="true" class="active" role="radio">EN</button>
-            <button data-lang="zh" aria-checked="false" role="radio">
-              中文
-            </button>
+            <button data-lang="zh" aria-checked="false" role="radio">中文</button>
           </div>
         </div>
       </nav>
@@ -181,9 +179,9 @@
             <div class="blog-callout-body">
               <p class="blog-callout-label">TL;DR</p>
               <p>
-                Run <code>/review</code>. The extension scopes the work, starts
-                an isolated read-only reviewer, and returns evidence-backed
-                <code>PASS</code> or <code>NEEDS FIX</code>.
+                Run <code>/review</code> and choose the scope. The extension
+                starts an isolated read-only reviewer, and returns
+                evidence-backed <code>PASS</code> or <code>NEEDS FIX</code>.
               </p>
             </div>
           </div>
@@ -194,10 +192,10 @@
             covering the full change, keeping the reviewer independent,
             requiring evidence, and knowing when fixes are done.
             <code>@piex-dev/review</code> reduces the human API to one
-            <code>/review</code>: it includes committed, staged, unstaged, and
-            untracked work against the default branch, reviews in an isolated Pi
-            SDK session, and chooses one reviewer or lead + specialist according
-            to risk.
+            <code>/review</code>. A compact menu selects the default-branch PR
+            scope, working tree, staged changes, a base/commit/file, or a custom
+            focus. Review then begins in an isolated Pi SDK session, and risk
+            routing chooses one reviewer or lead + specialist.
           </p>
 
           <h2 id="theory">How it works</h2>
@@ -213,16 +211,18 @@
           </p>
           <div class="blog-code">
             <div class="blog-code-bar"><span>flow</span></div>
-            <pre><code>/review → freeze base/head/diff → physically remove noise
+            <pre><code>/review → choose scope and freeze base/head/diff → physically remove noise
 → create read-only reviewer session → risk route 1→2
 → stream phase, model, thinking level, and tool activity
 → open a safe reviewer transcript on demand
-→ submit_review → evidence gate → PASS / NEEDS FIX
+→ submit_review → recheck the diff and refresh once if changed
+→ evidence gate → PASS / NEEDS FIX
 → persist finding state for re-review</code></pre>
           </div>
           <p>
-            <code>/review</code> always uses automatic scope and never opens a
-            mode menu. The <code>review</code> tool retains <code>diff</code>,
+            <code>/review</code> opens one scope menu. The
+            <code>review</code> tool opens no menu, defaults to
+            <code>auto</code>, and retains <code>diff</code>,
             <code>staged</code>, <code>branch</code>, <code>commit</code>, and
             <code>file</code> for agents and scripts. An unchanged diff is
             cached; a changed diff revalidates previous findings first.
@@ -276,6 +276,15 @@
             calculation is local and never implicitly fetches.
           </p>
           <p>
+            After resolving repositories, the command offers the default-branch
+            PR scope, working tree, staged changes, a custom base, and
+            single-repo commit/file scopes. A custom focus can also be attached
+            to the default PR scope. Commit and file are hidden for linked
+            multi-repo review; every other selected scope applies to all repos.
+            Cancelling the menu or a follow-up input exits without starting a
+            reviewer.
+          </p>
+          <p>
             The advanced <code>commit</code> scope compares the target commit
             with its first parent, so a merge commit shows only what that merge
             introduced relative to that first parent. A root commit is reviewed
@@ -304,24 +313,51 @@
           <div class="blog-code">
             <div class="blog-code-bar"><span>text</span></div>
             <pre><code>Review · 00:31 · reviewing
-● lead · openai-codex/gpt-5.6-sol · thinking xhigh · reading src/reviewer.ts · 3 tools
-● specialist/security · openai-codex/gpt-5.6-sol · thinking max · reasoning about changes · 2 tools</code></pre>
+● lead · openai-codex/gpt-5.6-sol · thinking xhigh · fast · reading src/reviewer.ts · 3 tools
+● specialist/security · openai-codex/gpt-5.6-sol · thinking max · fast · reasoning about changes · 2 tools</code></pre>
           </div>
           <p>
             The panel updates across <code>preparing</code>,
             <code>reviewing</code>, <code>adjudicating</code>, and
-            <code>validating</code>, as well as source reads, searches, frozen
-            diff inspection, and report submission. Tool callers receive the
+            <code>validating</code>, including a
+            <code>changes detected; restarting</code> phase, as well as source
+            reads, searches, frozen diff inspection, and report submission.
+            During parallel execution, a finished reviewer immediately shows
+            <code>✓ … done</code> without waiting for its peer, and trailing
+            events cannot change it back to running. Tool callers receive the
             same structured snapshot through <code>onUpdate</code>, and the
-            final report retains the actual reviewer model and thinking level.
+            final report retains the actual reviewer model, thinking level, and
+            Fast mode state. When enabled, progress, transcript, and the final
+            report all show <code>fast</code>.
+          </p>
+          <p>
+            After the reviewers finish, the extension recaptures the same diff.
+            If its hash changed, the first result is discarded and the review
+            automatically restarts once against the latest snapshot, updating
+            both progress and transcript scope metadata while retaining only the
+            latest attempt's reviewer state. It fails only if the diff keeps
+            changing during the second attempt, preventing stale reports without
+            requiring a manual rerun after a single concurrent save or formatter
+            pass.
           </p>
           <p>
             In the interactive TUI, <code>/review</code> runs in the background
-            and immediately returns the input editor. During a running review, enter
-            <code>/review-log</code> or press <code>Ctrl+Alt+R</code>; either
-            opens a full-window, live, scrollable transcript overlay. After
-            completion, run <code>/review-log</code> again to reopen the latest
-            record. Use
+            and immediately returns the input editor. During a running review,
+            enter <code>/review-log</code> or press <code>Ctrl+Alt+R</code>;
+            either opens a full-window, live, scrollable transcript overlay.
+            After completion, run <code>/review-log</code> again to reopen the
+            latest record. The overlay reuses the active Pi theme's semantic
+            colors from the main agent. Headers, phases, tool titles, and prompt
+            metadata use the matching accent, muted, success/error, and
+            tool-title tokens. Embedded prompt diffs and
+            <code>review_diff</code> use added/removed/context colors. JSON
+            keys, numbers, and punctuation receive lightweight highlighting,
+            while long string values use the main agent's
+            <code>toolOutput</code> text color instead of becoming a large red
+            block. <code>read</code>
+            output is highlighted according to file extensions such as
+            TypeScript, Python, and Rust. Unknown extensions keep the normal
+            code color instead of using unreliable auto-detection. Use
             <code>Tab</code> to switch between lead and specialist, arrow keys
             or <code>j</code>/<code>k</code> to scroll, <code>G</code> to return
             to the end and resume live follow, and <code>q</code>/<code
@@ -340,19 +376,63 @@
             record is neither added to the author's main session nor written to
             disk; <code>/reload</code> or process exit clears it.
           </p>
+          <p>
+            Large tool results are truncated inside JSON values with a
+            <code>[TRUNCATED]</code> marker, keeping the JSON valid so retained
+            source and diff content still highlights with its original line
+            breaks. The overlay caches highlighting and wrapping per entry,
+            processing only changed content during streaming. Activity from the
+            other reviewer does not invalidate the selected view. Width changes
+            only rewrap content; theme refreshes clear the cache, and evicted
+            log entries release their cached rendering.
+          </p>
           <h3 id="config">Optional configuration</h3>
           <p>
-            The current model is used by default. To pin a reviewer, create
-            <code>~/.pi/piex-dev/review/settings.json</code> with
-            <code>model</code>, <code>specialistModel</code>,
-            <code>thinkingLevel</code>, <code>specialistThinkingLevel</code>,
-            and <code>maxReviewers</code> (1 or 2). The two thinking-level
-            fields independently control the lead and specialist and accept Pi
-            levels from <code>off</code> through <code>max</code>; the
-            specialist inherits the lead level when omitted. Explicit
-            <code>model</code> / <code>specialistModel</code> settings always
-            take precedence; a re-review retains the original reviewer model
-            only when the corresponding setting is absent.
+            The current model is used by default. To pin a reviewer or enable
+            Fast mode, create
+            <code>~/.pi/piex-dev/review/settings.json</code>:
+          </p>
+          <div class="blog-code">
+            <div class="blog-code-bar"><span>json</span></div>
+            <pre><code>{
+  "model": "openai-codex/gpt-5.6-sol",
+  "thinkingLevel": "xhigh",
+  "fastMode": true,
+  "specialistModel": "openai-codex/gpt-5.6-sol",
+  "specialistThinkingLevel": "max",
+  "specialistFastMode": true,
+  "maxReviewers": 2
+}</code></pre>
+          </div>
+          <p>
+            <code>thinkingLevel</code> and
+            <code>specialistThinkingLevel</code> independently control the lead
+            and specialist and accept Pi levels from <code>off</code> through
+            <code>max</code>; the specialist inherits the lead level when
+            omitted. Explicit <code>model</code> /
+            <code>specialistModel</code> settings always take precedence; a
+            re-review retains the original reviewer model only when the
+            corresponding setting is absent. <code>maxReviewers</code> accepts
+            only 1 or 2.
+          </p>
+          <p>
+            <code>fastMode</code> controls the lead, while
+            <code>specialistFastMode</code> controls the specialist and inherits
+            <code>fastMode</code> when omitted. When set to <code>true</code>,
+            the extension injects <code>service_tier: "priority"</code> into
+            that isolated reviewer's request. This is supported only for the
+            <code>openai-codex</code> provider using the
+            <code>openai-codex-responses</code> API with ChatGPT OAuth and the
+            <code>gpt-5.4</code>, <code>gpt-5.5</code>,
+            <code>gpt-5.6-sol</code>, <code>gpt-5.6-terra</code>, or
+            <code>gpt-5.6-luna</code> model. Other combinations fail with a
+            configuration error before reviewer startup instead of silently
+            falling back. Reviewer sessions do not inherit the outer
+            <code>/gpt-fast</code> state, so configure these fields explicitly.
+            The <code>fast</code> label confirms that request injection is
+            enabled, not that the server accepted the tier; Pi's local cost
+            telemetry may still use standard-tier estimates, while backend quota
+            accounting remains authoritative.
           </p>
           <p>
             Note: <code>ultra</code> is not a Pi thinking level. The
@@ -385,26 +465,33 @@
             Scope, diff parsing, reviewer orchestration, finding gates, session
             state, and rendering are separate modules. Noise is physically
             removed at the diff-chunk layer; scope freezes base/head OIDs and
-            changed ranges. Every reviewer is a fresh in-memory session with
-            extensions, skills, templates, themes, and automatic system/context
-            injection disabled. Repository guidance is read explicitly through
-            read-only tools, so it cannot replace the reviewer system role. It
-            only receives
+            changed ranges. After a reviewer returns, the diff hash is captured
+            again. One change triggers a bounded restart against the latest
+            snapshot; continued changes stop the run so it cannot return a stale
+            report or consume models indefinitely. Every reviewer is a fresh
+            in-memory session with extensions, skills, templates, themes, and
+            automatic system/context injection disabled. Repository guidance is
+            read explicitly through read-only tools, so it cannot replace the
+            reviewer system role. It only receives
             <code>read</code
             >/<code>grep</code>/<code>find</code>/<code>ls</code>, the exact
             frozen-patch <code>review_diff</code> tool, and typed
-            <code>submit_review</code>; it cannot write files or execute
-            commands.
+            <code>submit_review</code>. The reviewer is explicitly required to
+            call it as the only tool in the final tool batch; a successful
+            submission returns <code>terminate: true</code>, ending that batch
+            without an extra model request. The reviewer cannot write files or
+            execute commands.
           </p>
           <p>
             The main workflow subscribes to lifecycle, message-type, and tool
             execution events from every isolated session and reduces them into
             reviewer-scoped progress snapshots. Parallel lead and specialist
-            activity cannot overwrite each other, and a one-second heartbeat
-            keeps elapsed time moving during long reasoning periods. Paths are
-            stripped of control characters and truncated before display; grep
-            patterns, thinking deltas, and text deltas never enter compact
-            progress output.
+            activity cannot overwrite each other. A terminal state ignores
+            trailing activity; only an explicit adjudication run can reactivate
+            the lead. A one-second heartbeat keeps elapsed time moving during
+            long reasoning periods. Paths are stripped of control characters and
+            truncated before display; grep patterns, thinking deltas, and text
+            deltas never enter compact progress output.
           </p>
           <p>
             The same event stream also feeds a separate bounded in-memory
@@ -423,8 +510,8 @@
             review is active. The task uses its own AbortSignal;
             <code>session_shutdown</code> cancels it and waits for reviewer
             cleanup on exit, <code>/reload</code>, or session replacement. The
-            command and tool entrypoints still share one execution gate, so
-            they cannot write to the same transcript concurrently.
+            command and tool entrypoints still share one execution gate, so they
+            cannot write to the same transcript concurrently.
           </p>
           <p>
             Diff file paths are matched against repository-relative paths first.
@@ -524,7 +611,9 @@
             <strong
               >simplicity is the external API; orchestration complexity stays
               inside</strong
-            >. <code>/review</code> always has one main path.
+            >. <code>/review</code> exposes one scope-selection layer while risk
+            routing retains control of reviewer, model, and adjudication
+            details.
           </p>
 
           <h2 id="changelog">Changelog</h2>
@@ -545,8 +634,8 @@
                 <tr>
                   <td>Project policy</td>
                   <td>
-                    Add <code>.reviewignore</code> and explicit default branch
-                    without adding command modes
+                    Add <code>.reviewignore</code> and project-level default
+                    branch while keeping the scope menu compact
                   </td>
                 </tr>
                 <tr>
@@ -581,22 +670,26 @@
                   <td>0.4.0</td>
                   <td>2026-09-03</td>
                   <td>
-                    One automatic <code>/review</code>; isolated read-only
+                    Compact <code>/review</code> scope menu with explicit scope
+                    parameters retained for automation; isolated read-only
                     reviewer; adaptive risk routing from one to two reviewers;
-                    independent lead and specialist thinking levels;
-                    reviewer-scoped live progress, heartbeat, actual
-                    model/thinking-level display, and final report metadata; a
-                    single detailed TUI panel without duplicate status output;
-                    live reviewer transcripts via <code>Ctrl+Alt+R</code> and
-                    post-run recall via <code>/review-log</code>, with reviewer
-                    switching, scrolling/live follow, thinking filtering,
+                    independent lead and specialist thinking levels and Fast
+                    mode; reviewer-scoped live progress, heartbeat, actual
+                    model/thinking-level/Fast-mode display, and final report
+                    metadata; a single detailed TUI panel without duplicate
+                    status output; full-window live reviewer transcripts via
+                    <code>Ctrl+Alt+R</code> or <code>/review-log</code>, plus
+                    post-run recall, with reviewer switching, scrolling/live
+                    follow, thinking filtering, main-agent semantic colors plus
+                    content- and file-extension-aware syntax highlighting,
                     sensitive-field redaction, and bounded in-memory storage;
                     explicit model settings override re-review history; typed
                     submission and evidence gate; stable finding IDs, re-review
                     state, and unchanged-diff cache; open findings retained
                     across rounds, duplicate-ID canonicalization, and
-                    blocking-priority protection; deterministic verdicts and
-                    summaries from canonical results; exact-first
+                    blocking-priority protection; one diff change during review
+                    triggers a bounded automatic refresh; deterministic verdicts
+                    and summaries from canonical results; exact-first
                     <code>a/</code>/<code>b/</code> path resolution;
                     first-parent merge-commit review; complete work scope and
                     physical noise removal

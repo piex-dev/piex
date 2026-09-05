@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { __test__ } from "../src/review-v2.ts";
+import reviewExtension, { __test__ } from "../src/review-v2.ts";
 
 const {
   takeFirstPathArg,
@@ -137,6 +137,159 @@ describe("review progress presenter", () => {
     expect(widgets).toHaveLength(0);
     presenter.dispose();
     expect(statuses.at(-1)?.[1]).toBeUndefined();
+  });
+});
+
+describe("stable review scope", () => {
+  const scope = (diffHash: string) => ({ diffHash }) as never;
+
+  test("restarts once against the latest diff", async () => {
+    const attempts: string[] = [];
+    const refreshes: string[] = [];
+    const recaptures = [scope("changed"), scope("changed")];
+    const result = await __test__.runWithStableReviewScope(
+      scope("initial"),
+      async (current) => {
+        attempts.push(current.diffHash);
+        return current.diffHash;
+      },
+      {
+        recapture: () => recaptures.shift()!,
+        onRefresh: (current, attempt, maxAttempts) =>
+          refreshes.push(`${current.diffHash}:${attempt}/${maxAttempts}`),
+      },
+    );
+
+    expect(attempts).toEqual(["initial", "changed"]);
+    expect(refreshes).toEqual(["changed:2/2"]);
+    expect(result).toEqual({ scope: scope("changed"), value: "changed" });
+  });
+
+  test("fails after the bounded retry if changes keep moving", async () => {
+    const attempts: string[] = [];
+    const recaptures = [scope("second"), scope("third")];
+
+    await expect(
+      __test__.runWithStableReviewScope(
+        scope("first"),
+        async (current) => {
+          attempts.push(current.diffHash);
+          return current.diffHash;
+        },
+        { recapture: () => recaptures.shift()! },
+      ),
+    ).rejects.toThrow(/automatic retry was already used/);
+    expect(attempts).toEqual(["first", "second"]);
+  });
+});
+
+describe("interactive review scope selection", () => {
+  test("maps the direct scope choices", async () => {
+    const cases = [
+      ["All current work", "auto"],
+      ["Uncommitted changes", "working-tree"],
+      ["Staged changes", "staged"],
+    ] as const;
+
+    for (const [prefix, kind] of cases) {
+      const selected = await __test__.selectInteractiveReviewScope(
+        {
+          cwd: "/workspace",
+          ui: {
+            select: async (_title: string, choices: string[]) =>
+              choices.find((choice) => choice.startsWith(prefix)),
+          },
+        } as never,
+        ["/workspace/repo"],
+      );
+      expect(selected).toEqual({ kind });
+    }
+  });
+
+  test("collects parameters for branch, commit, file, and custom focus", async () => {
+    const cases = [
+      ["Changes vs", "main", { kind: "branch", base: "main" }],
+      ["Specific commit", "HEAD~1", { kind: "commit", commit: "HEAD~1" }],
+      ["Specific file", "src/app.ts", { kind: "file", file: "src/app.ts" }],
+      [
+        "All current work with",
+        "focus on cancellation",
+        { kind: "auto", instructions: "focus on cancellation" },
+      ],
+    ] as const;
+
+    for (const [prefix, input, expected] of cases) {
+      const selected = await __test__.selectInteractiveReviewScope(
+        {
+          cwd: "/workspace",
+          ui: {
+            select: async (_title: string, choices: string[]) =>
+              choices.find((choice) => choice.startsWith(prefix)),
+            input: async () => input,
+          },
+        } as never,
+        ["/workspace/repo"],
+      );
+      expect(selected).toEqual(expected);
+    }
+  });
+
+  test("hides commit and file scopes for linked multi-repo review", async () => {
+    let offered: string[] = [];
+    const selected = await __test__.selectInteractiveReviewScope(
+      {
+        cwd: "/workspace",
+        ui: {
+          select: async (_title: string, choices: string[]) => {
+            offered = choices;
+            return undefined;
+          },
+        },
+      } as never,
+      ["/workspace/one", "/workspace/two"],
+    );
+
+    expect(selected).toBeUndefined();
+    expect(offered.some((choice) => choice.startsWith("Specific commit"))).toBe(
+      false,
+    );
+    expect(offered.some((choice) => choice.startsWith("Specific file"))).toBe(
+      false,
+    );
+  });
+
+  test("releases the execution gate when scope selection is cancelled", async () => {
+    let reviewHandler:
+      ((args: string, ctx: unknown) => Promise<void>) | undefined;
+    reviewExtension({
+      on: () => {},
+      registerCommand: (
+        name: string,
+        command: { handler: (args: string, ctx: unknown) => Promise<void> },
+      ) => {
+        if (name === "review") reviewHandler = command.handler;
+      },
+      registerShortcut: () => {},
+      registerTool: () => {},
+    } as never);
+    let selections = 0;
+    const ctx = {
+      cwd: monorepoRoot,
+      hasUI: true,
+      mode: "tui",
+      ui: {
+        notify: () => {},
+        select: async () => {
+          selections += 1;
+          return undefined;
+        },
+      },
+    };
+
+    expect(reviewHandler).toBeFunction();
+    await reviewHandler!("", ctx);
+    await reviewHandler!("", ctx);
+    expect(selections).toBe(2);
   });
 });
 
@@ -380,6 +533,29 @@ describe("canCompareToBase", () => {
     expect(single.ok).toBe(true);
     if (!single.ok) return;
     expect(canCompareToBase(single.path, "HEAD")).toBe(true);
+  });
+});
+
+describe("review tool result details", () => {
+  test("describes the reviewed scope, not the pre-refresh request", () => {
+    const request = { kind: "auto" as const };
+    const execution = {
+      scope: {
+        scopeKey: "refreshed-scope",
+        diffHash: "refreshed-diff",
+        repos: [],
+      },
+      report: {
+        verdict: "pass",
+        summary: "clean",
+        reviewers: [{ role: "lead" }],
+      },
+    } as never;
+    const details = __test__.buildReviewToolDetails(request, execution);
+    expect(details.scopeKey).toBe("refreshed-scope");
+    expect(details.diffHash).toBe("refreshed-diff");
+    expect(details.found).toBe(true);
+    expect(details.action).toBe("auto");
   });
 });
 

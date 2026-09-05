@@ -18,6 +18,7 @@ const PHASE_LABELS: Record<ReviewProgressSnapshot["phase"], string> = {
   reviewing: "reviewing",
   adjudicating: "adjudicating",
   validating: "validating",
+  refreshing: "changes detected; restarting",
   cached: "cached",
   complete: "complete",
   failed: "failed",
@@ -93,6 +94,10 @@ export class ReviewProgressTracker {
     switch (event.type) {
       case "phase":
         this.#phase = event.phase;
+        if (event.phase === "refreshing") {
+          this.#reviewers.clear();
+          return;
+        }
         if (event.phase === "failed" || event.phase === "cancelled") {
           for (const reviewer of this.#reviewers.values()) {
             if (TERMINAL_STATES.has(reviewer.state)) continue;
@@ -114,9 +119,16 @@ export class ReviewProgressTracker {
           toolCalls: 0,
         });
         return;
-      case "reviewer_activity": {
+      case "reviewer_run_started": {
         const reviewer = this.#reviewers.get(event.role);
         if (!reviewer) return;
+        reviewer.state = "reasoning";
+        reviewer.activity = sanitizeProgressText(event.activity);
+        return;
+      }
+      case "reviewer_activity": {
+        const reviewer = this.#reviewers.get(event.role);
+        if (!reviewer || TERMINAL_STATES.has(reviewer.state)) return;
         reviewer.state = event.state;
         reviewer.activity = sanitizeProgressText(event.activity);
         if (event.toolStarted) reviewer.toolCalls++;
@@ -124,14 +136,14 @@ export class ReviewProgressTracker {
       }
       case "reviewer_finished": {
         const reviewer = this.#reviewers.get(event.role);
-        if (!reviewer) return;
+        if (!reviewer || TERMINAL_STATES.has(reviewer.state)) return;
         reviewer.state = "done";
         reviewer.activity = "done";
         return;
       }
       case "reviewer_failed": {
         const reviewer = this.#reviewers.get(event.role);
-        if (!reviewer) return;
+        if (!reviewer || TERMINAL_STATES.has(reviewer.state)) return;
         reviewer.state = event.cancelled ? "cancelled" : "failed";
         reviewer.activity = reviewer.state;
       }
@@ -183,12 +195,13 @@ export function renderProgressLines(
     `Review · ${formatElapsed(snapshot.elapsedMs)} · ${PHASE_LABELS[snapshot.phase]}`,
   ];
   for (const reviewer of snapshot.reviewers) {
+    const fast = reviewer.fastMode ? " · fast" : "";
     const tools =
       reviewer.toolCalls > 0
         ? ` · ${reviewer.toolCalls} tool${reviewer.toolCalls === 1 ? "" : "s"}`
         : "";
     lines.push(
-      `${marker(reviewer.state)} ${reviewerLabel(reviewer)} · ${reviewer.model} · thinking ${reviewer.thinkingLevel} · ${reviewer.activity}${tools}`,
+      `${marker(reviewer.state)} ${reviewerLabel(reviewer)} · ${reviewer.model} · thinking ${reviewer.thinkingLevel}${fast} · ${reviewer.activity}${tools}`,
     );
   }
   return lines;
@@ -200,8 +213,9 @@ export function renderProgressStatus(snapshot: ReviewProgressSnapshot): string {
     snapshot.reviewers[0];
   const head = `review ${formatElapsed(snapshot.elapsedMs)} · ${PHASE_LABELS[snapshot.phase]}`;
   if (!active) return head;
+  const fast = active.fastMode ? " · fast" : "";
   const extra = snapshot.reviewers.length > 1 ? " · +1 reviewer" : "";
-  return `${head} · ${reviewerLabel(active)} ${active.model} · thinking ${active.thinkingLevel} · ${active.activity}${extra}`;
+  return `${head} · ${reviewerLabel(active)} ${active.model} · thinking ${active.thinkingLevel}${fast} · ${active.activity}${extra}`;
 }
 
 export function renderProgressText(snapshot: ReviewProgressSnapshot): string {

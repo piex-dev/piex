@@ -32,9 +32,9 @@ export function renderReviewReport(
   output += `${blocking.length + priorBlocking.length} blocking · ${advisory.length} advisory · ${files} files · ${report.reviewerCount} reviewer${report.reviewerCount === 1 ? "" : "s"}${cached}\n\n`;
   if (report.reviewers?.length) {
     const reviewers = report.reviewers
-      .map(({ role, model, thinkingLevel, specialty }) => {
+      .map(({ role, model, thinkingLevel, specialty, fastMode }) => {
         const label = specialty ? `${role}/${specialty}` : role;
-        return `${label} \`${model}\` (thinking: ${thinkingLevel})`;
+        return `${label} \`${model}\` (thinking: ${thinkingLevel}${fastMode ? ", fast" : ""})`;
       })
       .join(" · ");
     output += `Reviewers: ${reviewers}\n\n`;

@@ -10,6 +10,7 @@ import {
   recaptureReviewScope,
   resolveRepos,
   runGit,
+  sanitizeLabel,
 } from "../src/scope.ts";
 
 const tempDirs: string[] = [];
@@ -319,5 +320,74 @@ describe("runGit", () => {
     expect(() => runGit(repo, ["show", "missing-review-ref"])).toThrow(
       GitCommandError,
     );
+  });
+});
+
+describe("sanitizeLabel", () => {
+  test("strips terminal escapes, control characters, and line breaks", () => {
+    expect(sanitizeLabel("repo\u001b[31mred\u001b[0m")).toBe("repo red");
+    expect(sanitizeLabel("a\u0000b\u0007c")).toBe("a b c");
+    expect(sanitizeLabel("line1\nline2")).toBe("line1 line2");
+    expect(sanitizeLabel("\u001b]0;evil\u0007title")).toBe("title");
+  });
+
+  test("applies to repo labels used in UI and transcripts", () => {
+    const repo = createRepo();
+    // A hostile directory name must never reach the scope menu or the
+    // transcript header with its control bytes intact.
+    const hostile = fs.mkdirSync(path.join(repo, "evil\u001b[31mrepo"), {
+      recursive: true,
+    });
+    if (!hostile) return;
+    const scope = captureReviewScope(repo, [hostile]);
+    expect(scope.repos[0].label).toBe("evil repo");
+    expect(scope.repos[0].label).not.toContain("\u001b");
+  });
+});
+
+describe("literalRepoPath", () => {
+  test("treats the requested file as a literal path", () => {
+    const repo = createRepo();
+    fs.writeFileSync(
+      path.join(repo, "a*b.ts"),
+      "export const globbed = true;\n",
+    );
+    fs.writeFileSync(path.join(repo, "axb.ts"), "export const other = true;\n");
+    git(repo, ["add", "a*b.ts", "axb.ts"]);
+    git(repo, ["commit", "-m", "add literal files"]);
+    fs.appendFileSync(
+      path.join(repo, "a*b.ts"),
+      "export const changed = true;\n",
+    );
+    fs.appendFileSync(
+      path.join(repo, "axb.ts"),
+      "export const touched = true;\n",
+    );
+
+    const scope = captureReviewScope(repo, [repo], {
+      kind: "file",
+      file: "a*b.ts",
+    });
+    const files = scope.repos[0].summary.files.map(({ path: file }) => file);
+    expect(files).toEqual(["a*b.ts"]);
+    expect(scope.repos[0].summary.filteredDiff).toContain("changed = true");
+    expect(scope.repos[0].summary.filteredDiff).not.toContain("touched = true");
+  });
+
+  test("rejects paths that escape the repository", () => {
+    const repo = createRepo();
+    expect(() =>
+      captureReviewScope(repo, [repo], {
+        kind: "file",
+        file: "../outside.ts",
+      }),
+    ).toThrow(/outside the repository/);
+    // A pathspec-magic prefix must not widen the review either.
+    expect(() =>
+      captureReviewScope(repo, [repo], {
+        kind: "file",
+        file: ":(exclude)*",
+      }),
+    ).not.toThrow();
   });
 });

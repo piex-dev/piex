@@ -4,7 +4,7 @@ import { renderReviewReport } from "../src/render.ts";
 import type { ReviewReport, ReviewScope } from "../src/types.ts";
 
 describe("renderReviewReport", () => {
-  test("keeps the actual reviewer models and thinking levels in the result", () => {
+  test("keeps reviewer models, thinking levels, and fast mode in the result", () => {
     const scope: ReviewScope = {
       kind: "auto",
       scopeKey: "scope",
@@ -42,22 +42,25 @@ index 1111111..2222222 100644
           role: "lead",
           model: "openai-codex/gpt-5.6-sol",
           thinkingLevel: "xhigh",
+          fastMode: true,
         },
         {
           role: "specialist",
           specialty: "security",
           model: "openai-codex/gpt-5.6-sol",
           thinkingLevel: "max",
+          fastMode: false,
         },
       ],
     };
 
     const rendered = renderReviewReport(scope, report);
     expect(rendered).toContain(
-      "lead `openai-codex/gpt-5.6-sol` (thinking: xhigh)",
+      "lead `openai-codex/gpt-5.6-sol` (thinking: xhigh, fast)",
     );
     expect(rendered).toContain(
       "specialist/security `openai-codex/gpt-5.6-sol` (thinking: max)",
     );
+    expect(rendered.match(/\bfast\b/g)).toHaveLength(1);
   });
 });

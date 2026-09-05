@@ -6,7 +6,7 @@
     <title>review — 把 Code Review 做成 Agent 的一等公民 — PieX</title>
     <meta
       name="description"
-      content="一个 /review 命令：自动确定范围，以独立只读 reviewer 和证据门槛输出可收敛的代码评审。"
+      content="一个 /review 命令：交互选择范围，以独立只读 reviewer 和证据门槛输出可收敛的代码评审。"
     />
     <link rel="canonical" href="https://piex.dev/zh/packages/review/" />
     <link
@@ -30,7 +30,7 @@
     />
     <meta
       property="og:description"
-      content="一个 /review 命令：自动确定范围，以独立只读 reviewer 和证据门槛输出可收敛的代码评审。"
+      content="一个 /review 命令：交互选择范围，以独立只读 reviewer 和证据门槛输出可收敛的代码评审。"
     />
     <meta property="og:url" content="https://piex.dev/zh/packages/review/" />
     <meta property="og:type" content="article" />
@@ -179,8 +179,8 @@
             <div class="blog-callout-body">
               <p class="blog-callout-label">导语</p>
               <p>
-                用户只需运行
-                <code>/review</code>：插件自动确定范围、启动独立只读
+                用户运行
+                <code>/review</code> 选择范围：插件随后启动独立只读
                 reviewer，并用可验证 finding 给出 <code>PASS</code> 或
                 <code>NEEDS FIX</code>。
               </p>
@@ -194,9 +194,9 @@
               >@piex-dev/review</code
             >
             把人类入口收敛为一个
-            <code>/review</code
-            >：默认覆盖相对默认分支的已提交、暂存、未暂存与未跟踪文件，在隔离的
-            Pi SDK session 中评审，并按风险自动选择一个 reviewer 或 lead +
+            <code>/review</code>：用紧凑菜单选择默认分支 PR 范围、working
+            tree、staged、指定 base/commit/file 或自定义关注点，再在隔离的 Pi
+            SDK session 中评审，并按风险自动选择一个 reviewer 或 lead +
             specialist。
           </p>
 
@@ -209,21 +209,22 @@
           </p>
           <div class="blog-code">
             <div class="blog-code-bar"><span>flow</span></div>
-            <pre><code>/review → 冻结 base/head/diff → 物理剔除噪声
+            <pre><code>/review → 选择范围并冻结 base/head/diff → 物理剔除噪声
 → 新建只读 reviewer session → 风险路由 1→2
 → 实时展示阶段、模型、thinking level 与工具活动
 → 按需打开安全 reviewer transcript
-→ submit_review → evidence gate → PASS / NEEDS FIX
+→ submit_review → 复核 diff，变化时自动刷新一次
+→ evidence gate → PASS / NEEDS FIX
 → 持久化 finding 状态，供 re-review 使用</code></pre>
           </div>
           <p>
-            <code>/review</code> 永远走自动范围，不弹模式菜单；<code
-              >review</code
-            >
-            工具为 agent 和脚本保留
+            <code>/review</code> 打开一层范围菜单；<code>review</code>
+            工具不打开菜单，默认使用 <code>auto</code>，并为 agent 和脚本保留
             <code>diff</code
-            >、<code>staged</code>、<code>branch</code>、<code>commit</code>、<code>file</code>。相同
-            diff 直接返回缓存；变化后优先验证旧 finding。
+            >、<code>staged</code>、<code>branch</code>、<code>commit</code>、<code
+              >file</code
+            >
+            参数。相同 diff 直接返回缓存；变化后优先验证旧 finding。
           </p>
           <p>
             Re-review 持久化规范化后的开放 finding 集合。旧 finding
@@ -273,6 +274,13 @@
             解析，在本地计算 merge-base，不隐式 fetch。
           </p>
           <p>
+            仓库解析完成后会选择默认分支 PR 范围、working tree、staged、自定义
+            base，以及单仓可用的指定 commit/file；也可为默认 PR
+            范围附加自定义关注点。多仓菜单会隐藏
+            commit/file，选定的其它范围统一应用到所有仓库。取消菜单或后续输入会直接退出，不启动
+            reviewer。
+          </p>
+          <p>
             高级工具的 <code>commit</code>
             范围以目标提交的第一父提交为基线，因此 merge commit
             只展示该次合并相对第一父提交引入的内容；根提交相对 Git 空树评审。
@@ -299,30 +307,50 @@
           <div class="blog-code">
             <div class="blog-code-bar"><span>text</span></div>
             <pre><code>Review · 00:31 · reviewing
-● lead · openai-codex/gpt-5.6-sol · thinking xhigh · reading src/reviewer.ts · 3 tools
-● specialist/security · openai-codex/gpt-5.6-sol · thinking max · reasoning about changes · 2 tools</code></pre>
+● lead · openai-codex/gpt-5.6-sol · thinking xhigh · fast · reading src/reviewer.ts · 3 tools
+● specialist/security · openai-codex/gpt-5.6-sol · thinking max · fast · reasoning about changes · 2 tools</code></pre>
           </div>
           <p>
             面板会随
             <code>preparing</code
-            >、<code>reviewing</code>、<code>adjudicating</code>、<code
-              >validating</code
+            >、<code>reviewing</code>、<code>adjudicating</code>、<code>validating</code>、<code
+              >changes detected; restarting</code
             >
-            等阶段，以及读取源码、搜索、检查冻结 diff 和提交报告等活动更新。通过
-            <code>review</code> 工具调用时，同一份结构化快照会经
-            <code>onUpdate</code> 返回；最终报告会保留实际 reviewer 模型和
-            thinking level。
+            等阶段，以及读取源码、搜索、检查冻结 diff
+            和提交报告等活动更新。并行运行时，先完成的 reviewer 会立即显示
+            <code>✓ … done</code>，不会等待另一个 reviewer，也不会被尾随事件改回
+            running。通过 <code>review</code> 工具调用时，同一份结构化快照会经
+            <code>onUpdate</code> 返回；最终报告会保留实际 reviewer
+            模型、thinking level 和 Fast mode 状态。启用时，进度、transcript
+            与最终报告都会标记 <code>fast</code>。
+          </p>
+          <p>
+            reviewer 完成后会重新采集同一范围的 diff。若 hash
+            已变化，第一次结果会被丢弃，扩展自动切换到最新快照并重跑一次，同时更新进度和
+            transcript 的范围摘要，并只保留最新一轮 reviewer
+            状态；只有第二轮期间 diff
+            仍继续变化时才会失败并提示等待编辑完成。这样不会返回针对旧代码的报告，也不会因为一次并发保存或格式化就要求用户手动重新执行
+            <code>/review</code>。
           </p>
           <p>
             在交互式 TUI 中，<code>/review</code>
             会在后台执行并立即交还输入框。review 运行期间可直接输入
             <code>/review-log</code>，也可按
-            <code>Ctrl+Alt+R</code>，两种方式都会打开铺满终端窗口、实时且可滚动的
-            transcript 浮层；完成后再次运行 <code>/review-log</code>
-            可回看最近一次记录。浮层支持用 <code>Tab</code> 切换 lead 与
-            specialist，方向键或 <code>j</code>/<code>k</code> 滚动，<code
-              >G</code
-            >
+            <code>Ctrl+Alt+R</code
+            >，两种方式都会打开铺满终端窗口、实时且可滚动的 transcript
+            浮层；完成后再次运行
+            <code>/review-log</code> 可回看最近一次记录。浮层复用主 Agent 当前
+            Pi 主题的语义配色：header、阶段、工具标题和 prompt 元数据分别使用
+            accent、muted、success/error、toolTitle 等 token，prompt 内嵌 diff
+            与 <code>review_diff</code>
+            使用增删/上下文色；工具参数和结果元数据只轻量区分 JSON
+            键、数字和标点，大段字符串使用主 Agent 的
+            <code>toolOutput</code>
+            正文色，不会整片显示为错误红色；<code>read</code>
+            按文件扩展名识别 TypeScript、Python、Rust
+            等源码语言，无法识别时保持普通代码色，不做不可靠的自动猜测。浮层支持用
+            <code>Tab</code> 切换 lead 与 specialist，方向键或
+            <code>j</code>/<code>k</code> 滚动，<code>G</code>
             回到末尾并恢复自动跟随，<code>q</code>/<code>Esc</code> 关闭。
           </p>
           <p>
@@ -334,21 +362,61 @@
             UI 渲染行数。它不写入作者主 session，也不落盘，<code>/reload</code>
             或进程退出后清除。
           </p>
+          <p>
+            长工具结果会在 JSON 值内部截断并标记
+            <code>[TRUNCATED]</code>，保留合法 JSON，因此保留下来的源码和 diff
+            仍能按原始换行高亮。浮层按条目缓存高亮和自动换行结果，流式更新只处理变化部分；另一位
+            reviewer
+            的活动不会使当前页面缓存失效。窗口宽度变化只重新换行，主题刷新会清空缓存，淘汰的日志条目也会同步释放。
+          </p>
           <h3 id="config">可选配置</h3>
           <p>
-            默认使用当前模型。需要固定模型可写
-            <code>~/.pi/piex-dev/review/settings.json</code>，配置
-            <code>model</code>、<code>specialistModel</code>、<code
-              >thinkingLevel</code
-            >
-            、<code>specialistThinkingLevel</code> 与
-            <code>maxReviewers</code>（1 或 2）。两个 thinking level
-            可分别控制主 reviewer 与专项 reviewer，接受从 <code>off</code> 到
-            <code>max</code> 的 Pi 等级；专项等级未配置时继承主 reviewer。同一
-            scope 中，显式配置的 <code>model</code> /
+            默认使用当前模型。需要固定模型或开启 Fast mode 可写
+            <code>~/.pi/piex-dev/review/settings.json</code>：
+          </p>
+          <div class="blog-code">
+            <div class="blog-code-bar"><span>json</span></div>
+            <pre><code>{
+  "model": "openai-codex/gpt-5.6-sol",
+  "thinkingLevel": "xhigh",
+  "fastMode": true,
+  "specialistModel": "openai-codex/gpt-5.6-sol",
+  "specialistThinkingLevel": "max",
+  "specialistFastMode": true,
+  "maxReviewers": 2
+}</code></pre>
+          </div>
+          <p>
+            <code>thinkingLevel</code> 与
+            <code>specialistThinkingLevel</code> 分别控制主 reviewer 与专项
+            reviewer，接受从 <code>off</code> 到 <code>max</code> 的 Pi
+            等级；专项等级未配置时继承主 reviewer。同一 scope 中，显式配置的
+            <code>model</code> /
             <code>specialistModel</code
             >始终优先；只有未配置对应模型时，re-review 才沿用首次记录的 reviewer
-            模型。
+            模型。<code>maxReviewers</code> 只接受 1 或 2。
+          </p>
+          <p>
+            <code>fastMode</code> 控制 lead，<code>specialistFastMode</code>
+            控制专项 reviewer；专项值缺省时继承 <code>fastMode</code>。设为
+            <code>true</code> 时，扩展向该独立 reviewer 的请求注入
+            <code>service_tier: "priority"</code>。该能力仅支持
+            <code>openai-codex</code> provider、<code
+              >openai-codex-responses</code
+            >
+            API、ChatGPT OAuth，以及
+            <code>gpt-5.4</code
+            >、<code>gpt-5.5</code>、<code>gpt-5.6-sol</code>、<code>gpt-5.6-terra</code>、<code
+              >gpt-5.6-luna</code
+            >
+            模型；其他组合会在 reviewer
+            启动前报配置错误，而不是静默降级。reviewer 是独立
+            session，不会继承外层
+            <code>/gpt-fast</code> 状态，需要通过这两个字段显式配置。<code
+              >fast</code
+            >
+            标记表示扩展已启用请求注入，并非服务端确认；Pi
+            的本地成本遥测仍可能按标准 tier 估算，后端额度记录才是最终依据。
           </p>
           <p>
             注意：<code>ultra</code> 不是 Pi thinking level。<a
@@ -378,20 +446,27 @@
           <p>
             实现按 scope、diff、reviewer、finding gate、session state 与 render
             分模块。噪声在 diff chunk 层物理剔除；范围冻结 base/head OID 与
-            changed ranges。每个 reviewer 是新的内存 session，关闭
-            extensions/skills/templates/themes 与自动 system/context
-            注入；仓库约束改由只读工具显式读取，不能覆盖 reviewer
-            的系统角色。工具仅有
+            changed ranges。reviewer 返回后会重新采集 diff 并比较
+            hash；一次变化会触发基于最新快照的有界自动重跑，若重跑期间仍变化则停止，避免返回过期结果或无限消耗模型调用。每个
+            reviewer 是新的内存 session，关闭 extensions/skills/templates/themes
+            与自动 system/context 注入；仓库约束改由只读工具显式读取，不能覆盖
+            reviewer 的系统角色。工具仅有
             <code>read</code
             >/<code>grep</code>/<code>find</code>/<code>ls</code>、精确读取冻结
             patch 的 <code>review_diff</code> 和强类型
-            <code>submit_review</code>，不能写文件或运行命令。
+            <code>submit_review</code>。reviewer
+            被明确要求将其作为最终工具批次的唯一调用；成功提交会返回
+            <code>terminate: true</code
+            >，让该批次直接结束，不再额外请求模型一轮。reviewer
+            不能写文件或运行命令。
           </p>
           <p>
             主流程订阅每个独立 session
             的生命周期、消息类型与工具执行事件，并归约成按 reviewer
-            角色隔离的进度快照。并行 lead/specialist 不会互相覆盖；每秒
-            heartbeat 即使在长时间 reasoning
+            角色隔离的进度快照。并行 lead/specialist
+            不会互相覆盖；完成状态不会被尾随 activity 改写，只有进入
+            adjudication 时的显式新一轮事件才能重新激活 lead。每秒 heartbeat
+            即使在长时间 reasoning
             期间也会刷新耗时。路径在展示前会移除控制字符并截断，grep
             pattern、thinking delta 与 text delta 不进入紧凑进度输出。
           </p>
@@ -406,12 +481,12 @@
           </p>
           <p>
             交互式 <code>/review</code> 把长时评审放进受控后台任务，使 Pi
-            主输入循环立即恢复，因此运行中的 <code>/review-log</code>
-            能被即时分派。后台任务使用独立 AbortSignal；退出、<code
-              >/reload</code
+            主输入循环立即恢复，因此运行中的
+            <code>/review-log</code> 能被即时分派。后台任务使用独立
+            AbortSignal；退出、<code>/reload</code> 或切换 session 时，<code
+              >session_shutdown</code
             >
-            或切换 session 时，<code>session_shutdown</code> 会先取消任务并等待
-            reviewer
+            会先取消任务并等待 reviewer
             清理。命令入口与工具入口仍共享执行门禁，不会同时写入同一份
             transcript。
           </p>
@@ -492,7 +567,7 @@
             核心取舍：<strong>简洁是外部 API，复杂度留在内部编排</strong>。<code
               >/review</code
             >
-            永远只有一条主路径。
+            只暴露一层范围选择；并行 reviewer、模型与裁决细节仍由风险路由处理。
           </p>
 
           <h2 id="changelog">迭代记录</h2>
@@ -514,7 +589,8 @@
                   <td>项目级策略</td>
                   <td>
                     未来支持
-                    <code>.reviewignore</code> 与显式默认分支，但不增加命令菜单
+                    <code>.reviewignore</code>
+                    与项目级默认分支，同时保持范围菜单紧凑
                   </td>
                 </tr>
                 <tr>
@@ -545,19 +621,22 @@
                   <td>0.4.0</td>
                   <td>2026-09-03</td>
                   <td>
-                    单一自动 <code>/review</code>；隔离只读 reviewer；风险自适应
-                    1→2，主 reviewer 与专项 reviewer 可独立配置 thinking
-                    level；按角色隔离的实时进度面板、heartbeat、实际模型/thinking
-                    level 展示与最终报告元数据，TUI
+                    <code>/review</code> 使用紧凑范围菜单，自动化工具保留显式
+                    scope 参数；隔离只读 reviewer；风险自适应 1→2，主 reviewer
+                    与专项 reviewer 可独立配置 thinking level 与 Fast
+                    mode；按角色隔离的实时进度面板、heartbeat、实际模型/thinking
+                    level/Fast mode 展示与最终报告元数据，TUI
                     只保留详情面板避免状态栏重复；新增
-                    <code>Ctrl+Alt+R</code> 实时 reviewer transcript 与
-                    <code>/review-log</code>
-                    完成后回看，支持角色切换、滚动/自动跟随、thinking
-                    过滤、敏感字段脱敏和有界内存记录；显式 模型配置优先于
-                    re-review 历史模型；结构化提交与 evidence gate；稳定 finding
-                    ID、re-review 状态和同 diff 缓存；开放 finding
-                    跨轮保留、重复 ID 规范化和 blocking
-                    优先级保护；结论与摘要由规范结果生成；<code>a/</code>、<code
+                    <code>Ctrl+Alt+R</code> 与
+                    <code>/review-log</code> 全窗口实时 reviewer transcript
+                    和完成后回看，支持角色切换、滚动/自动跟随、thinking
+                    过滤、复用主 Agent
+                    语义配色并按内容类型和源码扩展名语法高亮、敏感字段脱敏和有界内存记录；显式
+                    模型配置优先于 re-review 历史模型；结构化提交与 evidence
+                    gate；稳定 finding ID、re-review 状态和同 diff 缓存；开放
+                    finding 跨轮保留、重复 ID 规范化和 blocking
+                    优先级保护；评审期间 diff
+                    单次变化会自动刷新并有界重跑；结论与摘要由规范结果生成；<code>a/</code>、<code
                       >b/</code
                     >
                     路径精确匹配优先；merge commit

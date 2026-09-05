@@ -204,6 +204,23 @@ export function shortRepo(repo: string, cwd: string): string {
   return !relative.startsWith("..") ? relative : repo;
 }
 
+/**
+ * Strip terminal control sequences and other control characters from a
+ * repository-derived label. Directory names are attacker-visible input: a
+ * hostile repo path must not inject ANSI escapes or extra lines into the
+ * TUI scope menu, transcript header, or error strings.
+ */
+export function sanitizeLabel(value: string): string {
+  return value
+    .replace(
+      /\x1b(?:\[[0-9;?]*[ -\/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\_-])/g,
+      " ",
+    )
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 interface ResolvedRef {
   name: string;
   ref: string;
@@ -348,7 +365,7 @@ function makeSnapshot(
 ): RepoReviewSnapshot {
   return {
     repo,
-    label: shortRepo(repo, cwd),
+    label: sanitizeLabel(shortRepo(repo, cwd)),
     kind,
     mode,
     baseRef,
@@ -562,6 +579,11 @@ function captureFile(
   file: string,
 ): RepoReviewSnapshot {
   const headOid = getHeadOid(repo) ?? emptyTreeOid(repo);
+  // Git pathspecs support magic prefixes (:(glob), :(exclude), …) and a
+  // leading dash would be a flag, so review the file as a literal path
+  // resolved inside the repository. Otherwise a hostile input could omit
+  // the requested file or widen the diff to unrelated tracked changes.
+  const pathspec = literalRepoPath(repo, file);
   const tracked = captureWithIndexSnapshot(
     repo,
     headOid,
@@ -571,7 +593,7 @@ function captureFile(
       "--unified=3",
       headOid,
       "--",
-      file,
+      pathspec,
     ]),
   );
   const untracked = appendUntrackedDiff(repo, tracked, file);
@@ -580,13 +602,25 @@ function captureFile(
       cwd,
       repo,
       "file",
-      `File ${file}`,
+      `File ${sanitizeLabel(file)}`,
       headOid,
       headOid,
       untracked.chunks,
     ),
     untracked,
   );
+}
+
+/**
+ * Normalize a user-supplied file argument to a literal Git pathspec inside
+ * the repository. Rejects paths that escape the repository root.
+ */
+function literalRepoPath(repo: string, file: string): string {
+  const relative = path.relative(repo, path.resolve(repo, file));
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`File path is outside the repository: ${file}`);
+  }
+  return `:(literal)${relative}`;
 }
 
 export function captureReviewScope(
@@ -693,6 +727,8 @@ export const __test__ = {
   appendUntrackedDiff,
   getHeadOid,
   listUntracked,
+  literalRepoPath,
   resolveRequestedBase,
+  sanitizeLabel,
   tryGit,
 };
