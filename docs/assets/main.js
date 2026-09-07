@@ -33,7 +33,7 @@
       "hero.cta2": "GitHub",
       "hero.term.title": "pi — piex",
       "hero.term.body":
-        '<span class="comment"># Pick any package:</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># All-in-one:</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash',
+        '<span class="comment"># Pick any package:</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/review\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># All-in-one:</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash',
       "nav.why": "Philosophy",
       "nav.packages": "Packages",
       "nav.docs": "Docs",
@@ -140,7 +140,7 @@
       "hero.cta2": "GitHub",
       "hero.term.title": "pi — piex",
       "hero.term.body":
-        '<span class="comment"># 按需安装，逐包自由组合：</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/hashline\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># 一键全部：</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash',
+        '<span class="comment"># 按需安装，逐包自由组合：</span>\n<span class="prompt">$</span> pi install npm:@piex-dev/review\n<span class="prompt">$</span> pi install npm:@piex-dev/dap\n<span class="prompt">$</span> pi install npm:@piex-dev/lsp\n<span class="comment"># 一键全部：</span>\n<span class="prompt">$</span> curl -fsSL piex.dev/scripts/install.sh | bash',
       "nav.why": "理念",
       "nav.packages": "Packages",
       "nav.docs": "文档",
