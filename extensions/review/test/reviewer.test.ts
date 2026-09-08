@@ -235,11 +235,7 @@ describe("reviewer fast mode", () => {
       { ...compatibleModel, id: "gpt-5.3-codex" },
     ]) {
       expect(() =>
-        __test__.assertFastModeSupported(
-          oauthContext,
-          model as never,
-          true,
-        ),
+        __test__.assertFastModeSupported(oauthContext, model as never, true),
       ).toThrow(/Fast mode.*ChatGPT OAuth/);
     }
 
@@ -286,8 +282,7 @@ describe("reviewer fast mode", () => {
 
   test("registers the injector as a hidden inline extension", async () => {
     let handler:
-      | ((event: { payload: unknown }, context: unknown) => unknown)
-      | undefined;
+      ((event: { payload: unknown }, context: unknown) => unknown) | undefined;
     const extension = __test__.createFastModeExtension();
     expect(typeof extension).toBe("object");
     if (typeof extension === "function") throw new Error("Expected metadata");
@@ -300,10 +295,7 @@ describe("reviewer fast mode", () => {
 
     expect(handler).toBeDefined();
     expect(
-      await handler?.(
-        { payload: { model: "gpt-5.6-sol", store: false } },
-        {},
-      ),
+      await handler?.({ payload: { model: "gpt-5.6-sol", store: false } }, {}),
     ).toEqual({
       model: "gpt-5.6-sol",
       store: false,
@@ -400,5 +392,80 @@ describe("review diff tool", () => {
     expect(String((result.content as { text: string }[])[0].text)).toContain(
       "too large",
     );
+  });
+});
+
+describe("fast mode fallback", () => {
+  const emptyResponseError = () =>
+    new Error(
+      "Independent reviewer ended without submitting a report (stopReason: stop, last output: [])",
+    );
+
+  function fakeReviewer(fast: boolean, calls: boolean[]) {
+    return {
+      model: "test-model",
+      descriptor: { role: "lead" },
+      dispose: () => {},
+      async run() {
+        calls.push(fast);
+        if (fast) throw emptyResponseError();
+        return { summary: "ok", findings: [], previousFindings: [] };
+      },
+    } as never;
+  }
+
+  test("retries once without fast mode after an empty response", async () => {
+    const calls: boolean[] = [];
+    let fallbacks = 0;
+    const outcome = await __test__.runReviewerWithFastFallback(
+      async (fast) => fakeReviewer(fast, calls),
+      true,
+      "task",
+      "review",
+      () => {
+        fallbacks += 1;
+      },
+    );
+    expect(calls).toEqual([true, false]);
+    expect(fallbacks).toBe(1);
+    expect(outcome.result.summary).toBe("ok");
+  });
+
+  test("does not fall back when fast mode is already off", async () => {
+    const calls: boolean[] = [];
+    const factory = async (fast: boolean) => {
+      calls.push(fast);
+      return {
+        model: "test-model",
+        descriptor: { role: "lead" },
+        dispose: () => {},
+        async run() {
+          throw emptyResponseError();
+        },
+      } as never;
+    };
+    await expect(
+      __test__.runReviewerWithFastFallback(factory, false, "task"),
+    ).rejects.toThrow("ended without submitting a report");
+    expect(calls).toEqual([false]);
+  });
+
+  test("does not swallow unrelated errors", async () => {
+    const calls: boolean[] = [];
+    const factory = async (fast: boolean) => {
+      calls.push(fast);
+      return {
+        model: "test-model",
+        descriptor: { role: "lead" },
+        dispose: () => {},
+        async run() {
+          throw new Error("provider exploded");
+        },
+      } as never;
+    };
+    await expect(
+      __test__.runReviewerWithFastFallback(factory, true, "task"),
+    ).rejects.toThrow("provider exploded");
+    expect(calls).toEqual([true]);
   });
 });

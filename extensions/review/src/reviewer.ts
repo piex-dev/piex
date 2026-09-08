@@ -874,8 +874,11 @@ async function createIndependentReviewer(
           const detail = lastAssistant
             ? JSON.stringify(lastAssistant.content).slice(0, 400)
             : "no assistant output";
+          const stopReason = (
+            lastAssistant as { stopReason?: string } | undefined
+          )?.stopReason;
           throw new Error(
-            `Independent reviewer ended without submitting a report (last output: ${detail})`,
+            `Independent reviewer ended without submitting a report (stopReason: ${stopReason ?? "unknown"}, last output: ${detail})`,
           );
         }
         updateTranscript(transcript, (store, runId) => {
@@ -995,6 +998,41 @@ Lead candidates:\n${JSON.stringify(lead, null, 2)}
 Specialist candidates:\n${JSON.stringify(specialist, null, 2)}`;
 }
 
+function isMissingSubmitError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("ended without submitting a report")
+  );
+}
+
+/**
+ * Run a reviewer, falling back to a non-fast reviewer once when fast mode
+ * (service_tier: priority) yields an empty / missing submit_review response.
+ * Long reviewer tasks have been observed to return empty assistant messages
+ * with the priority tier; the same task succeeds without the injection.
+ */
+async function runReviewerWithFastFallback(
+  factory: (fastMode: boolean) => Promise<IndependentReviewer>,
+  fastMode: boolean,
+  task: string,
+  stage: "review" | "adjudication" = "review",
+  onFallback?: () => void,
+): Promise<{ reviewer: IndependentReviewer; result: SubmittedReview }> {
+  const reviewer = await factory(fastMode);
+  try {
+    return { reviewer, result: await reviewer.run(task, stage) };
+  } catch (error) {
+    if (!fastMode || !isMissingSubmitError(error)) {
+      reviewer.dispose();
+      throw error;
+    }
+    reviewer.dispose();
+    onFallback?.();
+    const fallback = await factory(false);
+    return { reviewer: fallback, result: await fallback.run(task, stage) };
+  }
+}
+
 export async function runReviewerWorkflow(
   scope: ReviewScope,
   ctx: ReviewerContext,
@@ -1014,45 +1052,79 @@ export async function runReviewerWorkflow(
       status: "reviewing",
     });
   });
-  const lead = await createIndependentReviewer(
-    scope,
-    ctx,
-    models.lead,
-    thinking.lead,
-    fastModes.lead,
-    "lead",
-    progress,
-    transcript,
-  );
+  const leadFactory = (fastMode: boolean) =>
+    createIndependentReviewer(
+      scope,
+      ctx,
+      models.lead,
+      thinking.lead,
+      fastMode,
+      "lead",
+      progress,
+      transcript,
+    );
+  const noteFastFallback = (role: ReviewerRole) =>
+    updateTranscript(transcript, (store, runId) => {
+      store.record(runId, role, {
+        kind: "note",
+        stage: "review",
+        text: "fast mode produced no submit_review; retrying without fast mode",
+      });
+    });
   const specialistRoute =
     settings.maxReviewers === 2 ? chooseSpecialist(scope) : undefined;
+  let lead: IndependentReviewer | undefined;
   let specialist: IndependentReviewer | undefined;
   try {
     if (!specialistRoute) {
+      const leadOutcome = await runReviewerWithFastFallback(
+        leadFactory,
+        fastModes.lead,
+        buildReviewerTask(scope, previous),
+        "review",
+        () => noteFastFallback("lead"),
+      );
+      lead = leadOutcome.reviewer;
       return {
-        submissions: [await lead.run(buildReviewerTask(scope, previous))],
+        submissions: [leadOutcome.result],
         reviewerModel: lead.model,
         reviewerCount: 1,
         reviewers: [lead.descriptor],
       };
     }
 
-    specialist = await createIndependentReviewer(
-      scope,
-      ctx,
-      models.specialist,
-      thinking.specialist,
-      fastModes.specialist,
-      "specialist",
-      progress,
-      transcript,
-      specialistRoute.name,
-    );
-    const [leadResult, specialistResult] = await Promise.all([
-      lead.run(buildReviewerTask(scope, previous)),
-      specialist.run(buildReviewerTask(scope, previous, specialistRoute)),
+    const specialistFactory = (fastMode: boolean) =>
+      createIndependentReviewer(
+        scope,
+        ctx,
+        models.specialist,
+        thinking.specialist,
+        fastMode,
+        "specialist",
+        progress,
+        transcript,
+        specialistRoute.name,
+      );
+    const [leadOutcome, specialistOutcome] = await Promise.all([
+      runReviewerWithFastFallback(
+        leadFactory,
+        fastModes.lead,
+        buildReviewerTask(scope, previous),
+        "review",
+        () => noteFastFallback("lead"),
+      ),
+      runReviewerWithFastFallback(
+        specialistFactory,
+        fastModes.specialist,
+        buildReviewerTask(scope, previous, specialistRoute),
+        "review",
+        () => noteFastFallback("specialist"),
+      ),
     ]);
-    let final = leadResult;
+    lead = leadOutcome.reviewer;
+    specialist = specialistOutcome.reviewer;
+    const specialistResult = specialistOutcome.result;
+    let final = leadOutcome.result;
     if (specialistResult.findings.length > 0) {
       emitReviewProgress(progress, {
         type: "phase",
@@ -1064,10 +1136,15 @@ export async function runReviewerWorkflow(
           status: "adjudicating",
         });
       });
-      final = await lead.run(
-        buildAdjudicationTask(leadResult, specialistResult),
+      const adjudication = await runReviewerWithFastFallback(
+        leadFactory,
+        fastModes.lead,
+        buildAdjudicationTask(final, specialistResult),
         "adjudication",
+        () => noteFastFallback("lead"),
       );
+      lead = adjudication.reviewer;
+      final = adjudication.result;
     }
     return {
       submissions: [final],
@@ -1078,7 +1155,7 @@ export async function runReviewerWorkflow(
     };
   } finally {
     specialist?.dispose();
-    lead.dispose();
+    lead?.dispose();
   }
 }
 
@@ -1094,6 +1171,7 @@ export const __test__ = {
   createReviewerModelRuntime,
   getSettingsPath,
   injectFastModeServiceTier,
+  isMissingSubmitError,
   modelName,
   parseModelSpec,
   parseReviewSettings,
@@ -1101,5 +1179,6 @@ export const __test__ = {
   resolveReviewerModelSpecs,
   resolveFastModes,
   resolveThinkingLevels,
+  runReviewerWithFastFallback,
   scopeSummary,
 };
