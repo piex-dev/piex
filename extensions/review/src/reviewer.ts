@@ -270,7 +270,11 @@ function assertFastModeSupported(
 }
 
 function injectFastModeServiceTier(payload: unknown): unknown {
-  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    Array.isArray(payload)
+  ) {
     return payload;
   }
   return { ...payload, service_tier: "priority" };
@@ -849,8 +853,29 @@ async function createIndependentReviewer(
         }
         if (ctx.signal?.aborted) throw new ReviewCancelledError();
         if (!submitted) {
+          // One final, stricter retry before failing: transient model behaviour
+          // (empty response / no tool call) is recoverable with a firmer prompt.
+          publishActivity(
+            "reasoning",
+            "final submit_review retry",
+            false,
+            true,
+          );
+          const finalPrompt =
+            "You still have not called submit_review. Call the submit_review tool now as the only tool call, with the complete report. Do not reply with plain text.";
+          recordTranscript({ kind: "prompt", stage, text: finalPrompt });
+          await session.prompt(finalPrompt);
+        }
+        if (ctx.signal?.aborted) throw new ReviewCancelledError();
+        if (!submitted) {
+          const lastAssistant = [...session.messages]
+            .reverse()
+            .find((message) => message.role === "assistant");
+          const detail = lastAssistant
+            ? JSON.stringify(lastAssistant.content).slice(0, 400)
+            : "no assistant output";
           throw new Error(
-            "Independent reviewer ended without submitting a report",
+            `Independent reviewer ended without submitting a report (last output: ${detail})`,
           );
         }
         updateTranscript(transcript, (store, runId) => {
