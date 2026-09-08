@@ -870,15 +870,18 @@ async function createIndependentReviewer(
         if (!submitted) {
           const lastAssistant = [...session.messages]
             .reverse()
-            .find((message) => message.role === "assistant");
+            .find((message) => message.role === "assistant") as
+            | { stopReason?: string; errorMessage?: string; content?: unknown }
+            | undefined;
           const detail = lastAssistant
             ? JSON.stringify(lastAssistant.content).slice(0, 400)
             : "no assistant output";
-          const stopReason = (
-            lastAssistant as { stopReason?: string } | undefined
-          )?.stopReason;
+          const stopReason = lastAssistant?.stopReason ?? "unknown";
+          const errorMessage = lastAssistant?.errorMessage
+            ? `, error: ${lastAssistant.errorMessage.slice(0, 300)}`
+            : "";
           throw new Error(
-            `Independent reviewer ended without submitting a report (stopReason: ${stopReason ?? "unknown"}, last output: ${detail})`,
+            `Independent reviewer ended without submitting a report (stopReason: ${stopReason}${errorMessage}, last output: ${detail})`,
           );
         }
         updateTranscript(transcript, (store, runId) => {
