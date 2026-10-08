@@ -30,14 +30,18 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ProviderModelConfig,
+} from "@earendil-works/pi-coding-agent";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type {
+  Api,
   AssistantMessage,
   AssistantMessageEventStream,
-  Context,
   Model,
   SimpleStreamOptions,
+  TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
@@ -76,9 +80,7 @@ const DEFAULT_MAX_TOKENS = 16384;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** Error stream with a clear message, used when no API key is configured. */
-function missingKeyStream(
-  model: Model<"openai-completions">,
-): AssistantMessageEventStream {
+function missingKeyStream(model: Model<Api>): AssistantMessageEventStream {
   const stream = createAssistantMessageEventStream();
   const output: AssistantMessage = {
     role: "assistant",
@@ -106,18 +108,22 @@ function missingKeyStream(
 }
 
 function streamGateway(
-  model: Model<"openai-completions">,
-  context: Context,
+  model: Model<Api>,
+  context: TranscriptContext,
   options?: SimpleStreamOptions,
 ): AssistantMessageEventStream {
   const apiKey = options?.apiKey?.trim();
   if (!apiKey) {
     return missingKeyStream(model);
   }
-  return openaiCompletions.streamSimple(model, context, {
-    ...options,
-    fetch: wrapGatewayFetch(apiKey),
-  });
+  return openaiCompletions.streamSimple(
+    model as Model<"openai-completions">,
+    context,
+    {
+      ...options,
+      fetch: wrapGatewayFetch(apiKey),
+    },
+  );
 }
 
 /**
@@ -162,11 +168,15 @@ export default function gatewayExtension(pi: ExtensionAPI) {
   const baseUrl = process.env.AIDP_BASE_URL?.trim();
   const jsonModelIds = readJsonModelIds();
   if (!baseUrl && !jsonModelIds) {
-    pi.ui.notify(
-      'Provider "aidp" not registered: set the AIDP_BASE_URL env var to the internal gateway endpoint, ' +
-        "or define providers.aidp in models.json.",
-      "warning",
-    );
+    // The factory runs before a session exists, so surface the warning from
+    // the first session_start instead of the removed `pi.ui` helper.
+    pi.on("session_start", (_event, ctx) => {
+      ctx.ui.notify(
+        'Provider "aidp" not registered: set the AIDP_BASE_URL env var to the internal gateway endpoint, ' +
+          "or define providers.aidp in models.json.",
+        "warning",
+      );
+    });
     return;
   }
   pi.registerProvider("aidp", {

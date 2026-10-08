@@ -437,10 +437,10 @@ export function rebuildModelsForOAuth(
     return {
       ...m,
       api:
-        (m as Record<string, unknown>).api ??
+        (m as unknown as Record<string, unknown>).api ??
         (template?.api as string | undefined) ??
         "openai-completions",
-      provider: (m as Record<string, unknown>).provider ?? provider,
+      provider: (m as unknown as Record<string, unknown>).provider ?? provider,
       baseUrl: m.baseUrl ?? effectiveBaseUrl,
     } as Record<string, unknown>;
   });

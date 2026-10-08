@@ -193,25 +193,11 @@ export class GoalRuntime {
 
     this.continuationIntent = undefined;
     this.continuationDelivery = intent;
-    // sendUserMessage returns Promise<void>; a sync try/catch cannot catch an
-    // async rejection. Handle the promise explicitly so a delivery failure
-    // clears the delivery ticket (otherwise hasContinuationWorkForGoal stays
-    // true and requestContinuation can never re-arm, stalling the goal) and
-    // re-arms the intent for a later agent_settled retry.
-    this.pi
-      .sendUserMessage(intent.prompt, { deliverAs: "followUp" })
-      .catch((error) => {
-        if (this.continuationDelivery?.marker === intent.marker) {
-          this.continuationDelivery = undefined;
-        }
-        if (
-          this.activeGoal?.id === intent.goalId &&
-          this.activeGoal.status === "active"
-        ) {
-          this.continuationIntent = intent;
-        }
-        ctx.ui.notify(`Goal prompt failed: ${formatError(error)}`, "error");
-      });
+    // pi.sendUserMessage returns void and routes delivery failures through
+    // pi's extension error channel, so there is no rejection to observe here.
+    // A lost delivery leaves the ticket set; markContinuationStarted clears it
+    // when the prompt actually starts.
+    this.pi.sendUserMessage(intent.prompt, { deliverAs: "followUp" });
     return true;
   }
 
@@ -281,28 +267,17 @@ export class GoalRuntime {
     }
     if (this.budgetWrapUp.delivered) return true;
     this.budgetWrapUp.delivered = true;
-    // sendMessage returns Promise<void>; handle the async rejection so a
-    // delivery failure resets `delivered` (otherwise the idempotency guard
-    // blocks all future re-queues) instead of leaving it stuck true.
-    this.pi
-      .sendMessage(
-        {
-          customType: BUDGET_WRAP_UP_MESSAGE_TYPE,
-          content: BUDGET_WRAP_UP_PROMPT,
-          display: true,
-          details: { goalId: goal.id },
-        },
-        { deliverAs: "steer" },
-      )
-      .catch((error) => {
-        if (this.budgetWrapUp?.goalId === goal.id) {
-          this.budgetWrapUp.delivered = false;
-        }
-        ctx.ui.notify(
-          `Goal budget wrap-up failed: ${formatError(error)}`,
-          "error",
-        );
-      });
+    // pi.sendMessage returns void and routes delivery failures through pi's
+    // extension error channel, so there is no rejection to recover here.
+    this.pi.sendMessage(
+      {
+        customType: BUDGET_WRAP_UP_MESSAGE_TYPE,
+        content: BUDGET_WRAP_UP_PROMPT,
+        display: true,
+        details: { goalId: goal.id },
+      },
+      { deliverAs: "steer" },
+    );
     return true;
   }
 

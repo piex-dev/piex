@@ -191,7 +191,7 @@ function formatError(error: unknown): string {
 
 interface SideQuestionAuth {
   apiKey?: string;
-  headers?: Record<string, string>;
+  headers?: Record<string, string | null>;
   env?: Record<string, string>;
 }
 
@@ -201,7 +201,7 @@ interface BtwModelRegistry {
     | {
         ok: true;
         apiKey?: string;
-        headers?: Record<string, string>;
+        headers?: Record<string, string | null>;
         env?: Record<string, string>;
       }
     | { ok: false; error: string }

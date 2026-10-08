@@ -18,6 +18,8 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type {
+  Api,
+  Model,
   OAuthCredentials,
   OAuthLoginCallbacks,
 } from "@earendil-works/pi-ai";
@@ -473,6 +475,7 @@ export function isOAuthUnauthorized(body: string, status: number): boolean {
 
 async function refreshXAIToken(
   credentials: OAuthCredentials,
+  signal?: AbortSignal,
 ): Promise<OAuthCredentials> {
   if (typeof credentials.refresh !== "string" || !credentials.refresh.trim()) {
     throw new OAuthError("missing refresh_token");
@@ -496,7 +499,9 @@ async function refreshXAIToken(
       client_id: XAI_OAUTH_CLIENT_ID,
       refresh_token: credentials.refresh,
     }),
-    signal: AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS)])
+      : AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
@@ -604,8 +609,11 @@ export default async function xaiOAuthExtension(pi: ExtensionAPI) {
       refreshToken: refreshXAIToken,
       getApiKey: (cred: OAuthCredentials) => cred.access,
 
-      modifyModels(models: unknown, credentials: unknown) {
-        const creds = credentials as Record<string, unknown>;
+      modifyModels(
+        models: Model<Api>[],
+        credentials: OAuthCredentials,
+      ): Model<Api>[] {
+        const creds = credentials as unknown as Record<string, unknown>;
         const effectiveBaseUrl = String(
           creds.baseUrl ?? XAI_PUBLIC_BASE_URL,
         ).replace(/\/+$/, "");
@@ -617,10 +625,10 @@ export default async function xaiOAuthExtension(pi: ExtensionAPI) {
         }
 
         return rebuildModelsForOAuth(
-          models as Array<Record<string, unknown>>,
+          models as unknown as Array<Record<string, unknown>>,
           "xai-oauth",
           effectiveBaseUrl,
-        );
+        ) as unknown as Model<Api>[];
       },
     },
   });
