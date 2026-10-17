@@ -104,7 +104,11 @@ describe("usage: cross-session provider tracking", () => {
     expect(statuses.usage).toContain("KIMI-QUOTA");
 
     // switch to a provider with no adapter (e.g. openai-compatible unknown)
-    await pi.emit("model_select", { model: { provider: "unknown-provider" } }, makeCtx("unknown-provider", statuses));
+    await pi.emit(
+      "model_select",
+      { model: { provider: "unknown-provider" } },
+      makeCtx("unknown-provider", statuses),
+    );
     expect(statuses.usage).toBeUndefined();
   });
 
@@ -125,7 +129,11 @@ describe("usage: cross-session provider tracking", () => {
       };
       await pi.emit("session_start", {}, makeCtx("deepseek", statuses));
       expect(captured).toBe("deepseek");
-      await pi.emit("model_select", { model: { provider: "deepseek-coding" } }, makeCtx("deepseek-coding", statuses));
+      await pi.emit(
+        "model_select",
+        { model: { provider: "deepseek-coding" } },
+        makeCtx("deepseek-coding", statuses),
+      );
       expect(captured).toBe("deepseek-coding");
     } finally {
       deepseekAdapter.providerIds = originalIds;

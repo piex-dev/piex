@@ -85,7 +85,7 @@ transcript 只记录发给 reviewer 的任务、assistant 可见文本、工具�
 
 Agent 通常只需调用 `{ action: "auto" }`。为脚本或高级工作流保留：
 
-- `diff`：`HEAD` 到工作区（含 staged / unstaged / untracked；unignored 的凭据类 untracked 文件如 `.env`、`.npmrc`、私钥等会自动排除，内容不会发往 reviewer）
+- `diff`：`HEAD` 到工作区（含 staged / unstaged / untracked；凭据类文件如 `.env`（大小写不敏感）、`.npmrc`、`.aws/credentials`、私钥等，无论 tracked / staged / untracked / 改名前后都从 diff 排除，reviewer 的 `read` / `grep` / `find` / `ls` 也会拒绝或过滤这些路径（含 rename 后的目标路径）；`.env.example` 等模板除外，内容不会发往 reviewer）
 - `staged`：仅暂存区
 - `branch`：相对指定 `base` 的当前工作
 - `commit`：指定 `commit`（单仓；merge commit 相对第一父提交评审）
@@ -121,7 +121,7 @@ finding 文件路径先按仓库相对路径精确匹配；只有精确匹配失
 冒烟测试：
 
 ```bash
-pi -e ./extensions/review/src/review-v2.ts -p "what is 1+1" --no-session
+pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session
 ```
 
 ## 依赖

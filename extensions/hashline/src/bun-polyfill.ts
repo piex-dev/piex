@@ -123,7 +123,7 @@ _Bun.sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Inject Bun global BEFORE any hashline import
 // ---------------------------------------------------------------------------
 
-if (typeof globalThis.Bun === "undefined") {
+if (typeof (globalThis as { Bun?: unknown }).Bun === "undefined") {
   (globalThis as unknown as Record<string, unknown>).Bun = _Bun;
 }
 

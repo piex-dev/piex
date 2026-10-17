@@ -131,7 +131,7 @@ Agent 通常使用 `{ action: "auto" }`。高级工具参数还包括 `repo` / `
 ### 验证
 
 ```bash
-pi -e ./extensions/review/src/review-v2.ts -p "what is 1+1" --no-session
+pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session
 ```
 
 ## 实现方案
@@ -140,7 +140,7 @@ pi -e ./extensions/review/src/review-v2.ts -p "what is 1+1" --no-session
 
 ### 噪声过滤（EXCLUDED_PATTERNS）
 
-自动排除 lock、构建产物、vendor、生成物、媒体与二进制。过滤发生在 diff chunk 层，`filteredDiff` 是 reviewer 唯一可见的 patch；原始 diff 只留作本地诊断，避免“列表说排除了、prompt 实际仍包含”的假过滤。
+自动排除 lock、构建产物、vendor、生成物、媒体与二进制。过滤发生在 diff chunk 层，`filteredDiff` 是 reviewer 唯一可见的 patch；原始 diff 只留作本地诊断，避免“列表说排除了、prompt 实际仍包含”的假过滤。凭据类文件（`.env`、`.npmrc`、`.docker/config.json`、`.aws/credentials`、`.git-credentials`、`id_rsa`、`*.pem` 等）同样在 tracked、staged、committed 与 untracked 四种来源上物理剔除；路径匹配大小写不敏感，rename chunk 同时检查改名前后两侧，`.env.example` / `.env.sample` / `.env.template` / `.env.dist` 等模板保留可评审。`credentialFileReason()` 是 diff、文件 guard 与工具结果过滤共用的唯一判定入口。
 
 ### Diff 解析
 
@@ -148,7 +148,7 @@ pi -e ./extensions/review/src/review-v2.ts -p "what is 1+1" --no-session
 
 ### 独立 reviewer 与只读工具
 
-每个 reviewer 通过 `createAgentSession` 新建内存 session，关闭 extensions、skills、templates、themes 和自动 system/context 注入，只开放 `read` / `grep` / `find` / `ls`、精确返回冻结 patch 的 `review_diff`，以及强类型终止工具 `submit_review`。reviewer 被明确要求将其作为最终工具批次的唯一调用；成功提交会返回 `terminate: true`，让该批次直接结束，不再额外请求模型一轮。仓库约束由 reviewer 通过只读工具显式读取，因此不能覆盖 reviewer 的系统角色；reviewer 也不能写文件或运行命令。小 diff 直接内嵌；大 diff 必须逐文件读取，避免截断后仍误报“已覆盖”。
+每个 reviewer 通过 `createAgentSession` 新建内存 session，关闭 extensions、skills、templates、themes 和自动 system/context 注入，只开放 `read` / `grep` / `find` / `ls`、精确返回冻结 patch 的 `review_diff`，以及强类型终止工具 `submit_review`。文件工具的路径 guard 除限制在评审仓库内，还会拒绝凭据类路径（含 symlink 解析后的目标，以及 diff 中被排除的 rename 目标路径）；`grep` / `find` / `ls` 的目录级输出再按仓库相对路径逐行过滤，防止模型绕过 diff 通过递归搜索读回凭据文件。reviewer 被明确要求将其作为最终工具批次的唯一调用；成功提交会返回 `terminate: true`，让该批次直接结束，不再额外请求模型一轮。仓库约束由 reviewer 通过只读工具显式读取，因此不能覆盖 reviewer 的系统角色；reviewer 也不能写文件或运行命令。小 diff 直接内嵌；大 diff 必须逐文件读取，避免截断后仍误报“已覆盖”。
 
 主流程订阅每个独立 session 的 lifecycle、message 类型与 tool execution 事件，并归约成按角色隔离的进度快照。并行 lead/specialist 不会互相覆盖；完成状态不会被尾随 activity 改写，只有进入 adjudication 时的显式新一轮事件才能重新激活 lead。每秒 heartbeat 即使在长时间 reasoning 期间也会刷新耗时。路径在展示前会移除控制字符并截断，grep pattern、thinking delta 与 text delta 不进入紧凑进度输出。
 

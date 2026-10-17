@@ -50,9 +50,11 @@ export function parseJsonModelIds(raw: string): string[] | undefined {
  * Numeric segments keep their hyphen (`5.6`), letter segments are spaced.
  */
 export function modelDisplayName(id: string): string {
-  const words = id.split("-").map((part) =>
-    part === "gpt" ? "GPT" : part.charAt(0).toUpperCase() + part.slice(1),
-  );
+  const words = id
+    .split("-")
+    .map((part) =>
+      part === "gpt" ? "GPT" : part.charAt(0).toUpperCase() + part.slice(1),
+    );
   // Re-join numeric segments to the previous word: gpt-5.6-sol → GPT-5.6 Sol
   const out: string[] = [];
   for (const word of words) {

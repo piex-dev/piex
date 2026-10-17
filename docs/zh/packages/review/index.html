@@ -439,13 +439,16 @@
           <h3 id="verify">验证</h3>
           <div class="blog-code">
             <div class="blog-code-bar"><span>bash</span></div>
-            <pre><code>pi -e ./extensions/review/src/review-v2.ts -p "what is 1+1" --no-session</code></pre>
+            <pre><code>pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session</code></pre>
           </div>
 
           <h2 id="impl">实现方案</h2>
           <p>
             实现按 scope、diff、reviewer、finding gate、session state 与 render
-            分模块。噪声在 diff chunk 层物理剔除；范围冻结 base/head OID 与
+            分模块。噪声在 diff chunk 层物理剔除；凭据类文件（tracked/staged/committed/untracked
+            一律，路径大小写不敏感，rename 检查改名前后两侧）也从 diff
+            剔除；<code>.env.example</code>/<code>.env.sample</code>/<code>.env.template</code>/<code>.env.dist</code>
+            等模板保留可评审；范围冻结 base/head OID 与
             changed ranges。reviewer 返回后会重新采集 diff 并比较
             hash；一次变化会触发基于最新快照的有界自动重跑，若重跑期间仍变化则停止，避免返回过期结果或无限消耗模型调用。每个
             reviewer 是新的内存 session，关闭 extensions/skills/templates/themes
@@ -454,7 +457,10 @@
             <code>read</code
             >/<code>grep</code>/<code>find</code>/<code>ls</code>、精确读取冻结
             patch 的 <code>review_diff</code> 和强类型
-            <code>submit_review</code>。reviewer
+            <code>submit_review</code>。文件工具的路径 guard
+            会拒绝凭据类路径（含 rename 目标），grep/find/ls
+            的目录扫描结果再按仓库相对路径过滤，防止绕过 diff
+            通过递归搜索读回凭据。reviewer
             被明确要求将其作为最终工具批次的唯一调用；成功提交会返回
             <code>terminate: true</code
             >，让该批次直接结束，不再额外请求模型一轮。reviewer

@@ -29,7 +29,10 @@ import * as path from "node:path";
 // ══════════════════════════════════════════════════════════════════════════
 
 const TEA_APP_ID = process.env.TEA_APP_ID || "1220";
-const TEA_CHANNEL = process.env.TEA_CHANNEL || "cn";
+const TEA_CHANNEL: "cn" | "sg" | "va" =
+  process.env.TEA_CHANNEL === "sg" || process.env.TEA_CHANNEL === "va"
+    ? process.env.TEA_CHANNEL
+    : "cn";
 
 let _sdk: TeaSDK | null = null;
 
@@ -72,6 +75,18 @@ function debugParams(
   return safe;
 }
 
+/**
+ * TeaSDK keeps `userFields` between reports and composes events with them.
+ * `config({ user: undefined })` is an Object.assign no-op, so an anonymous
+ * session would inherit the previous session's id. A falsy user_unique_id
+ * resets that state and is normalized to "anonymous" by the SDK.
+ */
+export function reportUser(userId: string | undefined): {
+  user_unique_id: string;
+} {
+  return { user_unique_id: userId ?? "" };
+}
+
 function report(
   event: string,
   params: Record<string, unknown>,
@@ -81,11 +96,12 @@ function report(
   debugLog("report", debugParams(event, params, uuid));
   try {
     const sdk = getSdk();
-    sdk.config({ user: { user_unique_id: userId } });
+    const user = reportUser(userId);
+    sdk.config({ user });
     sdk.collect(
       event,
       { ...params, uuid, app_name_for_bits: "piex" },
-      { user: { user_unique_id: userId } },
+      { user },
     );
   } catch (e) {
     debugLog("report_error", {

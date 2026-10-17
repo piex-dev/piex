@@ -227,7 +227,7 @@ function getMatchingAdapters(
   const extension = path.extname(program).toLowerCase();
   const available = getAvailableAdapters(cwd);
   if (!extension) {
-    const nativeDebuggers = new Set(EXTENSIONLESS_DEBUGGER_ORDER);
+    const nativeDebuggers = new Set<string>(EXTENSIONLESS_DEBUGGER_ORDER);
     return available.filter(
       (adapter) =>
         nativeDebuggers.has(adapter.name) ||

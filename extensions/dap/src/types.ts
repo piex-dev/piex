@@ -28,6 +28,12 @@ export interface DapResponseMessage extends DapProtocolMessage {
   body?: unknown;
 }
 
+export interface DapEventMessage extends DapProtocolMessage {
+  type: "event";
+  event: string;
+  body?: unknown;
+}
+
 export interface DapErrorBody {
   id?: number;
   format: string;

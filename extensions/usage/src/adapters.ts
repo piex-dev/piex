@@ -30,9 +30,7 @@ export interface AdapterFetchContext {
   /** Active model identity, used for feature matching and origin validation. */
   model?: { provider?: string; id?: string; baseUrl?: string };
   modelRegistry: {
-    getProviderAuth(
-      provider: string,
-    ): Promise<
+    getProviderAuth(provider: string): Promise<
       | {
           auth?: {
             apiKey?: string;
@@ -96,11 +94,17 @@ function parseResetMs(value: unknown): number | undefined {
 }
 
 function formatResetTime(ms: number): string {
-  return new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  return new Date(ms).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 /** Resolve the raw token via pi auth for the first provider that has one. */
-async function resolveBearer(ctx: AdapterFetchContext, providers: string[]): Promise<string> {
+async function resolveBearer(
+  ctx: AdapterFetchContext,
+  providers: string[],
+): Promise<string> {
   for (const provider of providers) {
     const auth = await ctx.modelRegistry.getProviderAuth(provider);
     const headers = auth?.auth?.headers ?? {};
@@ -109,7 +113,9 @@ async function resolveBearer(ctx: AdapterFetchContext, providers: string[]): Pro
     const token = authHeader ? authHeader.replace(/^Bearer\s+/i, "") : apiKey;
     if (token) return token;
   }
-  throw new Error(`no ${providers.join("/")} credential; run /login or set the API key`);
+  throw new Error(
+    `no ${providers.join("/")} credential; run /login or set the API key`,
+  );
 }
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -119,11 +125,21 @@ async function resolveBearer(ctx: AdapterFetchContext, providers: string[]): Pro
 
 interface KimiUsageLimit {
   window?: { duration?: number; timeUnit?: string };
-  detail?: { limit?: number; used?: number; remaining?: number; resetTime?: string };
+  detail?: {
+    limit?: number;
+    used?: number;
+    remaining?: number;
+    resetTime?: string;
+  };
 }
 
 interface KimiUsagesPayload {
-  usage?: { limit?: number; used?: number; remaining?: number; resetTime?: string };
+  usage?: {
+    limit?: number;
+    used?: number;
+    remaining?: number;
+    resetTime?: string;
+  };
   limits?: KimiUsageLimit[];
   parallel?: { limit?: number };
   user?: { membership?: { level?: string } };
@@ -148,7 +164,10 @@ export const kimiAdapter: QuotaAdapter = {
   async fetch(ctx) {
     const token = await resolveBearer(ctx, ["kimi-coding"]);
     const res = await fetch("https://api.kimi.com/coding/v1/usages", {
-      headers: { Authorization: `Bearer ${token}`, "User-Agent": "KimiCLI/1.6" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "User-Agent": "KimiCLI/1.6",
+      },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`kimi usages API returned ${res.status}`);
@@ -221,7 +240,10 @@ interface XaiBillingPayload {
 const XAI_BILLING_URL = "https://cli-chat-proxy.grok.com/v1/billing";
 const XAI_PROVIDERS = ["xai", "xai-oauth"];
 
-async function fetchXaiBilling(token: string, format?: string): Promise<XaiBillingPayload> {
+async function fetchXaiBilling(
+  token: string,
+  format?: string,
+): Promise<XaiBillingPayload> {
   const url = format ? `${XAI_BILLING_URL}?format=${format}` : XAI_BILLING_URL;
   const res = await fetch(url, {
     headers: {
@@ -246,7 +268,9 @@ export const xaiAdapter: QuotaAdapter = {
     try {
       weeklyPayload = await fetchXaiBilling(token, "credits");
     } catch (err) {
-      throw new Error(`xai billing API unavailable: ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(
+        `xai billing API unavailable: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     const config = weeklyPayload.config ?? {};
@@ -276,7 +300,10 @@ export const xaiAdapter: QuotaAdapter = {
     // Best-effort monthly unified billing — separate endpoint, failure is
     // non-fatal. Off by default: the official console does not show this
     // figure, so it may confuse. Enable with USAGE_SHOW_XAI_MONTHLY=1.
-    if (config.isUnifiedBillingUser && process.env.USAGE_SHOW_XAI_MONTHLY === "1") {
+    if (
+      config.isUnifiedBillingUser &&
+      process.env.USAGE_SHOW_XAI_MONTHLY === "1"
+    ) {
       try {
         const monthlyPayload = await fetchXaiBilling(token);
         const monthly = monthlyPayload?.config;
@@ -287,9 +314,12 @@ export const xaiAdapter: QuotaAdapter = {
           segments.push({
             text: `1-Month:${percent(used, limit)}%`,
             ratio: limit > 0 ? used / limit : 0,
-            countdownMs: monthlyEnd !== undefined ? monthlyEnd - Date.now() : undefined,
+            countdownMs:
+              monthlyEnd !== undefined ? monthlyEnd - Date.now() : undefined,
           });
-          detail.push(`1-Month: ${used}/${limit} units (${percent(used, limit)}%)`);
+          detail.push(
+            `1-Month: ${used}/${limit} units (${percent(used, limit)}%)`,
+          );
           if (monthlyEnd !== undefined) {
             detail.push(`  resets ${formatResetTime(monthlyEnd)}`);
           }
@@ -299,7 +329,8 @@ export const xaiAdapter: QuotaAdapter = {
       }
     }
 
-    if (segments.length === 0) throw new Error("xai billing payload has no quota data");
+    if (segments.length === 0)
+      throw new Error("xai billing payload has no quota data");
     return { segments, detail };
   },
 };
@@ -355,10 +386,9 @@ function readGitHubToken(): string | undefined {
         ? join(homedir(), configuredAgentDir.slice(2))
         : configuredAgentDir
       : join(homedir(), ".pi", "agent");
-    const auth = JSON.parse(readFileSync(join(agentDir, "auth.json"), "utf8")) as Record<
-      string,
-      { refresh?: string }
-    >;
+    const auth = JSON.parse(
+      readFileSync(join(agentDir, "auth.json"), "utf8"),
+    ) as Record<string, { refresh?: string }>;
     return auth["github-copilot"]?.refresh;
   } catch {
     return undefined;
@@ -373,8 +403,11 @@ export const copilotAdapter: QuotaAdapter = {
   async fetch(ctx) {
     // Copilot token carries the SKU; pi auto-refreshes it via copilot_internal.
     const auth = await ctx.modelRegistry.getProviderAuth(COPILOT_PROVIDER);
-    const copilotToken = auth?.auth?.apiKey ?? auth?.auth?.headers?.["Authorization"]?.replace(/^Bearer\s+/i, "");
-    if (!copilotToken) throw new Error("no github-copilot credential; run /login");
+    const copilotToken =
+      auth?.auth?.apiKey ??
+      auth?.auth?.headers?.["Authorization"]?.replace(/^Bearer\s+/i, "");
+    if (!copilotToken)
+      throw new Error("no github-copilot credential; run /login");
 
     const sku = copilotSku(copilotToken);
     const segments: AdapterSegment[] = [];
@@ -405,7 +438,9 @@ export const copilotAdapter: QuotaAdapter = {
               text: "Copilot limited",
               ratio: 1,
               countdownMs:
-                resetMs !== undefined && Number.isFinite(resetMs) ? resetMs - Date.now() : undefined,
+                resetMs !== undefined && Number.isFinite(resetMs)
+                  ? resetMs - Date.now()
+                  : undefined,
             });
             detail.push("limited-user quota active");
             detail.push(`  reset ${formatResetTime(resetMs ?? Date.now())}`);
@@ -463,7 +498,10 @@ function currencySymbol(currency: string | undefined): string {
 }
 
 function formatAmount(value: number): string {
-  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -480,13 +518,17 @@ const DEEPSEEK_BROWSER_UA =
 
 interface CostDay {
   date: string;
-  data: Array<{ model?: string; usage?: Array<{ type?: string; amount?: unknown }> }>;
+  data: Array<{
+    model?: string;
+    usage?: Array<{ type?: string; amount?: unknown }>;
+  }>;
 }
 
 /** Sum all amounts in the monthly cost payload's days. Returns Map<date, CNY>. */
 function parseCostDays(payload: unknown): Map<string, number> {
   const out = new Map<string, number>();
-  const biz = (payload as { data?: { biz_data?: Array<{ days?: CostDay[] }> } })?.data?.biz_data;
+  const biz = (payload as { data?: { biz_data?: Array<{ days?: CostDay[] }> } })
+    ?.data?.biz_data;
   for (const entry of biz ?? []) {
     for (const day of entry.days ?? []) {
       let total = 0;
@@ -502,7 +544,11 @@ function parseCostDays(payload: unknown): Map<string, number> {
   return out;
 }
 
-async function fetchDeepseekCost(token: string, year: number, month: number): Promise<Map<string, number> | null> {
+async function fetchDeepseekCost(
+  token: string,
+  year: number,
+  month: number,
+): Promise<Map<string, number> | null> {
   const res = await fetch(`${DEEPSEEK_COST_URL}?month=${month}&year=${year}`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -565,16 +611,21 @@ export const deepseekAdapter: QuotaAdapter = {
         const now = new Date();
         const year = now.getFullYear();
         const month = now.getMonth() + 1; // 1-12
-        const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+        const prev =
+          month === 1
+            ? { year: year - 1, month: 12 }
+            : { year, month: month - 1 };
         const maps = await Promise.all([
           fetchDeepseekCost(platformToken, year, month),
           fetchDeepseekCost(platformToken, prev.year, prev.month),
         ]);
         const dayCost = new Map<string, number>();
         for (const m of maps) {
-          if (m) for (const [k, v] of m) dayCost.set(k, (dayCost.get(k) ?? 0) + v);
+          if (m)
+            for (const [k, v] of m) dayCost.set(k, (dayCost.get(k) ?? 0) + v);
         }
-        const key = (offset: number): string => dayKey(now.getTime() - offset * 86_400_000);
+        const key = (offset: number): string =>
+          dayKey(now.getTime() - offset * 86_400_000);
         let today = 0;
         let d7 = 0;
         let d30 = 0;
@@ -587,27 +638,35 @@ export const deepseekAdapter: QuotaAdapter = {
         segments.push({ text: `今${fmt(today)} 7d${fmt(d7)} 30d${fmt(d30)}` });
         detail.push("cost (official, platform.deepseek.com):");
         detail.push(`  today ${fmt(today)} / 7d ${fmt(d7)} / 30d ${fmt(d30)}`);
-        const recent = [...dayCost.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 7);
+        const recent = [...dayCost.entries()]
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .slice(0, 7);
         for (const [date, v] of recent) detail.push(`  ${date} ${fmt(v)}`);
       } catch {
         // token expired / WAF — degrade to balance-only with a hint
         segments.push({ text: "token失效", tone: "warning" });
-        detail.push("cost: DEEPSEEK_PLATFORM_TOKEN invalid or expired — refresh it from platform.deepseek.com devtools");
+        detail.push(
+          "cost: DEEPSEEK_PLATFORM_TOKEN invalid or expired — refresh it from platform.deepseek.com devtools",
+        );
       }
     } else {
-      detail.push("cost: set DEEPSEEK_PLATFORM_TOKEN (platform.deepseek.com devtools → Authorization) to show official billing");
+      detail.push(
+        "cost: set DEEPSEEK_PLATFORM_TOKEN (platform.deepseek.com devtools → Authorization) to show official billing",
+      );
     }
 
     // Balance last: 充值余额:¥xx（消费在前、余额在后）
     for (const b of balances) {
       // Money thresholds: below ¥20 warn, below ¥5 error.
       const tone = b.total < 5 ? "error" : b.total < 20 ? "warning" : undefined;
-      segments.push({ text: `充值余额:${b.symbol}${formatAmount(b.total)}`, tone });
+      segments.push({
+        text: `充值余额:${b.symbol}${formatAmount(b.total)}`,
+        tone,
+      });
     }
     return { segments, detail };
   },
 };
-
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Zhipu GLM (智谱) — GET {open.bigmodel.cn|api.z.ai}/api/monitor/usage/quota/limit
@@ -655,7 +714,8 @@ export const zhipuAdapter: QuotaAdapter = {
     });
     if (!res.ok) throw new Error(`zhipu quota API returned ${res.status}`);
     const payload = (await res.json()) as ZhipuQuotaPayload;
-    if (payload.success === false) throw new Error(`zhipu quota API: ${payload.msg ?? "unknown error"}`);
+    if (payload.success === false)
+      throw new Error(`zhipu quota API: ${payload.msg ?? "unknown error"}`);
     const data = payload.data;
     if (!data) throw new Error("zhipu quota payload has no data");
 
@@ -685,7 +745,10 @@ export const zhipuAdapter: QuotaAdapter = {
       else if (!weekly) weekly = item;
     }
 
-    const pushWindow = (label: string, item: ZhipuQuotaLimit | undefined): void => {
+    const pushWindow = (
+      label: string,
+      item: ZhipuQuotaLimit | undefined,
+    ): void => {
       if (!item) return;
       const used = item.percentage ?? 0;
       const reset = parseResetMs(item.nextResetTime);
@@ -699,7 +762,8 @@ export const zhipuAdapter: QuotaAdapter = {
     };
     pushWindow("5-Hour", fiveHour);
     pushWindow("7-Day", weekly);
-    if (segments.length === 0) throw new Error("zhipu quota payload has no limits");
+    if (segments.length === 0)
+      throw new Error("zhipu quota payload has no limits");
     return { segments, detail };
   },
 };
@@ -733,26 +797,41 @@ export const minimaxAdapter: QuotaAdapter = {
 
   async fetch(ctx) {
     const token = await resolveBearer(ctx, ["minimax-cn", "minimax"]);
-    const host = ctx.provider === "minimax" ? "https://api.minimax.io" : "https://api.minimaxi.com";
+    const host =
+      ctx.provider === "minimax"
+        ? "https://api.minimax.io"
+        : "https://api.minimaxi.com";
     const res = await fetch(`${host}/v1/api/openplatform/coding_plan/remains`, {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`minimax remains API returned ${res.status}`);
     const payload = (await res.json()) as MiniMaxRemainsPayload;
     const baseResp = payload.base_resp;
     if (baseResp && baseResp.status_code !== 0) {
-      throw new Error(`minimax remains API: ${baseResp.status_msg ?? `code ${baseResp.status_code}`}`);
+      throw new Error(
+        `minimax remains API: ${baseResp.status_msg ?? `code ${baseResp.status_code}`}`,
+      );
     }
 
     const segments: AdapterSegment[] = [];
     const detail: string[] = [];
     detail.push("MiniMax coding plan");
 
-    const item = (payload.model_remains ?? []).find((m) => m.model_name === "general");
-    if (!item) throw new Error("minimax remains payload has no 'general' entry");
+    const item = (payload.model_remains ?? []).find(
+      (m) => m.model_name === "general",
+    );
+    if (!item)
+      throw new Error("minimax remains payload has no 'general' entry");
 
-    const pushWindow = (label: string, remainPct: number | undefined, reset: unknown): void => {
+    const pushWindow = (
+      label: string,
+      remainPct: number | undefined,
+      reset: unknown,
+    ): void => {
       if (remainPct === undefined) return;
       const used = Math.max(0, 100 - remainPct);
       const resetMs = parseResetMs(reset);
@@ -761,13 +840,24 @@ export const minimaxAdapter: QuotaAdapter = {
         ratio: used / 100,
         countdownMs: resetMs !== undefined ? resetMs - Date.now() : undefined,
       });
-      detail.push(`${label}: ${Math.round(used)}% used (${Math.round(remainPct)}% remaining)`);
-      if (resetMs !== undefined) detail.push(`  reset ${formatResetTime(resetMs)}`);
+      detail.push(
+        `${label}: ${Math.round(used)}% used (${Math.round(remainPct)}% remaining)`,
+      );
+      if (resetMs !== undefined)
+        detail.push(`  reset ${formatResetTime(resetMs)}`);
     };
-    pushWindow("5-Hour", item.current_interval_remaining_percent, item.end_time);
+    pushWindow(
+      "5-Hour",
+      item.current_interval_remaining_percent,
+      item.end_time,
+    );
     // Weekly bucket only exists when current_weekly_status == 1 (tolerate string).
     if (Number(item.current_weekly_status) === 1) {
-      pushWindow("7-Day", item.current_weekly_remaining_percent, item.weekly_end_time);
+      pushWindow(
+        "7-Day",
+        item.current_weekly_remaining_percent,
+        item.weekly_end_time,
+      );
     }
     return { segments, detail };
   },
@@ -793,7 +883,8 @@ export const openrouterAdapter: QuotaAdapter = {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) throw new Error(`openrouter credits API returned ${res.status}`);
+    if (!res.ok)
+      throw new Error(`openrouter credits API returned ${res.status}`);
     const payload = (await res.json()) as OpenRouterCreditsPayload;
     const data = payload.data;
     if (!data) throw new Error("openrouter credits payload has no data");
@@ -802,8 +893,10 @@ export const openrouterAdapter: QuotaAdapter = {
     const used = toNumber(data.total_usage) ?? 0;
     const remaining = Math.max(0, total - used);
     // Credit thresholds in USD: below $10 warn, below $2 error.
-    const tone = remaining < 2 ? "error" : remaining < 10 ? "warning" : undefined;
-    const fmt = (n: number): string => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const tone =
+      remaining < 2 ? "error" : remaining < 10 ? "warning" : undefined;
+    const fmt = (n: number): string =>
+      `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return {
       segments: [{ text: `余额:${fmt(remaining)}`, tone }],
       detail: [
@@ -864,11 +957,15 @@ interface CodexFeatureWindow {
 }
 
 function codexRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return undefined;
   return value as Record<string, unknown>;
 }
 
-function sanitizeCodexText(value: unknown, maxLength = 160): string | undefined {
+function sanitizeCodexText(
+  value: unknown,
+  maxLength = 160,
+): string | undefined {
   if (typeof value !== "string") return undefined;
   const text = value
     .replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
@@ -879,7 +976,10 @@ function sanitizeCodexText(value: unknown, maxLength = 160): string | undefined 
 }
 
 /** Window label from limit_window_seconds: 18_000→5H, 604_800→7D. */
-function codexWindowLabel(seconds: number | undefined, fallback = "Limit"): string {
+function codexWindowLabel(
+  seconds: number | undefined,
+  fallback = "Limit",
+): string {
   if (seconds === undefined || seconds <= 0) return fallback;
   const totalMin = Math.max(1, Math.round(seconds / 60));
   if (totalMin % 1440 === 0) return `${totalMin / 1440}D`;
@@ -893,7 +993,9 @@ function codexUsedPercent(value: unknown): number | undefined {
   return Math.min(100, Math.max(0, used));
 }
 
-function codexResetMs(window: CodexRateLimitWindow | undefined): number | undefined {
+function codexResetMs(
+  window: CodexRateLimitWindow | undefined,
+): number | undefined {
   if (!window) return undefined;
   const resetAt = parseResetMs(window.reset_at);
   if (resetAt !== undefined && resetAt > 0) return resetAt;
@@ -920,7 +1022,9 @@ function codexFeatureLabel(name: string): string {
 
 function codexWindowSeconds(window: CodexRateLimitWindow): number {
   const seconds = toNumber(window.limit_window_seconds);
-  return seconds !== undefined && seconds > 0 ? seconds : Number.MAX_SAFE_INTEGER;
+  return seconds !== undefined && seconds > 0
+    ? seconds
+    : Number.MAX_SAFE_INTEGER;
 }
 
 interface CodexMeteredFeature {
@@ -973,7 +1077,9 @@ function codexPushWindow(
     countdownMs: resetMs !== undefined ? resetMs - Date.now() : undefined,
   });
   detail.push(`${position} limit: ${Math.round(used)}% used`);
-  detail.push(`  window ${label}${resetMs !== undefined ? ` · resets ${formatResetTime(resetMs)}` : ""}`);
+  detail.push(
+    `  window ${label}${resetMs !== undefined ? ` · resets ${formatResetTime(resetMs)}` : ""}`,
+  );
 }
 
 /** Preserve both windows for every additional feature limit. */
@@ -993,7 +1099,8 @@ function codexAdditionalEntries(item: unknown): CodexFeatureWindow[] {
     ["primary_window", "Primary"],
     ["secondary_window", "Secondary"],
   ] as const) {
-    const window = codexRecord(rateLimit[key]) as CodexRateLimitWindow | undefined;
+    const window = codexRecord(rateLimit[key]) as
+      CodexRateLimitWindow | undefined;
     if (window && codexUsedPercent(window.used_percent) !== undefined) {
       entries.push({ name, limitName, meteredFeature, position, window });
     }
@@ -1025,7 +1132,9 @@ async function resolveCodexBearer(ctx: AdapterFetchContext): Promise<string> {
   }
   const headers = auth?.headers ?? {};
   const authHeader = headers.Authorization ?? headers.authorization;
-  const token = authHeader ? authHeader.replace(/^Bearer\s+/i, "") : auth?.apiKey;
+  const token = authHeader
+    ? authHeader.replace(/^Bearer\s+/i, "")
+    : auth?.apiKey;
   if (!token) throw new Error("no openai-codex credential; run /login");
   return token;
 }
@@ -1047,7 +1156,8 @@ export const codexAdapter: QuotaAdapter = {
     });
     if (!res.ok) throw new Error(`codex usage API returned ${res.status}`);
     const rawPayload = await res.json();
-    if (!codexRecord(rawPayload)) throw new Error("codex usage response was not an object");
+    if (!codexRecord(rawPayload))
+      throw new Error("codex usage response was not an object");
     const payload = rawPayload as CodexUsagePayload;
 
     const segments: AdapterSegment[] = [];
@@ -1059,10 +1169,18 @@ export const codexAdapter: QuotaAdapter = {
     const rateLimit = rateLimitRecord as CodexRateLimitDetails | undefined;
     if (rateLimit) {
       codexPushWindow(segments, detail, "Primary", rateLimit.primary_window);
-      codexPushWindow(segments, detail, "Secondary", rateLimit.secondary_window);
+      codexPushWindow(
+        segments,
+        detail,
+        "Secondary",
+        rateLimit.secondary_window,
+      );
     }
 
-    const reachedType = sanitizeCodexText(payload.rate_limit_reached_type?.type, 80);
+    const reachedType = sanitizeCodexText(
+      payload.rate_limit_reached_type?.type,
+      80,
+    );
     const isLimited =
       rateLimit?.limit_reached === true ||
       rateLimit?.allowed === false ||
@@ -1084,13 +1202,17 @@ export const codexAdapter: QuotaAdapter = {
     const additionalEntries = rawAdditional.flatMap(codexAdditionalEntries);
     const currentModelId = ctx.model?.id;
     const statusWindowEntries = currentModelId
-      ? additionalEntries.filter((entry) => codexFeatureMatchesModel(entry, currentModelId))
+      ? additionalEntries.filter((entry) =>
+          codexFeatureMatchesModel(entry, currentModelId),
+        )
       : [];
     const tightest = [...statusWindowEntries].sort((a, b) => {
       const usedDiff =
         (codexUsedPercent(b.window.used_percent) ?? -1) -
         (codexUsedPercent(a.window.used_percent) ?? -1);
-      return usedDiff || codexWindowSeconds(a.window) - codexWindowSeconds(b.window);
+      return (
+        usedDiff || codexWindowSeconds(a.window) - codexWindowSeconds(b.window)
+      );
     })[0];
     if (tightest) {
       const used = codexUsedPercent(tightest.window.used_percent);
@@ -1110,7 +1232,9 @@ export const codexAdapter: QuotaAdapter = {
       const seconds = toNumber(entry.window.limit_window_seconds);
       const resetMs = codexResetMs(entry.window);
       const label = codexWindowLabel(seconds, entry.position);
-      detail.push(`${entry.name} ${entry.position} limit: ${Math.round(used)}% used`);
+      detail.push(
+        `${entry.name} ${entry.position} limit: ${Math.round(used)}% used`,
+      );
       detail.push(
         `  window ${label}${resetMs !== undefined ? ` · resets ${formatResetTime(resetMs)}` : ""}`,
       );
@@ -1140,21 +1264,36 @@ export const codexAdapter: QuotaAdapter = {
       detail.push("Credits: none");
     }
 
-    const resetCount = toNumber(payload.rate_limit_reset_credits?.available_count);
+    const resetCount = toNumber(
+      payload.rate_limit_reset_credits?.available_count,
+    );
     if (resetCount !== undefined && resetCount >= 0) {
       detail.push(`usage limit resets: ${Math.floor(resetCount)}`);
     }
 
-    if (segments.length === 0 && creditsFallback) segments.push(creditsFallback);
-    if (segments.length === 0) throw new Error("codex usage payload has no quota data");
+    if (segments.length === 0 && creditsFallback)
+      segments.push(creditsFallback);
+    if (segments.length === 0)
+      throw new Error("codex usage payload has no quota data");
     return { segments, detail };
   },
 };
 
-export const adapters: QuotaAdapter[] = [kimiAdapter, xaiAdapter, copilotAdapter, deepseekAdapter, zhipuAdapter, minimaxAdapter, openrouterAdapter, codexAdapter];
+export const adapters: QuotaAdapter[] = [
+  kimiAdapter,
+  xaiAdapter,
+  copilotAdapter,
+  deepseekAdapter,
+  zhipuAdapter,
+  minimaxAdapter,
+  openrouterAdapter,
+  codexAdapter,
+];
 
 /** Find the adapter matching a model provider id, or undefined. */
-export function adapterForProvider(provider: string | undefined): QuotaAdapter | undefined {
+export function adapterForProvider(
+  provider: string | undefined,
+): QuotaAdapter | undefined {
   if (!provider) return undefined;
   return adapters.find((a) => a.providerIds.includes(provider));
 }

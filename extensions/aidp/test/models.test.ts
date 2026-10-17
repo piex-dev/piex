@@ -49,7 +49,9 @@ describe("parseJsonModelIds", () => {
   });
 
   test("returns undefined when aidp section is absent", () => {
-    expect(parseJsonModelIds('{ "providers": { "zhipu": {} } }')).toBeUndefined();
+    expect(
+      parseJsonModelIds('{ "providers": { "zhipu": {} } }'),
+    ).toBeUndefined();
   });
 
   test("returns undefined for invalid JSON", () => {
@@ -57,7 +59,9 @@ describe("parseJsonModelIds", () => {
   });
 
   test("returns undefined for empty models array", () => {
-    expect(parseJsonModelIds('{ "providers": { "aidp": { "models": [] } } }')).toBeUndefined();
+    expect(
+      parseJsonModelIds('{ "providers": { "aidp": { "models": [] } } }'),
+    ).toBeUndefined();
   });
 });
 

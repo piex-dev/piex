@@ -63,7 +63,11 @@ function formatCountdown(ms: number): string {
   return `${minutes}m`;
 }
 
-function colorize(theme: ThemeLike, ratio: number | undefined, text: string): string {
+function colorize(
+  theme: ThemeLike,
+  ratio: number | undefined,
+  text: string,
+): string {
   // Normal segments are dimmed to match the footer's base style; only
   // warning/error ratios get colored so alerts stand out.
   if (ratio === undefined) return theme.fg("dim", text);
@@ -76,7 +80,9 @@ function renderStatus(theme: ThemeLike): string {
   if (!activeSnapshot) return theme.fg("dim", "Usage: loading…");
   const body = activeSnapshot.segments
     .map((seg) => {
-      const text = seg.tone ? theme.fg(seg.tone, seg.text) : colorize(theme, seg.ratio, seg.text);
+      const text = seg.tone
+        ? theme.fg(seg.tone, seg.text)
+        : colorize(theme, seg.ratio, seg.text);
       if (seg.countdownMs === undefined) return text;
       return `${text}🕙${theme.fg("dim", formatCountdown(seg.countdownMs))}`;
     })
@@ -96,7 +102,10 @@ async function refresh(ctx: CtxLike): Promise<void> {
     return;
   }
   try {
-    const snapshot = await adapter.fetch({ ...ctx, provider: activeProvider ?? "" });
+    const snapshot = await adapter.fetch({
+      ...ctx,
+      provider: activeProvider ?? "",
+    });
     if (activeAdapter !== adapter) return; // stale: model switched mid-flight
     activeSnapshot = snapshot;
     lastError = null;
@@ -157,9 +166,14 @@ export default function usageExtension(pi: ExtensionAPI): void {
   });
 
   const pollSeconds = Number(process.env.USAGE_POLL_SECONDS ?? 300);
-  pollTimer = setInterval(() => {
-    if (activeAdapter && latestCtx) void refresh(latestCtx);
-  }, Number.isFinite(pollSeconds) && pollSeconds > 0 ? pollSeconds * 1000 : 300_000);
+  pollTimer = setInterval(
+    () => {
+      if (activeAdapter && latestCtx) void refresh(latestCtx);
+    },
+    Number.isFinite(pollSeconds) && pollSeconds > 0
+      ? pollSeconds * 1000
+      : 300_000,
+  );
 
   // Local countdown ticker — re-renders from cached reset times, no API call.
   tickTimer = setInterval(tickCountdown, COUNTDOWN_TICK_MS);

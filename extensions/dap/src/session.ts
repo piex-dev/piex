@@ -788,7 +788,9 @@ export class DapSessionManager {
       signal,
       timeoutMs,
     );
-    if (s.status !== "stopped") {
+    // `s.status` can flip to "stopped" while awaiting the pause request or
+    // the stop event; the cast drops the stale control-flow narrowing.
+    if ((s.status as DapSessionStatus) !== "stopped") {
       try {
         await untilAborted(signal, sp);
       } catch {

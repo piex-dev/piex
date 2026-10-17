@@ -81,7 +81,10 @@ function diagnosticReport(uri) {
     const relatedText = "const dep = ERROR_HERE;\n";
     docs.set(relatedUri, relatedText);
     report.relatedDocuments = {
-      [relatedUri]: { kind: "full", items: computeDiags(relatedUri, relatedText) },
+      [relatedUri]: {
+        kind: "full",
+        items: computeDiags(relatedUri, relatedText),
+      },
     };
   }
   return report;
@@ -278,12 +281,18 @@ function handle(msg) {
             {
               id: "mock-dyn-doc",
               method: "textDocument/diagnostic",
-              registerOptions: { identifier: "mock-dyn", workspaceDiagnostics: false },
+              registerOptions: {
+                identifier: "mock-dyn",
+                workspaceDiagnostics: false,
+              },
             },
             {
               id: "mock-dyn-ws",
               method: "textDocument/diagnostic",
-              registerOptions: { identifier: "mock-dyn-ws", workspaceDiagnostics: true },
+              registerOptions: {
+                identifier: "mock-dyn-ws",
+                workspaceDiagnostics: true,
+              },
             },
           ],
         },
@@ -294,7 +303,10 @@ function handle(msg) {
         write({
           jsonrpc: "2.0",
           method: "$/progress",
-          params: { token: "mock-load", value: { kind: "begin", title: "loading" } },
+          params: {
+            token: "mock-load",
+            value: { kind: "begin", title: "loading" },
+          },
         });
         setTimeout(() => {
           write({

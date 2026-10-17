@@ -458,14 +458,18 @@
           <h3 id="verify">Verify</h3>
           <div class="blog-code">
             <div class="blog-code-bar"><span>bash</span></div>
-            <pre><code>pi -e ./extensions/review/src/review-v2.ts -p "what is 1+1" --no-session</code></pre>
+            <pre><code>pi -e ./extensions/review/src/review.ts -p "what is 1+1" --no-session</code></pre>
           </div>
 
           <h2 id="impl">Implementation</h2>
           <p>
             Scope, diff parsing, reviewer orchestration, finding gates, session
             state, and rendering are separate modules. Noise is physically
-            removed at the diff-chunk layer; scope freezes base/head OIDs and
+            removed at the diff-chunk layer; credential-like files (tracked,
+            staged, committed, or untracked, matched case-insensitively; both
+            rename sides are checked) are removed from the diff as well;
+            <code>.env.example</code>/<code>.env.sample</code>/<code>.env.template</code>/<code>.env.dist</code>
+            templates stay reviewable; scope freezes base/head OIDs and
             changed ranges. After a reviewer returns, the diff hash is captured
             again. One change triggers a bounded restart against the latest
             snapshot; continued changes stop the run so it cannot return a stale
@@ -477,7 +481,12 @@
             <code>read</code
             >/<code>grep</code>/<code>find</code>/<code>ls</code>, the exact
             frozen-patch <code>review_diff</code> tool, and typed
-            <code>submit_review</code>. The reviewer is explicitly required to
+            <code>submit_review</code>. The file-tool path guard rejects
+            credential-like paths (including excluded rename destinations), and
+            grep/find/ls directory scans are filtered by repository-relative
+            path so recursive search cannot read credentials back around the
+            diff. The reviewer is explicitly
+            required to
             call it as the only tool in the final tool batch; a successful
             submission returns <code>terminate: true</code>, ending that batch
             without an extra model request. The reviewer cannot write files or

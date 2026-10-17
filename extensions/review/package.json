@@ -23,18 +23,19 @@
   ],
   "pi": {
     "extensions": [
-      "./src/review-v2.ts"
+      "./src/review.ts"
     ]
   },
   "exports": {
-    ".": "./src/review-v2.ts"
+    ".": "./src/review.ts"
   },
   "files": [
+    "src/credentials.ts",
     "src/diff.ts",
     "src/findings.ts",
     "src/progress.ts",
     "src/render.ts",
-    "src/review-v2.ts",
+    "src/review.ts",
     "src/reviewer.ts",
     "src/scope.ts",
     "src/state.ts",

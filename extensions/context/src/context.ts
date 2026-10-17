@@ -240,7 +240,7 @@ export default function contextExtension(pi: ExtensionAPI) {
   pi.registerCommand("context", {
     description: "Show session context usage report",
     handler: async (_args, ctx) => {
-      const entries = ctx.sessionManager.getEntries() as Array<
+      const entries = ctx.sessionManager.getEntries() as unknown as Array<
         Record<string, unknown>
       >;
 

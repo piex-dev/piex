@@ -48,6 +48,76 @@ describe("parseDiff", () => {
     expect(summary.totalRemoved).toBe(0);
   });
 
+  test("excludes credential-like chunks from tracked diffs", () => {
+    const summary = parseDiff(`diff --git a/.env b/.env
+index 1111111..2222222 100644
+--- a/.env
++++ b/.env
+@@ -1 +1 @@
+-OPENAI_API_KEY=sk-old-secret
++OPENAI_API_KEY=sk-live-secret
+diff --git a/id_rsa b/id_rsa
+index 3333333..4444444 100644
+--- a/id_rsa
++++ b/id_rsa
+@@ -1 +1 @@
+-old ssh key material
++ssh key material
+diff --git a/src/app.ts b/src/app.ts
+index 5555555..6666666 100644
+--- a/src/app.ts
++++ b/src/app.ts
+@@ -1 +1 @@
+-export const value = 1;
++export const value = 2;
+`);
+    expect(summary.files.map(({ path }) => path)).toEqual(["src/app.ts"]);
+    expect(summary.excluded.map(({ path, reason }) => [path, reason])).toEqual([
+      [".env", "credentials"],
+      ["id_rsa", "private key"],
+    ]);
+    expect(summary.filteredDiff).not.toContain("sk-live-secret");
+    expect(summary.filteredDiff).not.toContain("ssh key material");
+    expect(summary.filteredDiff).toContain("value = 2");
+  });
+
+  test("excludes rename chunks when either side is credential-like", () => {
+    const summary = parseDiff(`diff --git a/.env b/src/config.ts
+similarity index 48%
+rename from .env
+rename to src/config.ts
+--- a/.env
++++ b/src/config.ts
+@@ -1,2 +1,2 @@
+-OPENAI_API_KEY=sk-old-secret
++OPENAI_API_KEY=sk-renamed-secret
+ KEEP=1
+`);
+    expect(summary.files).toEqual([]);
+    expect(summary.excluded).toMatchObject([
+      { path: ".env -> src/config.ts", reason: "credentials" },
+    ]);
+    expect(summary.filteredDiff).not.toContain("sk-renamed-secret");
+  });
+
+  test("excludes renames into a credential path", () => {
+    const summary = parseDiff(`diff --git a/src/config.ts b/.env
+similarity index 90%
+rename from src/config.ts
+rename to .env
+--- a/src/config.ts
++++ b/.env
+@@ -1,2 +1,2 @@
+-OPENAI_API_KEY=placeholder
++OPENAI_API_KEY=sk-renamed-secret
+`);
+    expect(summary.files).toEqual([]);
+    expect(summary.excluded).toMatchObject([
+      { path: "src/config.ts -> .env", reason: "credentials" },
+    ]);
+    expect(summary.filteredDiff).not.toContain("sk-renamed-secret");
+  });
+
   test("records changed new-file ranges", () => {
     const [file] = parseDiff(SOURCE_DIFF).files;
     expect(file.changedRanges).toEqual([{ start: 9, end: 9 }]);

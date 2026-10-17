@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import reviewExtension, { __test__ } from "../src/review-v2.ts";
+import reviewExtension, { __test__ } from "../src/review.ts";
 
 const {
   takeFirstPathArg,

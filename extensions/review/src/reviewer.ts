@@ -20,6 +20,7 @@ import * as fs from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { credentialFileReason } from "./credentials.js";
 import { diffForFile } from "./diff.js";
 import { chooseSpecialist, type SpecialistRoute } from "./findings.js";
 import { describeReviewerTool, emitReviewProgress } from "./progress.js";
@@ -398,22 +399,85 @@ function nearestExistingPath(candidate: string): string | undefined {
   return current;
 }
 
-/**
- * Confine every reviewer filesystem tool to the repositories under review.
- * The stock tools accept absolute paths and follow symlinks; without this
- * guard a prompt-injected document could exfiltrate host files such as
- * ~/.pi/agent/auth.json back through the reviewer provider.
- */
-function createReviewerFileGuard(
-  scope: ReviewScope,
-): (raw: string | undefined) => void {
-  const roots = scope.repos.map(({ repo }) => {
+/** Repository roots with symlinks resolved once per tool set. */
+function reviewRoots(scope: ReviewScope): string[] {
+  return scope.repos.map(({ repo }) => {
     try {
       return fs.realpathSync(repo);
     } catch {
       return path.resolve(repo);
     }
   });
+}
+
+/** Repository root and relative posix path for a candidate inside one. */
+function locateRepositoryPath(
+  roots: readonly string[],
+  candidate: string,
+): { root: string; relative: string } | undefined {
+  for (const root of roots) {
+    const relative = path.relative(root, candidate);
+    if (!relative || relative.startsWith("..") || path.isAbsolute(relative))
+      continue;
+    return { root, relative: relative.split(path.sep).join("/") };
+  }
+  return undefined;
+}
+
+/**
+ * Build the credential-path predicate for one review scope. Besides
+ * credential-like names it blocks the destinations of renames whose diff was
+ * excluded (`old -> new` in `summary.excluded`): the destination still exists
+ * on disk and would otherwise be readable under a safe-looking name.
+ */
+function createCredentialPathCheck(
+  scope: ReviewScope,
+): (candidate: string) => boolean {
+  const roots = reviewRoots(scope);
+  const renamedByRoot = new Map<string, Set<string>>();
+  scope.repos.forEach(({ summary }, index) => {
+    const destinations = new Set<string>();
+    for (const excluded of summary?.excluded ?? []) {
+      if (
+        excluded.reason !== "credentials" &&
+        excluded.reason !== "private key"
+      )
+        continue;
+      const arrow = excluded.path.lastIndexOf(" -> ");
+      if (arrow === -1) continue;
+      const destination = excluded.path.slice(arrow + 4).trim();
+      if (destination) destinations.add(destination.replace(/\\/g, "/"));
+    }
+    renamedByRoot.set(roots[index], destinations);
+  });
+  return (candidate) => {
+    const located = locateRepositoryPath(roots, candidate);
+    if (!located) return false;
+    return (
+      renamedByRoot.get(located.root)?.has(located.relative) === true ||
+      credentialFileReason(located.relative) !== undefined
+    );
+  };
+}
+
+function credentialPathBlocked(raw: string): never {
+  throw new Error(
+    `Path '${raw}' is credential-like and is never available to reviewers. Use review_diff or an in-repository non-credential path.`,
+  );
+}
+
+/**
+ * Confine every reviewer filesystem tool to the repositories under review and
+ * reject credential-like paths inside them. The stock tools accept absolute
+ * paths and follow symlinks; without this guard a prompt-injected document
+ * could exfiltrate host files such as ~/.pi/agent/auth.json, or in-repository
+ * secrets such as .env, back through the reviewer provider.
+ */
+function createReviewerFileGuard(
+  scope: ReviewScope,
+): (raw: string | undefined) => void {
+  const roots = reviewRoots(scope);
+  const isCredential = createCredentialPathCheck(scope);
   const inside = (candidate: string) =>
     roots.some((root) => pathWithin(candidate, root));
   return (raw) => {
@@ -435,8 +499,19 @@ function createReviewerFileGuard(
       pathOutsideReview(raw);
     }
     if (!inside(real)) pathOutsideReview(raw);
+    // Check the requested and the resolved path so a symlink cannot smuggle
+    // either a credential name or a credential target into the session.
+    if (isCredential(resolved) || isCredential(real)) {
+      credentialPathBlocked(raw);
+    }
   };
 }
+
+type ReviewerTextFilter = (
+  text: string,
+  params: Record<string, unknown>,
+  ctx: Pick<ExtensionContext, "cwd"> | undefined,
+) => string;
 
 function guardReviewerTool<
   TParams extends TSchema,
@@ -445,38 +520,141 @@ function guardReviewerTool<
 >(
   definition: ToolDefinition<TParams, TDetails, TState>,
   guard: (params: Static<TParams>) => void,
+  filter?: ReviewerTextFilter,
 ): ToolDefinition<TParams, TDetails, TState> {
   return {
     ...definition,
     execute: async (toolCallId, params, signal, onUpdate, ctx) => {
       guard(params);
-      return definition.execute(toolCallId, params, signal, onUpdate, ctx);
+      const result = await definition.execute(
+        toolCallId,
+        params,
+        signal,
+        onUpdate,
+        ctx,
+      );
+      if (!filter) return result;
+      return {
+        ...result,
+        content: result.content.map((block) =>
+          block.type === "text"
+            ? {
+                ...block,
+                text: filter(
+                  block.text,
+                  params as Record<string, unknown>,
+                  ctx,
+                ),
+              }
+            : block,
+        ),
+      };
     },
   };
 }
 
+/** Search directory a stock tool would resolve for this call. */
+function toolSearchDir(
+  scope: ReviewScope,
+  ctx: Pick<ExtensionContext, "cwd"> | undefined,
+  params: Record<string, unknown>,
+): string {
+  const raw = typeof params.path === "string" ? params.path : ".";
+  const resolved = path.resolve(
+    ctx?.cwd ?? scope.repos[0].repo,
+    normalizeReviewerPath(raw),
+  );
+  // Tool output paths are relative to the search root; resolve it through
+  // realpath so the credential check compares against the resolved roots
+  // (macOS /var vs /private/var and symlinked repositories).
+  try {
+    return fs.realpathSync(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
+/**
+ * Drop grep output lines attributed to credential files. Match lines look
+ * like `<path>:<line>: <text>` and context lines like `<path>-<line>- <text>`.
+ * Every prefix that parses as a separator is checked, so file content cannot
+ * hide a credential prefix behind a similar sequence.
+ */
+function filterGrepText(
+  isCredential: (candidate: string) => boolean,
+  searchDir: string,
+  text: string,
+): string {
+  const kept = text.split("\n").filter((line) => {
+    for (let index = 0; index < line.length; index++) {
+      const separator = line[index];
+      if (separator !== ":" && separator !== "-") continue;
+      if (!/^\d+[:\-] /.test(line.slice(index + 1))) continue;
+      if (isCredential(path.resolve(searchDir, line.slice(0, index))))
+        return false;
+    }
+    return true;
+  });
+  return kept.join("\n") || "No matches found";
+}
+
+/** Drop path lines (find/ls output) that name credential files. */
+function filterPathLines(
+  isCredential: (candidate: string) => boolean,
+  searchDir: string,
+  text: string,
+): string {
+  return text
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (
+        !trimmed ||
+        trimmed.startsWith("[") ||
+        trimmed === "No files found matching pattern" ||
+        trimmed === "(empty directory)"
+      ) {
+        return true;
+      }
+      const pathOnly = trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+      return !isCredential(path.resolve(searchDir, pathOnly));
+    })
+    .join("\n");
+}
+
 /**
  * Read-only copies of the built-in filesystem tools, wrapped with a guard
- * that blocks paths outside the reviewed repositories. They replace the
- * unguarded stock tools by name in the reviewer session.
+ * that blocks paths outside the reviewed repositories and filters credential
+ * files out of directory scans (grep, find, ls). They replace the unguarded
+ * stock tools by name in the reviewer session.
  */
 function createConstrainedFileTools(
   scope: ReviewScope,
 ): ToolDefinition<any, any, any>[] {
   const cwd = scope.repos[0].repo;
+  const isCredential = createCredentialPathCheck(scope);
   const guard = createReviewerFileGuard(scope);
   return [
     guardReviewerTool(createReadToolDefinition(cwd), ({ path: filePath }) =>
       guard(filePath),
     ),
-    guardReviewerTool(createGrepToolDefinition(cwd), ({ path: searchPath }) =>
-      guard(searchPath),
+    guardReviewerTool(
+      createGrepToolDefinition(cwd),
+      ({ path: searchPath }) => guard(searchPath),
+      (text, params, ctx) =>
+        filterGrepText(isCredential, toolSearchDir(scope, ctx, params), text),
     ),
-    guardReviewerTool(createFindToolDefinition(cwd), ({ path: searchPath }) =>
-      guard(searchPath),
+    guardReviewerTool(
+      createFindToolDefinition(cwd),
+      ({ path: searchPath }) => guard(searchPath),
+      (text, params, ctx) =>
+        filterPathLines(isCredential, toolSearchDir(scope, ctx, params), text),
     ),
-    guardReviewerTool(createLsToolDefinition(cwd), ({ path: listPath }) =>
-      guard(listPath),
+    guardReviewerTool(
+      createLsToolDefinition(cwd),
+      ({ path: listPath }) => guard(listPath),
+      (text, params, ctx) =>
+        filterPathLines(isCredential, toolSearchDir(scope, ctx, params), text),
     ),
   ];
 }

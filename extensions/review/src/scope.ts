@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { devNull } from "node:os";
 import * as path from "node:path";
+import { credentialFileReason } from "./credentials.js";
 import { hashText, parseDiff } from "./diff.js";
 import type {
   CaptureScopeRequest,
@@ -279,40 +280,6 @@ function listUntracked(repo: string): string[] {
   return output.split("\0").filter(Boolean);
 }
 
-/**
- * Untracked files that look like credentials. Their content must never reach
- * a reviewer provider, even though they are unignored (and therefore part of
- * "all current work"). Excluding them beats redacting: no secret bytes are
- * ever read into the diff sent to the model.
- */
-const CREDENTIAL_FILE_PATTERNS: { pattern: RegExp; reason: string }[] = [
-  { pattern: /(?:^|\/)\.env(?:\..+)?$/, reason: "credentials" },
-  {
-    pattern: /(?:^|\/)\.(?:npmrc|pypirc|netrc|gemrc|yarnrc\.yml)$/,
-    reason: "credentials",
-  },
-  { pattern: /(?:^|\/)\.docker\/config\.json$/, reason: "credentials" },
-  {
-    pattern: /(?:^|\/)\.(?:token|secret|password)$/,
-    reason: "credentials",
-  },
-  {
-    pattern:
-      /(?:^|\/)[^/]*(?:credential|secret|token|password|passwd|service[-_]?account|api[-_]?key)[^/]*\.(?:json|ya?ml|toml|env|txt|csv)$/i,
-    reason: "credentials",
-  },
-  { pattern: /\.(?:pem|p12|pfx|ppk|key)$/i, reason: "private key" },
-  {
-    pattern: /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)(?:\.pub)?$/,
-    reason: "private key",
-  },
-];
-
-function untrackedCredentialReason(file: string): string | undefined {
-  return CREDENTIAL_FILE_PATTERNS.find(({ pattern }) => pattern.test(file))
-    ?.reason;
-}
-
 interface UntrackedDiffResult {
   chunks: string;
   excluded: ExcludedFileDiff[];
@@ -330,7 +297,7 @@ function appendUntrackedDiff(
   const excluded: ExcludedFileDiff[] = [];
   for (const file of listUntracked(repo)) {
     if (normalizedOnly && file !== normalizedOnly) continue;
-    const reason = untrackedCredentialReason(file);
+    const reason = credentialFileReason(file);
     if (reason) {
       excluded.push({ path: file, reason, linesAdded: 0, linesRemoved: 0 });
       continue;
@@ -414,7 +381,7 @@ function captureWithIndexSnapshot(
     const chunk = runGit(repo, [
       "diff",
       "--cached",
-      "--find-renames",
+      "--find-renames=20%",
       "--unified=3",
       baseOid,
       "--",
@@ -430,7 +397,7 @@ function captureWorkingTree(cwd: string, repo: string): RepoReviewSnapshot {
   const tracked = captureWithIndexSnapshot(
     repo,
     headOid,
-    runGit(repo, ["diff", "--find-renames", "--unified=3", headOid, "--"]),
+    runGit(repo, ["diff", "--find-renames=20%", "--unified=3", headOid, "--"]),
   );
   const untracked = appendUntrackedDiff(repo, tracked);
   return applyUntrackedExclusions(
@@ -459,7 +426,13 @@ function captureAuto(cwd: string, repo: string): RepoReviewSnapshot {
   const tracked = captureWithIndexSnapshot(
     repo,
     mergeBase,
-    runGit(repo, ["diff", "--find-renames", "--unified=3", mergeBase, "--"]),
+    runGit(repo, [
+      "diff",
+      "--find-renames=20%",
+      "--unified=3",
+      mergeBase,
+      "--",
+    ]),
   );
   const untracked = appendUntrackedDiff(repo, tracked);
   return applyUntrackedExclusions(
@@ -482,7 +455,7 @@ function captureStaged(cwd: string, repo: string): RepoReviewSnapshot {
   const diff = runGit(repo, [
     "diff",
     "--cached",
-    "--find-renames",
+    "--find-renames=20%",
     "--unified=3",
     headOid,
     "--",
@@ -513,7 +486,7 @@ function captureCommit(
     emptyTreeOid(repo);
   const diff = runGit(repo, [
     "diff",
-    "--find-renames",
+    "--find-renames=20%",
     "--unified=3",
     baseOid,
     headOid,
@@ -555,7 +528,13 @@ function captureBranch(
   const tracked = captureWithIndexSnapshot(
     repo,
     mergeBase,
-    runGit(repo, ["diff", "--find-renames", "--unified=3", mergeBase, "--"]),
+    runGit(repo, [
+      "diff",
+      "--find-renames=20%",
+      "--unified=3",
+      mergeBase,
+      "--",
+    ]),
   );
   const untracked = appendUntrackedDiff(repo, tracked);
   return applyUntrackedExclusions(
@@ -589,7 +568,7 @@ function captureFile(
     headOid,
     runGit(repo, [
       "diff",
-      "--find-renames",
+      "--find-renames=20%",
       "--unified=3",
       headOid,
       "--",

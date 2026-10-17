@@ -270,9 +270,7 @@ describe("markdown fence guard (patched @oh-my-pi/hashline)", () => {
       ["```", "newA", "newA2", "```"],
     );
     expect(echoRepairWarnings).toEqual([]);
-    expect(after).toBe(
-      "文本\n```\nnewA\nnewA2\n```\n```\ncode B\n```\n",
-    );
+    expect(after).toBe("文本\n```\nnewA\nnewA2\n```\n```\ncode B\n```\n");
   });
 
   test("adjacent fenced blocks, three in a row: NOT repaired", async () => {
@@ -324,9 +322,7 @@ describe("markdown fence guard (patched @oh-my-pi/hashline)", () => {
       ["```go", "newA", "newA2", "```"],
     );
     expect(echoRepairWarnings).toEqual([]);
-    expect(after).toBe(
-      "文本\n```go\nnewA\nnewA2\n```\n```\ncode B\n```\n",
-    );
+    expect(after).toBe("文本\n```go\nnewA\nnewA2\n```\n```\ncode B\n```\n");
   });
 });
 
@@ -352,7 +348,9 @@ describe("boundary echo WARN includes dropped-line content", () => {
       "SWAP 2.=3:",
       ["const b = 2;", "const c = 3;", "const d = 4;"],
     );
-    expect(after).toBe("const a = 1;\nconst b = 2;\nconst c = 3;\nconst d = 4;\n");
+    expect(after).toBe(
+      "const a = 1;\nconst b = 2;\nconst c = 3;\nconst d = 4;\n",
+    );
     expect(echoRepairWarnings.length).toBeGreaterThan(0);
     expect(echoRepairWarnings[0]).toMatch(/const d = 4;/);
   });
@@ -370,7 +368,9 @@ describe("boundary echo WARN includes dropped-line content", () => {
       "function f() {\n  const a = 10;\n  const b = 20;\n}\nconst z = 0;\n",
     );
     expect(echoRepairWarnings.length).toBeGreaterThan(0);
-    expect(echoRepairWarnings[0]).toMatch(/duplicated trailing payload line\(s\).*below the range: \}/);
+    expect(echoRepairWarnings[0]).toMatch(
+      /duplicated trailing payload line\(s\).*below the range: \}/,
+    );
   });
 
   test("duplicate-prefix repair surfaces the dropped line text", async () => {

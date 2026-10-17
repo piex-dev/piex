@@ -203,7 +203,6 @@ interface WorkspaceDiagnosticReport {
   items?: Array<{ uri?: string; items?: Diagnostic[] }>;
 }
 
-
 /** Timeout before we stop waiting for a server's initial project load. */
 const PROJECT_LOAD_TIMEOUT_MS = 15_000;
 
@@ -266,7 +265,6 @@ class LspClient {
   get lastActivity(): number {
     return this.#lastActivity;
   }
-
 
   /** Register a callback fired when the server process exits. */
   onExit(fn: () => void): void {
@@ -395,8 +393,7 @@ class LspClient {
         ),
       ],
       supported:
-        "diagnosticProvider" in this.#capabilities ||
-        registrations.length > 0,
+        "diagnosticProvider" in this.#capabilities || registrations.length > 0,
     };
   }
 
@@ -462,8 +459,7 @@ class LspClient {
     signal?: AbortSignal,
   ): Promise<DiagnosticReportResult> {
     const report = await this.request<
-      | { items?: Array<{ uri?: string; items?: Diagnostic[] }> }
-      | undefined
+      { items?: Array<{ uri?: string; items?: Diagnostic[] }> } | undefined
     >(
       "workspace/diagnostic",
       {
@@ -526,7 +522,12 @@ class LspClient {
       const ws = this.#workspacePullState();
       if (!ws.supported) return { items: [], matched: false };
       const wsResults = await Promise.all([
-        this.#requestWorkspaceDiagnosticReport(uri, undefined, timeoutMs, signal),
+        this.#requestWorkspaceDiagnosticReport(
+          uri,
+          undefined,
+          timeoutMs,
+          signal,
+        ),
         ...ws.identifiers.map((id) =>
           this.#requestWorkspaceDiagnosticReport(uri, id, timeoutMs, signal),
         ),
@@ -646,9 +647,7 @@ class LspClient {
       (result?.capabilities as Record<string, unknown>) ?? {};
     // Sync kind: 1 = full, 2 = incremental — drives didChange contentChanges.
     const sync = this.#capabilities.textDocumentSync as
-      | number
-      | { change?: number }
-      | undefined;
+      number | { change?: number } | undefined;
     this.#syncKind = typeof sync === "number" ? sync : (sync?.change ?? 1);
     // Fallback for servers that never send $/progress: treat loading as done
     // after a fixed budget so waitForProjectLoaded never hangs.
@@ -817,8 +816,7 @@ class LspClient {
     } else if (msg.method === "$/progress") {
       // Project-load tracking: all begin tokens ended ⇒ project loaded.
       const params = msg.params as
-        | { token?: string | number; value?: { kind?: string } }
-        | undefined;
+        { token?: string | number; value?: { kind?: string } } | undefined;
       const token = params?.token;
       const kind = params?.value?.kind;
       if (token !== undefined) {
@@ -867,10 +865,9 @@ class LspClient {
       return;
     }
     if (method === "client/registerCapability") {
-      const registrations = (
-        (params as { registrations?: unknown[] } | undefined)
-          ?.registrations ?? []
-      ) as Array<{
+      const registrations = ((
+        params as { registrations?: unknown[] } | undefined
+      )?.registrations ?? []) as Array<{
         id?: string;
         method?: string;
         registerOptions?: {
@@ -895,10 +892,9 @@ class LspClient {
       return;
     }
     if (method === "client/unregisterCapability") {
-      const registrations = (
-        (params as { unregisterations?: unknown[] } | undefined)
-          ?.unregisterations ?? []
-      ) as Array<{ id?: string; method?: string }>;
+      const registrations = ((
+        params as { unregisterations?: unknown[] } | undefined
+      )?.unregisterations ?? []) as Array<{ id?: string; method?: string }>;
       let changed = false;
       for (const reg of registrations) {
         if (reg.method !== "textDocument/diagnostic" || !reg.id) continue;
@@ -1048,7 +1044,6 @@ function dedupeDiagnostics(items: Diagnostic[]): Diagnostic[] {
     return true;
   });
 }
-
 
 function fileToUri(filePath: string): string {
   const abs = path.resolve(filePath);
@@ -1960,7 +1955,6 @@ function prewarmServer(cwd: string, absPath: string): void {
   })();
 }
 
-
 // ── Diagnostics target expansion ──────────────────────────
 // `diagnostics` accepts a single file, a directory, or a glob. Directories are
 // walked (≤4 levels, skipping vendor dirs) and globs match cwd-relative paths.
@@ -1980,7 +1974,11 @@ function globToRegExp(glob: string): RegExp {
   return new RegExp("^" + escaped + "$");
 }
 
-function collectFilesRecursive(dir: string, depth: number, out: string[]): void {
+function collectFilesRecursive(
+  dir: string,
+  depth: number,
+  out: string[],
+): void {
   if (depth > 4) return;
   let entries: fs.Dirent[];
   try {
@@ -2008,7 +2006,10 @@ function collectFilesRecursive(dir: string, depth: number, out: string[]): void 
 
 /** Expand a diagnostics target to an absolute file list, or null when it is a
  *  plain single file (handled by the existing path). */
-function expandDiagnosticsTargets(cwd: string, target: string): string[] | null {
+function expandDiagnosticsTargets(
+  cwd: string,
+  target: string,
+): string[] | null {
   const abs = path.resolve(cwd, target);
   if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
     const files: string[] = [];
@@ -2071,10 +2072,11 @@ async function resolveGoWorkspaceBuildPatterns(
   timeoutMs: number,
   signal?: AbortSignal,
 ): Promise<string[]> {
-  const { code, output } = await execCollect(
-    ["go", "work", "edit", "-json"],
-    { cwd, timeoutMs, signal },
-  );
+  const { code, output } = await execCollect(["go", "work", "edit", "-json"], {
+    cwd,
+    timeoutMs,
+    signal,
+  });
   if (code !== 0) return [];
   try {
     const parsed = JSON.parse(output) as {
@@ -2084,7 +2086,9 @@ async function resolveGoWorkspaceBuildPatterns(
       .map((u) => u.DiskPath)
       .filter((d): d is string => Boolean(d));
     // One argv entry per module — a joined string would be a single bogus path.
-    return dirs.map((d) => (d.startsWith(".") || d.startsWith("/") ? d : `./${d}`));
+    return dirs.map((d) =>
+      d.startsWith(".") || d.startsWith("/") ? d : `./${d}`,
+    );
   } catch {
     return [];
   }
@@ -2110,10 +2114,17 @@ async function detectProjectType(
     };
   }
   if (fs.existsSync(path.join(cwd, "go.work"))) {
-    const patterns = await resolveGoWorkspaceBuildPatterns(cwd, timeoutMs, signal);
+    const patterns = await resolveGoWorkspaceBuildPatterns(
+      cwd,
+      timeoutMs,
+      signal,
+    );
     return {
       type: "go",
-      command: patterns.length > 0 ? ["go", "build", ...patterns] : ["go", "build", "./..."],
+      command:
+        patterns.length > 0
+          ? ["go", "build", ...patterns]
+          : ["go", "build", "./..."],
       description: "Go workspace (go build)",
     };
   }
@@ -2134,7 +2145,11 @@ async function detectProjectType(
       description: "Python (pyright)",
     };
   }
-  return { type: "unknown", command: null, description: "Unknown project type" };
+  return {
+    type: "unknown",
+    command: null,
+    description: "Unknown project type",
+  };
 }
 
 /** Run the project-native checker; output capped at 50 lines (OMP-style). */
@@ -2144,7 +2159,11 @@ async function runWorkspaceDiagnostics(
   signal?: AbortSignal,
 ): Promise<{ output: string; projectType: string; command: string[] | null }> {
   if (signal?.aborted) throw new Error("Aborted");
-  const { type, command, description } = await detectProjectType(cwd, timeoutMs, signal);
+  const { type, command, description } = await detectProjectType(
+    cwd,
+    timeoutMs,
+    signal,
+  );
   if (!command) {
     return {
       output:
@@ -2153,7 +2172,11 @@ async function runWorkspaceDiagnostics(
       command: null,
     };
   }
-  const { code, output } = await execCollect(command, { cwd, timeoutMs, signal });
+  const { code, output } = await execCollect(command, {
+    cwd,
+    timeoutMs,
+    signal,
+  });
   if (signal?.aborted) throw new Error("Aborted");
   const combined = output.trim();
   if (!combined) {
@@ -2193,9 +2216,10 @@ function gcd(a: number, b: number): number {
  * the first indented line decides spaces vs tabs; for space indents, the GCD
  * of all space-indent widths gives the stride (2/4/6 file reports 2).
  */
-function detectIndentFromContent(
-  content: string,
-): { tabSize?: number; insertSpaces?: boolean } {
+function detectIndentFromContent(content: string): {
+  tabSize?: number;
+  insertSpaces?: boolean;
+} {
   if (content.length === 0) return {};
   let insertSpaces: boolean | undefined;
   let unit = 0;
@@ -2218,9 +2242,10 @@ function detectIndentFromContent(
 
 /** Minimal .editorconfig reader: walks up for the nearest file, honors
  *  `root`, reads indent_style / indent_size / tab_width for `*` sections. */
-function getEditorConfigFormatting(
-  filePath: string,
-): { tabSize?: number; insertSpaces?: boolean } {
+function getEditorConfigFormatting(filePath: string): {
+  tabSize?: number;
+  insertSpaces?: boolean;
+} {
   const startDir = path.dirname(filePath);
   let dir = startDir;
   for (;;) {
@@ -2301,7 +2326,11 @@ async function formatFileWithLsp(
   const serverRoot = getServerRootForFile(cwd, absPath);
   const server = getPrimaryServerForFile(serverRoot, absPath);
   if (!server) return 0;
-  const client = await getOrCreateServer(server.name, server.config, serverRoot);
+  const client = await getOrCreateServer(
+    server.name,
+    server.config,
+    serverRoot,
+  );
   const content = fs.readFileSync(absPath, "utf-8");
   client.syncFile(absPath);
   const options = resolveFormatOptions(absPath, content);
@@ -2386,23 +2415,24 @@ async function installServer(
 ): Promise<string | null> {
   const inst = config.install;
   if (!inst?.type || !inst.package) return null;
+  const pkg = inst.package;
   const inflight = pendingInstalls.get(name);
   if (inflight) return inflight;
 
   const promise = (async (): Promise<string | null> => {
     const installCmd: string[] | null =
       inst.type === "npm"
-        ? ["npm", "install", "-g", inst.package]
+        ? ["npm", "install", "-g", pkg]
         : inst.type === "pip"
-          ? ["pip3", "install", "--user", inst.package]
+          ? ["pip3", "install", "--user", pkg]
           : inst.type === "go"
-            ? ["go", "install", inst.package]
+            ? ["go", "install", pkg]
             : inst.type === "rustup"
-              ? ["rustup", "component", "add", inst.package]
+              ? ["rustup", "component", "add", pkg]
               : inst.type === "cargo"
-                ? ["cargo", "install", inst.package]
+                ? ["cargo", "install", pkg]
                 : inst.type === "brew"
-                  ? ["brew", "install", inst.package]
+                  ? ["brew", "install", pkg]
                   : null;
     if (!installCmd) return null;
     try {
@@ -2648,8 +2678,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
                 for (const sv of r.servers) servers.add(sv);
               }
             }
-            if (!lines.length)
-              return ok(`No diagnostics for ${params.file}`);
+            if (!lines.length) return ok(`No diagnostics for ${params.file}`);
             const truncated =
               lines.length > MAX_GLOB_DIAGNOSTIC_TARGETS
                 ? lines.slice(0, MAX_GLOB_DIAGNOSTIC_TARGETS)
@@ -2694,9 +2723,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
         // The $/progress tracker resolves once loading is done; the 15s
         // fallback timer bounds the wait, and failures never block.
         if (NAV_ACTIONS.has(action)) {
-          await client
-            .waitForProjectLoaded(timeoutMs, abort)
-            .catch(() => {});
+          await client.waitForProjectLoaded(timeoutMs, abort).catch(() => {});
         }
         if (needPos && (typeof params.line !== "number" || params.line < 1)) {
           throw new Error(`'line' (1-indexed) required for ${action}`);
@@ -2780,15 +2807,15 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
           ) => {
             for (const s of arr) {
               const icon = SYMBOL_KINDS[s.kind] ?? "?";
-              if ("children" in s) {
+              if ("location" in s) {
+                lines.push(
+                  `${indent}${icon} ${s.name} — ${formatLocation(s.location)}`,
+                );
+              } else {
                 lines.push(
                   `${indent}${icon} ${s.name} (L${s.range.start.line + 1}-L${s.range.end.line + 1})`,
                 );
                 if (s.children?.length) walk(s.children, indent + "  ");
-              } else {
-                lines.push(
-                  `${indent}${icon} ${s.name} — ${formatLocation(s.location)}`,
-                );
               }
             }
           };
@@ -3054,7 +3081,7 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
 
     const content = Array.isArray(event.content)
       ? event.content
-      : [{ type: "text", text: String(event.content ?? "") }];
+      : [{ type: "text" as const, text: String(event.content ?? "") }];
     const textBlocks = content
       .filter((c): c is { type: "text"; text: string } => c.type === "text")
       .map((c) => c.text);
@@ -3123,11 +3150,11 @@ Post-edit diagnostics: after edit/write, ERROR diagnostics are appended automati
       const updated = [...content];
       const firstText = updated.findIndex((c) => c.type === "text");
       if (firstText >= 0) {
-        updated[firstText] = {
-          ...updated[firstText],
-          text: `${(updated[firstText] as { text: string }).text}${suffix}`,
-        };
-        return { content: updated };
+        const block = updated[firstText];
+        if (block.type === "text") {
+          updated[firstText] = { ...block, text: `${block.text}${suffix}` };
+          return { content: updated };
+        }
       }
       return {
         content: [...content, { type: "text", text: suffix.trimStart() }],

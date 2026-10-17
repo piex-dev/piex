@@ -347,6 +347,180 @@ describe("reviewer file confinement", () => {
     expect(() => guard("@/etc/passwd")).toThrow(/outside/);
     expect(() => guard("@inside.ts")).not.toThrow();
   });
+
+  test("rejects credential paths and filters credential output from tools", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "piex-review-guard-"));
+    tempDirs.push(root);
+    const repo = path.join(root, "repo");
+    fs.mkdirSync(repo);
+    fs.writeFileSync(
+      path.join(repo, ".env"),
+      "OPENAI_API_KEY=sk-live-secret\n",
+    );
+    fs.writeFileSync(path.join(repo, "id_rsa"), "ssh key material\n");
+    fs.mkdirSync(path.join(repo, ".aws"));
+    fs.writeFileSync(
+      path.join(repo, ".aws", "credentials"),
+      "[default]\naws_secret_access_key = sk-aws-secret\n",
+    );
+    fs.writeFileSync(
+      path.join(repo, ".env.example"),
+      "OPENAI_API_KEY=your-key-here\n",
+    );
+    fs.writeFileSync(path.join(repo, "legit.ts"), "export const ok = true;\n");
+    fs.mkdirSync(path.join(repo, "src"));
+    fs.writeFileSync(
+      path.join(repo, "src", "app.ts"),
+      "export const ok = true;\n",
+    );
+    const guardScope = {
+      repos: [{ repo, label: "repo" }],
+    } as never;
+
+    const guard = __test__.createReviewerFileGuard(guardScope);
+    expect(() => guard("src/app.ts")).not.toThrow();
+    expect(() => guard(".env")).toThrow(/credential-like/);
+    expect(() => guard(".ENV")).toThrow(/credential-like/);
+    expect(() => guard("id_rsa")).toThrow(/credential-like/);
+    expect(() => guard(".aws/credentials")).toThrow(/credential-like/);
+    expect(() => guard(".env.example")).not.toThrow();
+
+    const tools = __test__.createConstrainedFileTools(guardScope) as Array<{
+      name: string;
+      execute: (
+        toolCallId: string,
+        params: Record<string, unknown>,
+        signal?: AbortSignal,
+        onUpdate?: unknown,
+        ctx?: unknown,
+      ) => Promise<{ content: Array<{ type: string; text?: string }> }>;
+    }>;
+    const run = async (name: string, params: Record<string, unknown>) => {
+      const tool = tools.find((candidate) => candidate.name === name);
+      const result = await tool!.execute(
+        name,
+        params,
+        undefined,
+        undefined,
+        {},
+      );
+      return result.content
+        .map((block) => (block.type === "text" ? (block.text ?? "") : ""))
+        .join("\n");
+    };
+
+    await expect(run("read", { path: ".env" })).rejects.toThrow(
+      /credential-like/,
+    );
+    await expect(run("read", { path: ".ENV" })).rejects.toThrow(
+      /credential-like/,
+    );
+    await expect(run("read", { path: ".aws/credentials" })).rejects.toThrow(
+      /credential-like/,
+    );
+    expect(await run("read", { path: ".env.example" })).toContain(
+      "your-key-here",
+    );
+    await expect(run("grep", { pattern: "x", path: ".env" })).rejects.toThrow(
+      /credential-like/,
+    );
+
+    const grepOutput = await run("grep", {
+      pattern: "sk-live-secret",
+      path: ".",
+    });
+    expect(grepOutput).not.toContain("sk-live-secret");
+    expect(grepOutput).not.toContain(".env");
+
+    const awsGrepOutput = await run("grep", {
+      pattern: "sk-aws-secret",
+      path: ".",
+    });
+    expect(awsGrepOutput).not.toContain("sk-aws-secret");
+
+    const lsOutput = await run("ls", { path: "." });
+    const lsEntries = lsOutput.split("\n");
+    expect(lsEntries).not.toContain(".env");
+    expect(lsEntries).not.toContain("id_rsa");
+    expect(lsEntries).not.toContain(".ENV");
+    expect(lsEntries).toContain(".env.example");
+    expect(lsEntries).toContain("legit.ts");
+
+    const findOutput = await run("find", { pattern: "**/*", path: "." });
+    const findEntries = findOutput.split("\n");
+    expect(findEntries).not.toContain(".env");
+    expect(findEntries).not.toContain("id_rsa");
+    expect(findEntries).not.toContain(".ENV");
+    expect(findEntries).not.toContain(".aws/credentials");
+    expect(findEntries).toContain(".env.example");
+    expect(findEntries).toContain("legit.ts");
+  });
+
+  test("blocks rename destinations recorded as excluded credentials", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "piex-review-rename-"));
+    tempDirs.push(root);
+    const repo = path.join(root, "repo");
+    fs.mkdirSync(path.join(repo, "src"), { recursive: true });
+    fs.writeFileSync(
+      path.join(repo, "src", "config.ts"),
+      "SECRET=sk-renamed-secret\n",
+    );
+    fs.writeFileSync(
+      path.join(repo, "src", "legit.ts"),
+      "export const ok = true;\n",
+    );
+    const scope = {
+      repos: [
+        {
+          repo,
+          label: "repo",
+          summary: {
+            excluded: [
+              { path: ".env -> src/config.ts", reason: "credentials" },
+            ],
+          },
+        },
+      ],
+    } as never;
+
+    const guard = __test__.createReviewerFileGuard(scope);
+    expect(() => guard("src/config.ts")).toThrow(/credential-like/);
+    expect(() => guard("src/legit.ts")).not.toThrow();
+
+    const tools = __test__.createConstrainedFileTools(scope) as Array<{
+      name: string;
+      execute: (
+        toolCallId: string,
+        params: Record<string, unknown>,
+        signal?: AbortSignal,
+        onUpdate?: unknown,
+        ctx?: unknown,
+      ) => Promise<{ content: Array<{ type: string; text?: string }> }>;
+    }>;
+    const run = async (name: string, params: Record<string, unknown>) => {
+      const tool = tools.find((candidate) => candidate.name === name);
+      const result = await tool!.execute(
+        name,
+        params,
+        undefined,
+        undefined,
+        {},
+      );
+      return result.content
+        .map((block) => (block.type === "text" ? (block.text ?? "") : ""))
+        .join("\n");
+    };
+
+    await expect(run("read", { path: "src/config.ts" })).rejects.toThrow(
+      /credential-like/,
+    );
+    expect(
+      await run("grep", { pattern: "sk-renamed-secret", path: "." }),
+    ).not.toContain("sk-renamed-secret");
+    const lsEntries = (await run("ls", { path: "src" })).split("\n");
+    expect(lsEntries).not.toContain("config.ts");
+    expect(lsEntries).toContain("legit.ts");
+  });
 });
 
 describe("reviewer model runtime", () => {

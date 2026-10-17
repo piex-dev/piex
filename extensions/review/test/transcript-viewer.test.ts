@@ -1,6 +1,6 @@
 import { describe, expect, spyOn, test } from "bun:test";
 import { truncateToVisualLines } from "@earendil-works/pi-coding-agent";
-import reviewExtension, { __test__ as reviewTest } from "../src/review-v2.ts";
+import reviewExtension, { __test__ as reviewTest } from "../src/review.ts";
 import { REVIEW_RUN_ENTRY } from "../src/state.ts";
 import { ReviewerTranscriptStore } from "../src/transcript.ts";
 import {

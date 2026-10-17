@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import * as path from "node:path";
+import { credentialFileReason } from "./credentials.js";
 import type {
   ChangedRange,
   DiffSummary,
@@ -74,6 +75,16 @@ function parseNewPath(chunk: string): string | undefined {
   return newPath.startsWith("b/") ? newPath.slice(2) : newPath;
 }
 
+function parseOldPath(chunk: string): string | undefined {
+  const header = chunk.slice(
+    0,
+    chunk.indexOf("\n") === -1 ? undefined : chunk.indexOf("\n"),
+  );
+  const [oldPath] = parseHeaderTokens(header);
+  if (!oldPath) return undefined;
+  return oldPath.startsWith("a/") ? oldPath.slice(2) : oldPath;
+}
+
 function parseChangedRanges(chunk: string): ChangedRange[] {
   const changedLines = new Set<number>();
   let newLine = 0;
@@ -126,11 +137,32 @@ export function parseDiff(raw: string): DiffSummary {
   for (const chunk of raw.split(/^diff --git /m).filter(Boolean)) {
     const filePath = parseNewPath(chunk);
     if (!filePath) continue;
+    const oldPath = parseOldPath(chunk);
     let linesAdded = 0;
     let linesRemoved = 0;
     for (const line of chunk.split("\n")) {
       if (line.startsWith("+") && !line.startsWith("+++")) linesAdded++;
       else if (line.startsWith("-") && !line.startsWith("---")) linesRemoved++;
+    }
+
+    // A rename keeps its credential content in the destination chunk. Classify
+    // both sides so `git mv .env src/config.ts` cannot smuggle secrets past
+    // the path-based filters.
+    const credentialReason =
+      credentialFileReason(filePath) ??
+      (oldPath ? credentialFileReason(oldPath) : undefined);
+    if (credentialReason) {
+      const label =
+        oldPath && oldPath !== filePath
+          ? `${oldPath} -> ${filePath}`
+          : filePath;
+      excluded.push({
+        path: label,
+        reason: credentialReason,
+        linesAdded,
+        linesRemoved,
+      });
+      continue;
     }
 
     const reason = exclusionReason(filePath);

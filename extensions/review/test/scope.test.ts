@@ -139,6 +139,68 @@ describe("captureReviewScope", () => {
     ]);
   });
 
+  test("never sends staged credential files to the reviewer", () => {
+    const repo = createRepo();
+    fs.writeFileSync(
+      path.join(repo, ".env"),
+      "OPENAI_API_KEY=sk-staged-secret\n",
+    );
+    git(repo, ["add", "-f", ".env"]);
+
+    const scope = captureReviewScope(repo, [repo], { kind: "staged" });
+    const summary = scope.repos[0].summary;
+    expect(summary.filteredDiff).not.toContain("sk-staged-secret");
+    expect(summary.files.map(({ path: file }) => file)).not.toContain(".env");
+    expect(summary.excluded.map(({ path: file }) => file)).toContain(".env");
+  });
+
+  test("never sends tracked credential changes to the reviewer", () => {
+    const repo = createRepo();
+    fs.writeFileSync(
+      path.join(repo, ".env"),
+      "OPENAI_API_KEY=sk-live-secret\n",
+    );
+    git(repo, ["add", "-f", ".env"]);
+    git(repo, ["commit", "-m", "add env"]);
+    fs.writeFileSync(
+      path.join(repo, ".env"),
+      "OPENAI_API_KEY=sk-rotated-secret\n",
+    );
+
+    const scope = captureReviewScope(repo, [repo], { kind: "working-tree" });
+    const summary = scope.repos[0].summary;
+    expect(summary.filteredDiff).not.toContain("sk-rotated-secret");
+    expect(summary.files.map(({ path: file }) => file)).not.toContain(".env");
+    expect(summary.excluded.map(({ path: file }) => file)).toContain(".env");
+  });
+
+  test("excludes a small credential file renamed to a safe path", () => {
+    const repo = createRepo();
+    fs.writeFileSync(
+      path.join(repo, ".env"),
+      "SECRET=sk-original-secret\nA=1\nB=2\nC=3\nD=4\nE=5\nF=6\nG=7\nH=8\n",
+    );
+    git(repo, ["add", "-f", ".env"]);
+    git(repo, ["commit", "-m", "add env"]);
+    fs.mkdirSync(path.join(repo, "src"));
+    git(repo, ["mv", ".env", "src/config.ts"]);
+    fs.writeFileSync(
+      path.join(repo, "src", "config.ts"),
+      "SECRET=sk-rotated-secret\nA=1\nB=2\nC=3\nD=4\nE=5\nF=6\nG=7\nH=9\n",
+    );
+    git(repo, ["add", "-A"]);
+
+    const scope = captureReviewScope(repo, [repo], { kind: "staged" });
+    const summary = scope.repos[0].summary;
+    expect(summary.filteredDiff).not.toContain("sk-rotated-secret");
+    expect(summary.files.map(({ path: file }) => file)).not.toContain(
+      "src/config.ts",
+    );
+    expect(summary.excluded.map(({ path: file }) => file)).toContain(
+      ".env -> src/config.ts",
+    );
+  });
+
   test("rejects blank repository entries instead of falling back to cwd", () => {
     const repo = createRepo();
     const result = resolveRepos(repo, [""]);

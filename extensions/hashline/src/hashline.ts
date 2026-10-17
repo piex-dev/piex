@@ -424,7 +424,8 @@ export function buildEditPreview(
     const bLines = after.split("\n").length;
     const delta = bLines - aLines;
     return {
-      preview: `diff (+${Math.max(0, delta)}/-${Math.max(0, -delta)}): ` +
+      preview:
+        `diff (+${Math.max(0, delta)}/-${Math.max(0, -delta)}): ` +
         `file too large for line diff (${aLines} → ${bLines} lines)`,
       removedLines: [],
     };
@@ -521,7 +522,8 @@ export default function hashlineExtension(pi: ExtensionAPI) {
       for (let i = 0; i < patch.sections.length; i++) {
         const section = patch.sections[i];
         const sectionPath = path.resolve(cwd, section.path);
-        if (!editGuard.isDuplicateApplied(sectionPath, sectionKeys[i])) continue;
+        if (!editGuard.isDuplicateApplied(sectionPath, sectionKeys[i]))
+          continue;
         try {
           const raw = await fsp.readFile(sectionPath, "utf-8");
           const { text: content } = stripBom(raw);
@@ -763,7 +765,7 @@ export default function hashlineExtension(pi: ExtensionAPI) {
 
     const content = Array.isArray(event.content)
       ? event.content
-      : [{ type: "text", text: String(event.content ?? "") }];
+      : [{ type: "text" as const, text: String(event.content ?? "") }];
 
     // ── P0: read 输出行号化 ────────────────────────────────────────
     // pi 内置 read 的 content 是裸文件文本（行号只在终端渲染层出现），
@@ -777,13 +779,16 @@ export default function hashlineExtension(pi: ExtensionAPI) {
     // 后续块保持原样（其行号也无法从第一块延续，防御性注释）。
     const updated = [...content];
     let seenLines: number[] = [];
-    const firstTextIdx = updated.findIndex((c: any) => c.type === "text");
+    const firstTextIdx = updated.findIndex((c) => c.type === "text");
     if (firstTextIdx >= 0) {
-      const raw = updated[firstTextIdx].text;
-      if (!/^Read image file\b/.test(raw)) {
-        const numbered = numberizeReadBody(raw, startLine);
-        updated[firstTextIdx] = { ...updated[firstTextIdx], text: numbered.text };
-        seenLines = numbered.seenLines;
+      const block = updated[firstTextIdx];
+      if (block.type === "text") {
+        const raw = block.text;
+        if (!/^Read image file\b/.test(raw)) {
+          const numbered = numberizeReadBody(raw, startLine);
+          updated[firstTextIdx] = { ...block, text: numbered.text };
+          seenLines = numbered.seenLines;
+        }
       }
     }
 
@@ -802,11 +807,11 @@ export default function hashlineExtension(pi: ExtensionAPI) {
     // Prepend [filePath#tag] header to the first text block
     const header = formatHashlineHeader(filePath, tag);
     if (firstTextIdx >= 0) {
-      updated[firstTextIdx] = {
-        ...updated[firstTextIdx],
-        text: `${header}\n${updated[firstTextIdx].text}`,
-      };
-      return { content: updated };
+      const block = updated[firstTextIdx];
+      if (block.type === "text") {
+        updated[firstTextIdx] = { ...block, text: `${header}\n${block.text}` };
+        return { content: updated };
+      }
     }
 
     return {
